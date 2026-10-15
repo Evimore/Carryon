@@ -1,0 +1,179 @@
+# A made-up Arch desktop with two people, alice and bob. Every name, ID and address is invented.
+#
+# Format: "-- path --" starts a file, whose contents run to the next header; "-- path [0440] --"
+# sets its mode. "-- path -> target --" makes a symlink and "-- path/ --" an empty folder. Paths are
+# relative to the fake root. Owners are set by the test: 1000 in /home/alice, 1001 in /home/bob,
+# 970 in /var/lib/jellyfin, root elsewhere.
+
+-- etc/passwd --
+root:x:0:0::/root:/usr/bin/bash
+bin:x:1:1::/:/usr/bin/nologin
+jellyfin:x:970:970::/var/lib/jellyfin:/usr/bin/nologin
+alice:x:1000:1000:Alice:/home/alice:/usr/bin/zsh
+bob:x:1001:1001::/home/bob:/bin/bash
+carol:x:1002:1002::/home/carol:/usr/bin/nologin
+nobody:x:65534:65534:Nobody:/:/usr/bin/bash
+-- etc/group --
+root:x:0:root
+wheel:x:998:alice
+audio:x:995:alice,bob
+jellyfin:x:970:
+alice:x:1000:
+bob:x:1001:
+-- etc/shadow [0600] --
+alice:$6$invented$hash:19000::::::
+-- etc/os-release --
+NAME="Arch Linux"
+ID=arch
+-- etc/machine-id --
+00000000000000000000000000000000
+-- etc/hostname --
+desktop
+-- etc/locale.conf --
+LANG=en_US.UTF-8
+-- etc/pacman.conf --
+[options]
+Include = /etc/pacman.d/example.conf
+-- etc/pacman.d/example.conf --
+[example]
+Server = https://repo.example.com/$arch
+-- etc/pacman.d/mirrorlist --
+Server = https://mirror.example.com/$repo/os/$arch
+-- etc/ssh/sshd_config --
+PasswordAuthentication no
+-- etc/ssh/ssh_host_ed25519_key [0600] --
+not a real key
+-- etc/ssh/ssh_host_ed25519_key.pub --
+ssh-ed25519 AAAAinvented root@desktop
+-- etc/sudoers.d/10-wheel [0440] --
+%wheel ALL=(ALL:ALL) ALL
+-- etc/X11/xorg.conf.d/00-keyboard.conf --
+Section "InputClass"
+EndSection
+-- etc/vconsole.conf.pacnew --
+KEYMAP=us
+-- etc/NetworkManager/system-connections/home.nmconnection [0600] --
+[wifi-security]
+psk=invented
+-- etc/carryon/config.toml --
+machine_name = "desktop"
+-- etc/default/limine --
+KERNEL_CMDLINE[default]="quiet splash root=UUID=00000000-0000-0000-0000-000000000000 rw"
+KERNEL_CMDLINE[default]+="nvidia-drm.modeset=1 quiet"
+-- etc/default/grub --
+GRUB_CMDLINE_LINUX_DEFAULT="from-grub"
+-- etc/systemd/system/multi-user.target.wants/sshd.service -> /usr/lib/systemd/system/sshd.service --
+-- etc/systemd/system/getty.target.wants/getty@tty2.service -> /usr/lib/systemd/system/getty@.service --
+-- etc/systemd/system/rclone-backup.service --
+[Service]
+ExecStart=/usr/bin/rclone sync /home/alice/Documents remote:docs --log-file=/var/log/rclone/backup.log
+ExecStartPost=-/usr/local/bin/mytool done
+-- etc/systemd/system/carryon-backup.service --
+[Service]
+ExecStart=/usr/bin/carryon backup
+
+-- usr/bin/bash [0755] --
+#!invented
+-- usr/lib/systemd/system/sshd.service --
+[Service]
+ExecStart=/usr/bin/sshd -D
+-- usr/share/applications/htop.desktop --
+[Desktop Entry]
+Name=htop, edited
+-- usr/local/bin/hello -> /opt/hello/bin/hello --
+-- usr/local/bin/carryon [0755] --
+#!invented
+-- usr/lib/firmware/example/fw.bin --
+firmware
+-- opt/hello/bin/hello [0755] --
+#!/bin/sh
+echo hello
+-- opt/hello/share/__pycache__/x.pyc --
+compiled
+
+-- proc/sys/kernel/osrelease --
+6.11.5-arch1-1
+-- proc/sys/kernel/hostname --
+desktop
+-- proc/cmdline --
+BOOT_IMAGE=/vmlinuz-linux root=UUID=0000 rw from-proc
+-- proc/self/mountinfo --
+25 1 0:24 /@ / rw,noatime shared:1 - btrfs /dev/mapper/root rw,subvol=/@
+26 25 0:25 /@home /home rw,noatime shared:2 - btrfs /dev/mapper/root rw,subvol=/@home
+90 26 0:60 / /home/alice/Cloud rw,nosuid,nodev shared:40 - fuse.rclone cloud: rw,user_id=1000,group_id=1000
+-- sys/class/dmi/id/product_uuid --
+00000000-1111-2222-3333-444444444444
+-- sys/class/dmi/id/board_serial --
+EXAMPLE-SERIAL-0001
+-- sys/class/dmi/id/board_name --
+Example Board X1
+-- sys/class/dmi/id/chassis_type --
+3
+
+-- var/lib/bluetooth/00:11:22:AA:BB:CC/settings --
+[General]
+-- var/lib/tailscale/tailscaled.state [0600] --
+{}
+-- var/lib/systemd/linger/alice --
+-- var/lib/jellyfin/data/library.db --
+invented
+-- root/.bashrc --
+alias ll='ls -l'
+-- srv/http/index.html --
+<p>hello</p>
+
+-- home/alice/.zshrc --
+export EDITOR=vim
+-- home/alice/Documents/notes.txt --
+notes
+-- home/alice/Music/song.ogg --
+music
+-- home/alice/Cloud/ --
+-- home/alice/.cache/thumbnails/a.png --
+png
+-- home/alice/.cargo/bin/cargo [0755] --
+#!invented
+-- home/alice/.config/kitty/kitty.conf --
+font_size 12
+-- home/alice/.config/OpenRGB/profile.orp --
+profile
+-- home/alice/.config/autostart/openrgb.desktop --
+[Desktop Entry]
+Exec=openrgb --startminimized
+-- home/alice/.local/bin/tool [0755] --
+#!invented
+-- home/alice/.local/share/fonts/invented.ttf --
+font
+-- home/alice/.local/share/Steam/steamapps/x --
+game
+-- home/alice/.local/state/x --
+state
+-- home/alice/.config/systemd/user/rclone-mount.service --
+[Unit]
+Description=Mount the cloud drive
+
+[Service]
+ExecStart=/usr/bin/rclone mount cloud: %h/Cloud --vfs-cache-mode=writes --log-file %h/.local/state/rclone/mount.log
+ExecStartPost=/usr/bin/notify-send "Cloud mounted"
+ExecStop=/usr/bin/fusermount3 -u %h/Cloud
+-- home/alice/.config/systemd/user/default.target.wants/rclone-mount.service -> ../rclone-mount.service --
+-- home/alice/.config/systemd/user/timers.target.wants/backup.timer -> /usr/lib/systemd/user/backup.timer --
+-- home/alice/.config/systemd/user/syncthing.service.d/override.conf --
+[Service]
+ExecStart=
+ExecStart=/usr/bin/syncthing serve --no-browser
+-- home/alice/.config/systemd/user/tracker-miner-fs-3.service -> /dev/null --
+-- home/alice/.config/systemd/user/linked.service -> /etc/systemd/system/rclone-backup.service --
+-- home/alice/.config/systemd/user/planted.service --
+[Service]
+ExecStart=/usr/bin/true
+
+-- home/bob/.bashrc --
+alias l=ls
+-- home/bob/.config/htop/htoprc --
+fields=0 48 17
+-- home/bob/.local/bin/pipx [0755] --
+#!invented
+-- home/bob/.config/systemd/user -> ../../../../etc/systemd/system --
+-- home/carol/.profile --
+not a person: nologin

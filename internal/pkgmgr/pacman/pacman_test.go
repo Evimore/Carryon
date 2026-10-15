@@ -153,6 +153,7 @@ func TestLists(t *testing.T) {
 	f := newFake(t)
 	f.file("pacman -Qq", "qq.txt", nil)
 	f.file("pacman -Slq", "qqen.txt", nil)
+	f.file("pacman -Sl", "sl.txt", nil)
 	f.file("pacman -Qlq", "qlq.txt", nil)
 	f.file("pacman -Ql htop openssh", "ql.txt", nil)
 	f.replies["pacman -Q"] = reply{[]byte("bash 5.2.037-1\nzsh 5.9-5\n"), nil}
@@ -165,6 +166,10 @@ func TestLists(t *testing.T) {
 	sync, err := p.SyncPackages(ctx)
 	if err != nil || len(sync) != 11 || sync[10] != "gone-from-repos" {
 		t.Errorf("SyncPackages = %v, %v", sync, err)
+	}
+	repos, err := p.SyncRepos(ctx)
+	if err != nil || repos["htop"] != "extra" || repos["example-tool"] != "example" || repos["steam"] != "multilib" {
+		t.Errorf("SyncRepos = %v, %v; want htop from extra (listed first), example-tool from example", repos, err)
 	}
 	owned, err := p.OwnedFiles(ctx)
 	wantOwned := []string{"/etc", "/etc/ssh", "/etc/ssh/sshd_config", "/usr", "/usr/bin", "/usr/bin/htop",

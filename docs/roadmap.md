@@ -87,7 +87,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   in `capture_files` and `make_plan`.
 - **Done when:** parsing is tested with recorded pacman output.
 
-### T07 Capture ⬜
+### T07 Capture ✅
 - **Package:** `internal/capture`.
 - **Scope:** files, services, user units for every included user, unit needs, kernel parameters,
   users' groups and shells, language tools, backed-up paths, and the capture run that assembles the

@@ -172,6 +172,16 @@ func (p *Pacman) SyncPackages(ctx context.Context) ([]string, error) {
 	return p.names(ctx, "-Slq")
 }
 
+// SyncRepos maps each package the configured repositories offer to its repository (`pacman -Sl`).
+// When several repositories have a package, the first one listed wins, as it does for pacman.
+func (p *Pacman) SyncRepos(ctx context.Context) (map[string]string, error) {
+	out, err := p.pacman(ctx, "-Sl")
+	if err != nil {
+		return nil, err
+	}
+	return parseSyncList(out), nil
+}
+
 // OwnedFiles lists every path an installed package owns (`pacman -Qlq`), without trailing slashes.
 func (p *Pacman) OwnedFiles(ctx context.Context) ([]string, error) {
 	out, err := p.pacman(ctx, "-Qlq")

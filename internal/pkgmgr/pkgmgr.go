@@ -82,6 +82,9 @@ type Manager interface {
 	Versions(ctx context.Context) ([]byte, error)
 	// SyncPackages lists the packages the configured repositories offer.
 	SyncPackages(ctx context.Context) ([]string, error)
+	// SyncRepos maps each package the configured repositories offer to the repository it would be
+	// installed from.
+	SyncRepos(ctx context.Context) (map[string]string, error)
 
 	// OwnedFiles lists every path an installed package owns, without trailing slashes.
 	OwnedFiles(ctx context.Context) ([]string, error)

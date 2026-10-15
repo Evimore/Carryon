@@ -162,6 +162,21 @@ Kept from the prototype, with generalizations marked.
   download themselves again, each with how it comes back. **Generalized:** these hints come from the
   [catalog](#configuration), not from code.
 
+Where capture differs from the prototype on purpose:
+
+- **Several users:** groups, shells, user units, language tools and home entries are captured for
+  each user and carry `user`; user units go to `user-units/<user>/`. System-wide Flatpak apps are
+  recorded once (`scope: system`, no user), and each user's own apps with `scope: user`. The
+  not-backed-up list has one part per user.
+- **A user's folders don't widen what root reads:** a user's unit folder that leads out of their
+  home through a symlink is skipped, and so are unit files someone else owns.
+- `%h` in a system unit's `Exec` line means `/root`, as systemd reads it; the prototype used the
+  user's home.
+- Kernel parameters read from the running kernel (no bootloader config found) have
+  `source: /proc/cmdline`; the prototype wrote `None`.
+- `edited` files are only taken from `/etc`, `/usr` and `/opt`, like `unowned` ones.
+- Folders the capture couldn't read (without root) are listed in `skipped.txt` too.
+
 ## Bundles and when-rules
 
 Kept from the prototype. Items are grouped into bundles in this order of precedence:

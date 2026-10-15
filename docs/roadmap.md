@@ -31,7 +31,7 @@ T16 terminal UI (any time) ─► T17 init + recovery kit + migration
 T18 notify ─► T19 packaging ─► T20 end-to-end tests
 ```
 
-### T01 Program runner ⬜
+### T01 Program runner ✅
 - **Package:** `internal/sysexec`.
 - **Scope:** run a program and capture its output (with a timeout), run it attached to the terminal,
   run it as another user with that user's `HOME`, `XDG_RUNTIME_DIR` and session bus (like

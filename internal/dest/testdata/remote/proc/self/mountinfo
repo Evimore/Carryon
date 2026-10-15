@@ -1,0 +1,16 @@
+21 26 0:20 / /proc rw,nosuid,nodev,noexec,relatime shared:5 - proc proc rw
+22 26 0:21 / /sys rw,nosuid,nodev,noexec,relatime shared:6 - sysfs sys rw
+23 26 0:5 / /dev rw,nosuid,relatime shared:2 - devtmpfs dev rw,size=8000000k,nr_inodes=2000000,mode=755
+25 26 0:24 / /run rw,nosuid,nodev,relatime shared:12 - tmpfs run rw,mode=755
+26 1 0:26 /@ / rw,noatime shared:1 - btrfs /dev/nvme0n1p2 rw,ssd,space_cache=v2,subvolid=256,subvol=/@
+30 26 0:26 /@home /home rw,noatime shared:36 - btrfs /dev/nvme0n1p2 rw,ssd,space_cache=v2,subvolid=257,subvol=/@home
+31 26 259:1 / /boot rw,relatime shared:38 - vfat /dev/nvme0n1p1 rw,fmask=0022,dmask=0022
+40 25 0:40 / /run/user/1000 rw,nosuid,nodev,relatime shared:300 - tmpfs tmpfs rw,size=1600000k,mode=700,uid=1000,gid=1000
+130 30 0:50 / /home/alice/iCloud rw,nosuid,nodev,relatime shared:500 - fuse.rclone iCloud: rw,user_id=1000,group_id=1000
+131 30 0:51 / /home/alice/server rw,nosuid,nodev,relatime shared:501 - fuse.sshfs alice@example.com:/srv/backup rw,user_id=1000,group_id=1000
+132 26 0:52 / /mnt/nas rw,relatime shared:502 - nfs4 nas.example.com:/export/backup rw,vers=4.2
+133 40 0:53 / /run/user/1000/gvfs rw,nosuid,nodev,relatime shared:503 - fuse.gvfsd-fuse gvfsd-fuse rw,user_id=1000,group_id=1000
+134 30 0:54 / /home/alice/My\040Drive rw,nosuid,nodev,relatime shared:504 - fuse.rclone gdrive:shared/team rw,user_id=1000,group_id=1000
+135 30 0:55 / /home/alice/Media rw,relatime shared:505 - cifs //nas.example.com/media rw,vers=3.1.1
+136 30 0:56 / /home/alice/home-on-server rw,nosuid,nodev,relatime shared:506 - fuse.sshfs alice@example.com: rw,user_id=1000,group_id=1000
+137 26 8:49 / /mnt/windows rw,relatime shared:507 - fuseblk /dev/sdd1 rw,user_id=0,group_id=0,allow_other

@@ -58,7 +58,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `rclone-as-user`.
 - **Done when:** tests run against a real local restic repository (CI installs restic).
 
-### T04 Destination guards ⬜
+### T04 Destination guards ✅
 - **Package:** `internal/dest`.
 - **Scope:** everything in [design: destinations and mount guards](design.md#destinations-and-mount-guards):
   filesystem UUID and repository ID checks, FUSE and network mount detection, reachability checks per

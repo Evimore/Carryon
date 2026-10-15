@@ -1,0 +1,29 @@
+bash: 2381 total files, 0 altered files
+warning: glibc: /usr/lib/locale/locale-archive (Modification time mismatch)
+warning: glibc: /usr/lib/locale/locale-archive (Size mismatch)
+warning: glibc: /usr/lib/locale/locale-archive (MD5 checksum mismatch)
+warning: glibc: /usr/lib/locale/locale-archive (SHA256 checksum mismatch)
+glibc: 1938 total files, 1 altered file
+warning: htop: /usr/share/applications/htop.desktop (Modification time mismatch)
+htop: 18 total files, 1 altered file
+warning: openssh: /var/empty (Permissions mismatch)
+backup file: openssh: /etc/ssh/sshd_config (Modification time mismatch)
+backup file: openssh: /etc/ssh/sshd_config (Size mismatch)
+backup file: openssh: /etc/ssh/sshd_config (MD5 checksum mismatch)
+backup file: openssh: /etc/ssh/sshd_config (SHA256 checksum mismatch)
+openssh: 61 total files, 1 altered file
+warning: pacman: /usr/share/libalpm/hooks/60-depmod.hook (No such file or directory)
+pacman: 241 total files, 1 missing file
+warning: vim: /usr/share/vim/vim91/defaults.vim (Modification time mismatch)
+warning: vim: /usr/share/vim/vim91/defaults.vim (MD5 checksum mismatch)
+warning: vim: /usr/share/vim/vim91/defaults.vim (SHA256 checksum mismatch)
+warning: vim: /usr/share/vim/vim91/doc/my notes (draft).txt (Size mismatch)
+warning: vim: /var/lib/pacman/local/vim-9.1.0866-1/install (Modification time mismatch)
+warning: vim: /var/lib/pacman/local/vim-9.1.0866-1/install (Size mismatch)
+vim: 2160 total files, 3 altered files
+warning: zsh: /usr/bin/zsh (UID mismatch)
+warning: zsh: /usr/bin/zsh (GID mismatch)
+warning: zsh: /usr/share/zsh/functions/Completion/Unix/_ls (Size mismatch)
+warning: zsh: /usr/share/zsh/functions/Completion/Unix/_ls (SHA256 checksum mismatch)
+warning: zsh: /usr/share/zsh/site-functions/_example (Symlink path mismatch)
+zsh: 1923 total files, 4 altered files

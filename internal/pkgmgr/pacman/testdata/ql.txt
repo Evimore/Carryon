@@ -1,0 +1,8 @@
+htop /usr/
+htop /usr/bin/
+htop /usr/bin/htop
+htop /usr/share/applications/htop.desktop
+openssh /etc/
+openssh /etc/ssh/
+openssh /etc/ssh/sshd_config
+openssh /usr/lib/systemd/system/sshd.service

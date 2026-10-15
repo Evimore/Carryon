@@ -1,0 +1,7 @@
+/etc/
+/etc/ssh/
+/etc/ssh/sshd_config
+/usr/
+/usr/bin/
+/usr/bin/htop
+/usr/lib/systemd/system/sshd.service

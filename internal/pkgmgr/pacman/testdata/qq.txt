@@ -1,0 +1,6 @@
+base
+bash
+coreutils
+glibc
+linux
+pacman

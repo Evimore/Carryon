@@ -1,0 +1,6 @@
+/usr/bin/ls is owned by coreutils 9.5-2
+/usr/lib/libc.so.6 is owned by glibc 2.40+r16+gaa533d58ff-2
+/etc/ssh/sshd_config is owned by openssh 9.9p1-2
+/usr/share/doc/my file.txt is owned by example-tool 2.1-1
+/usr/lib/ is owned by filesystem 2024.04.07-1
+/usr/lib/ is owned by glibc 2.40+r16+gaa533d58ff-2

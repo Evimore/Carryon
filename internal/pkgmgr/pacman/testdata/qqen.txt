@@ -1,0 +1,11 @@
+base
+bash
+example-tool
+firefox
+htop
+linux
+openssh
+steam
+vim
+zsh
+gone-from-repos

@@ -1,0 +1,19 @@
+Name            : openssh
+Version         : 9.9p1-2
+Install Reason  : Explicitly installed
+Validated By    : Signature
+Backup Files
+UNMODIFIED	/etc/pam.d/sshd
+UNMODIFIED	/etc/ssh/ssh_config
+MODIFIED	/etc/ssh/sshd_config
+
+Name            : pacman
+Version         : 6.0.2-9
+Backup Files
+MODIFIED	/etc/pacman.conf
+UNMODIFIED	/etc/makepkg.conf
+
+Name            : htop
+Backup Files
+(none)
+

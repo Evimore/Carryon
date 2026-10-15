@@ -1,0 +1,6 @@
+core
+extra
+multilib
+example
+cachyos
+missing-section

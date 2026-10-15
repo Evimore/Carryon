@@ -1,0 +1,97 @@
+Name            : openssh
+Version         : 9.9p1-2
+Description     : SSH protocol implementation for remote login, command execution and file transfer
+Architecture    : x86_64
+URL             : https://www.openssh.com/portable.html
+Licenses        : BSD-2-Clause  BSD-3-Clause  ISC  LicenseRef-Public-Domain  MIT
+Groups          : None
+Provides        : None
+Depends On      : glibc  krb5  libedit  libxcrypt  openssl  zlib
+Optional Deps   : sh: for ssh-copy-id and findssl.sh [installed]
+                  x11-ssh-askpass: input passphrase in X
+Required By     : None
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 6.98 MiB
+Packager        : Example Packager <packager@example.com>
+Build Date      : Tue 01 Oct 2024 10:00:00 AM UTC
+Install Date    : Wed 02 Oct 2024 09:00:00 AM UTC
+Install Reason  : Explicitly installed
+Install Script  : No
+Validated By    : Signature
+Backup Files    : /etc/pam.d/sshd [unmodified]
+                  /etc/ssh/ssh_config [unmodified]
+                  /etc/ssh/sshd_config [modified]
+
+Name            : pacman
+Version         : 7.0.0.r3.g7736133-1
+Description     : A library-based package manager with dependency support
+Architecture    : x86_64
+URL             : https://www.archlinux.org/pacman/
+Licenses        : GPL-2.0-or-later
+Groups          : None
+Provides        : libalpm.so=15-64
+Depends On      : bash  coreutils  curl  gpgme  libarchive
+Optional Deps   : base-devel: required to use makepkg [installed]
+Required By     : base  paru
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 4.86 MiB
+Packager        : Example Packager <packager@example.com>
+Build Date      : Tue 01 Oct 2024 10:00:00 AM UTC
+Install Date    : Wed 02 Oct 2024 09:00:00 AM UTC
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+Backup Files    : /etc/pacman.conf [modified]
+                  /etc/makepkg.conf [unmodified]
+                  /etc/makepkg.conf.d/rust.conf [missing]
+
+Name            : zsh
+Version         : 5.9-5
+Description     : A very advanced and programmable command interpreter (shell) for UNIX
+Architecture    : x86_64
+URL             : https://www.zsh.org/
+Licenses        : custom
+Groups          : None
+Provides        : None
+Depends On      : pcre2  libcap  gdbm
+Optional Deps   : None
+Required By     : None
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 7.84 MiB
+Packager        : Example Packager <packager@example.com>
+Build Date      : Tue 01 Oct 2024 10:00:00 AM UTC
+Install Date    : Wed 02 Oct 2024 09:00:00 AM UTC
+Install Reason  : Explicitly installed
+Install Script  : No
+Validated By    : Signature
+Backup Files    : /etc/zsh/zprofile [modified]
+
+Name            : htop
+Version         : 3.3.0-3
+Description     : Interactive process viewer
+Architecture    : x86_64
+URL             : https://htop.dev/
+Licenses        : GPL-2.0-or-later
+Groups          : None
+Provides        : None
+Depends On      : libcap  libnl  ncurses  libncursesw.so=6-64
+Optional Deps   : lm_sensors: show cpu temperatures
+Required By     : None
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 0.43 MiB
+Packager        : Example Packager <packager@example.com>
+Build Date      : Tue 01 Oct 2024 10:00:00 AM UTC
+Install Date    : Wed 02 Oct 2024 09:00:00 AM UTC
+Install Reason  : Explicitly installed
+Install Script  : No
+Validated By    : Signature
+Backup Files    : (none)
+

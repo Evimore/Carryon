@@ -76,7 +76,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `machine_fingerprint`, `usb_present`, `fingerprint_readers`, `app_devices`.
 - **Done when:** `rules.Facts` is filled from a fake system tree in tests.
 
-### T06 pacman backend ⬜
+### T06 pacman backend ✅
 - **Package:** `internal/pkgmgr` (interface) and `internal/pkgmgr/pacman`.
 - **Scope:** explicit and foreign packages with their repositories, optional-only dependencies, file
   owners in batches, `backup=` files that were modified, edited package files (`-Qkk`, nightly only),

@@ -1,0 +1,5 @@
+{"message_type":"status","percent_done":0,"total_files":1,"total_bytes":5}
+{"message_type":"error","error":{"message":"open /home/alice/.cache/locked: permission denied"},"during":"archival","item":"/home/alice/.cache/locked"}
+{"message_type":"verbose_status","action":"new","item":"/etc/hostname","duration":0.001,"data_size":8,"data_size_in_repo":8,"metadata_size":0,"metadata_size_in_repo":0,"total_files":1}
+{"message_type":"status","percent_done":1,"total_files":2,"files_done":2,"total_bytes":13,"bytes_done":13}
+{"message_type":"summary","files_new":2,"files_changed":0,"files_unmodified":0,"dirs_new":2,"dirs_changed":0,"dirs_unmodified":0,"data_blobs":2,"tree_blobs":3,"data_added":1399,"data_added_packed":1127,"total_files_processed":2,"total_bytes_processed":5,"total_duration":0.778451617,"backup_start":"2026-10-15T11:34:46.808379996Z","backup_end":"2026-10-15T11:34:47.586831595Z","snapshot_id":"d5c6d96aeaf6355f4dc5047d6a586ffa75eba796af96ec160e2227765d8e538d"}

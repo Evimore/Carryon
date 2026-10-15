@@ -48,7 +48,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `load_conf`, `load_excludes`; `install.sh` for how excludes are merged.
 - **Done when:** a config round-trips with comments, and invalid values give clear errors.
 
-### T03 restic engine ⬜
+### T03 restic engine ✅
 - **Package:** `internal/engine`.
 - **Scope:** build restic commands and environment (`HOME`, `RESTIC_CACHE_DIR`, password file or
   command, `--retry-lock`), run quietly or with live output while keeping the last lines, parse

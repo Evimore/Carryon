@@ -1,0 +1,4 @@
+{"time":"2026-10-01T03:00:00Z","tree":"9a2c","paths":["/etc"],"hostname":"desktop","username":"root","id":"aaaaaaaa11112222333344445555666677778888999900001111222233334444","short_id":"aaaaaaaa","struct_type":"snapshot"}
+{"name":"etc","type":"dir","path":"/etc","uid":0,"gid":0,"mode":2147484141,"mtime":"2026-09-30T10:00:00Z","atime":"2026-09-30T10:00:00Z","ctime":"2026-09-30T10:00:00Z","struct_type":"node"}
+{"name":"hostname","type":"file","path":"/etc/hostname","uid":0,"gid":0,"size":8,"mode":420,"mtime":"2026-09-30T10:00:00Z","atime":"2026-09-30T10:00:00Z","ctime":"2026-09-30T10:00:00Z","struct_type":"node"}
+{"name":"localtime","type":"symlink","path":"/etc/localtime","uid":0,"gid":0,"mode":134218239,"mtime":"2026-09-30T10:00:00Z","atime":"2026-09-30T10:00:00Z","ctime":"2026-09-30T10:00:00Z","struct_type":"node"}

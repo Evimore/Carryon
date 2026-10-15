@@ -25,6 +25,21 @@ jobs:
           fi
       - name: Vet
         run: go vet ./...
+      - name: Install restic
+        # Ubuntu's own restic is older than the 0.17 Carryon needs; the engine tests run against this
+        # one. Same version and checksum check as .claude/hooks/session-start.sh.
+        env:
+          RESTIC_VERSION: 0.19.1
+        run: |
+          file="restic_${RESTIC_VERSION}_linux_amd64.bz2"
+          base="https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}"
+          tmp=$(mktemp -d)
+          curl -fsSL --retry 3 -o "$tmp/$file" "$base/$file"
+          curl -fsSL --retry 3 -o "$tmp/SHA256SUMS" "$base/SHA256SUMS"
+          (cd "$tmp" && grep " ${file}\$" SHA256SUMS | sha256sum -c --quiet -)
+          bunzip2 "$tmp/$file"
+          sudo install -m 755 "$tmp/${file%.bz2}" /usr/local/bin/restic
+          restic version
       - name: Test
         run: go test -race ./...
       - name: Build a static binary

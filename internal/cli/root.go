@@ -58,6 +58,8 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newBundlesCmd(dirs),
 		newAddCmd(dirs),
 		newExcludeCmd(dirs),
+		newResticCmd(dirs),
+		newRcloneShimCmd(),
 	)
 	for _, s := range plannedCommands {
 		root.AddCommand(s.command())
@@ -95,12 +97,10 @@ var plannedCommands = []planned{
 	{use: "why", short: "Explain whether and how a path is backed up", task: "v0.2"},
 	{use: "history", short: "Show changes to the system over time", task: "T09"},
 	{use: "recovery-kit", short: "Show what you need to get back in on a new machine", task: "T17"},
-	{use: "restic", short: "Run a restic command on the repository", task: "T03"},
 	{use: "hook", short: "Called by the pacman hook", task: "T11", hidden: true},
 	{use: "settle", short: "Back up once changes have settled", task: "T11", hidden: true},
 	{use: "notify", short: "Tell the user a run failed", task: "T18", hidden: true},
 	{use: "agent", short: "Run the per-user notification agent", task: "v0.2", hidden: true},
-	{use: "rclone-shim", short: "Run rclone as the configured user", task: "T03", hidden: true},
 }
 
 func (p planned) command() *cobra.Command {

@@ -1,0 +1,2 @@
+[{"time":"2026-10-02T03:00:12.123456789+02:00","tree":"0d1f","paths":["/etc","/home/alice"],"hostname":"desktop","username":"root","tags":["carryon"],"program_version":"restic 0.19.1","id":"bbbbbbbbaaaa0000111122223333444455556666777788889999aaaabbbbcccc","short_id":"bbbbbbbb"},
+{"time":"2026-10-01T03:00:00Z","tree":"9a2c","paths":["/etc"],"hostname":"laptop","username":"root","program_version":"restic 0.17.0","id":"aaaaaaaa11112222333344445555666677778888999900001111222233334444"}]

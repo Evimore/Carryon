@@ -1,0 +1,55 @@
+# restic exclude patterns: things that are re-downloadable or regenerated, kept out to keep
+# the cloud backup small. One pattern per line; comments must be on their own line.
+
+# caches & trash
+/home/*/.cache
+/home/*/.local/share/Trash
+/root/.cache
+/home/*/.local/share/baloo
+/home/*/.config/**/Cache
+/home/*/.config/**/Code Cache
+/home/*/.config/**/GPUCache
+/home/*/.config/**/DawnCache
+/home/*/.config/**/DawnGraphiteCache
+/home/*/.config/**/DawnWebGPUCache
+/home/*/.config/**/GrShaderCache
+/home/*/.config/**/ShaderCache
+/home/*/.config/**/Service Worker/CacheStorage
+/home/*/.config/**/Service Worker/ScriptCache
+/home/*/.config/**/component_crx_cache
+/home/*/.var/app/*/cache
+
+# Steam: games, shaders and runtimes re-download; game saves and settings are kept.
+# Proton prefixes are kept except their Windows system files (Proton recreates those).
+/home/*/.local/share/Steam/steamapps/common
+/home/*/.local/share/Steam/steamapps/shadercache
+/home/*/.local/share/Steam/steamapps/downloading
+/home/*/.local/share/Steam/steamapps/temp
+/home/*/.local/share/Steam/steamapps/workshop
+/home/*/.local/share/Steam/steamapps/compatdata/*/pfx/drive_c/windows
+/home/*/.local/share/Steam/ubuntu12_32
+/home/*/.local/share/Steam/ubuntu12_64
+/home/*/.local/share/Steam/steamrt64
+/home/*/.local/share/Steam/logs
+/home/*/.local/share/Steam/package
+/home/*/.local/share/Steam/appcache
+/home/*/.local/share/Steam/depotcache
+
+# language toolchains & package caches (reinstalled on demand)
+/home/*/.cargo/registry
+/home/*/.cargo/git
+/home/*/.rustup/toolchains
+/home/*/.rustup/downloads
+/home/*/.pub-cache
+/home/*/.npm/_cacache
+/home/*/.gradle/caches
+/home/*/go/pkg/mod
+
+# app program files the apps download again by themselves (each backup lists them in not-backed-up.md)
+/home/*/.config/discord/app-*
+/home/*/.config/Claude/claude-code
+/home/*/.local/share/spotify-launcher/install
+/home/*/.local/share/Steam/linux32
+/home/*/.local/share/Steam/linux64
+/home/*/.local/share/Steam/steamrt32
+/home/*/.config/**/extensions_crx_cache

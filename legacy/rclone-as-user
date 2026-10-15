@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# restic runs as root (to read /etc, secrets, other users' files), but rclone has to use *your*
+# cloud login in ~/.config/rclone/rclone.conf. restic is pointed here with
+# `-o rclone.program=...`; this drops to your user and hands over to the real rclone.
+# No `set -e`: a missing or unreadable config must not kill rclone with a cryptic error.
+conf=${SYSBACKUP_CONF_DIR:-/etc/sysbackup}/sysbackup.conf
+user=$(sed -n 's/^SYSBACKUP_USER=//p' "$conf" 2>/dev/null | tr -d "\"'")
+user=${user:-${SUDO_USER:-}}
+if [[ $EUID -ne 0 || -z $user ]]; then
+  exec rclone "$@"
+fi
+home=$(getent passwd "$user" | cut -d: -f6)
+exec runuser -u "$user" -- env HOME="$home" rclone "$@"

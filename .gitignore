@@ -1,0 +1,14 @@
+# build output
+/bin/
+/dist/
+/carryon
+
+# Go test and coverage output
+*.test
+*.out
+coverage.*
+
+# editors
+.idea/
+.vscode/
+*.swp

@@ -106,7 +106,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `firmware_when`, `assign_bundles`, `app_key`, `autostart_owner`.
 - **Done when:** golden tests over a realistic item list give the same bundles as the prototype.
 
-### T09 Record store ⬜
+### T09 Record store ✅
 - **Package:** `internal/record` (types, reading, writing and diffing already exist).
 - **Scope:** publishing a staged record atomically, the git history (commit only when items change),
   `SUMMARY.md`, change lines for commit messages.

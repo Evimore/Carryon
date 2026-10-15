@@ -84,6 +84,18 @@ A local git history of the record answers "what did I change last month?"
 (`carryon history`). **Fix:** a commit is made only when an item actually changed, so there are no
 empty "0 change(s)" commits.
 
+Capture writes the new record into a staging folder next to the record; publishing adds
+`SUMMARY.md`, `.gitignore` and `last-capture`, keeps the git history, and keeps the last
+`not-backed-up.md` when a quick capture (the pacman hook) made none. **Changes from the prototype:**
+
+- **Atomic publish.** The prototype emptied the record folder and moved the new files in, so a crash
+  could leave half a record. Carryon swaps whole folders, and the next publish finishes or undoes
+  an interrupted one.
+- **git runs on its own settings.** Commits use the identity `carryon <carryon@localhost>` (the
+  prototype put the hostname in it), and root's own git settings (signing, hooks, pager) are
+  ignored. Without git there's no history, and nothing fails.
+- The record folder is always `0700`, not only when captured as root.
+
 ### Item format
 
 Items are JSON objects with a `type`, an `id`, a `bundle` and type-specific fields. **Carryon keeps the

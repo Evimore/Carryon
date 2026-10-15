@@ -5,8 +5,11 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -45,6 +48,9 @@ type Backup struct {
 	AfterChangeDelay string   `toml:"after_change_delay"` // back up this long after the last package change; "off" disables
 	ExtraPaths       []string `toml:"extra_paths"`        // system folders backed up besides the built-in ones
 	Users            []string `toml:"users"`              // users whose homes are included; "*" means every human user
+	// SkipDefaultExcludes are default exclude patterns (from excludes.default) the user switched
+	// off, so those paths are backed up after all.
+	SkipDefaultExcludes []string `toml:"skip_default_excludes"`
 }
 
 // Retention is how many snapshots each machine keeps.
@@ -100,23 +106,72 @@ func Default() Config {
 }
 
 // Load reads a config file over the defaults. Settings Carryon doesn't know are returned as
-// warnings rather than errors, so a newer file still loads. The result isn't validated; call
-// Validate.
+// warnings rather than errors, so a newer file still loads. A file from an older Carryon is
+// migrated in memory, and the warnings say what changed; writing the result saves the migration.
+// The result isn't validated; call Validate.
 func Load(path string) (Config, []string, error) {
-	cfg := Default()
-	cfg.ConfigVersion = 0 // so a file without config_version can be told apart
-	md, err := toml.DecodeFile(path, &cfg)
+	cfg, notes, unknown, err := load(path, migrations, CurrentVersion)
+	return cfg, append(notes, unknown...), err
+}
+
+// load reads a config file, returning migration notes and unknown settings separately.
+func load(path string, steps map[int]migration, target int) (cfg Config, notes, unknown []string, err error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return Config{}, nil, fmt.Errorf("%s: %w", path, err)
+		return Config{}, nil, nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+	text, changes, err := migrate(string(data), steps, target)
+	if err != nil {
+		return Config{}, nil, nil, fmt.Errorf("%s: %w", path, err)
+	}
+	for _, c := range changes {
+		notes = append(notes, fmt.Sprintf("%s: %s", path, c))
+	}
+
+	cfg = Default()
+	cfg.ConfigVersion = 0 // so a file without config_version can be told apart
+	md, err := toml.Decode(text, &cfg)
+	if err != nil {
+		return Config{}, nil, nil, fmt.Errorf("%s: %w", path, err)
 	}
 	if cfg.ConfigVersion == 0 {
-		cfg.ConfigVersion = CurrentVersion
+		cfg.ConfigVersion = target
 	}
-	var warnings []string
 	for _, k := range md.Undecoded() {
-		warnings = append(warnings, fmt.Sprintf("%s: unknown setting %q (ignored)", path, k.String()))
+		unknown = append(unknown, fmt.Sprintf("%s: unknown setting %q (ignored)", path, k.String()))
 	}
-	return cfg, warnings, nil
+	return cfg, notes, unknown, nil
+}
+
+// Update changes the config file at path: it loads the file, applies change, checks the result
+// and writes it back with Write. Nothing is written when change fails, when the result has
+// problems, or when the file has settings Carryon doesn't know (writing would drop them). An older
+// file is upgraded on the way; the returned notes say how.
+func Update(path string, change func(*Config) error) ([]string, error) {
+	cfg, notes, unknown, err := load(path, migrations, CurrentVersion)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("there is no settings file at %s: set up Carryon with \"sudo carryon init\" first", path)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(unknown) > 0 {
+		return nil, fmt.Errorf("nothing was changed, because Carryon would drop settings it doesn't know. Fix or remove them first:\n%s", strings.Join(unknown, "\n"))
+	}
+	before, err := Format(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := change(&cfg); err != nil {
+		return nil, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("nothing was changed, because the settings would have problems:\n%w", err)
+	}
+	if after, err := Format(cfg); err == nil && len(notes) == 0 && bytes.Equal(before, after) {
+		return nil, nil // nothing changed: leave the file as the user wrote it
+	}
+	return notes, Write(path, cfg)
 }
 
 var (
@@ -175,6 +230,11 @@ func (c Config) Validate() error {
 	for _, u := range b.Users {
 		if strings.TrimSpace(u) == "" {
 			bad("backup.users has an empty name")
+		}
+	}
+	for _, p := range b.SkipDefaultExcludes {
+		if strings.TrimSpace(p) == "" || strings.ContainsAny(p, "\n\r") {
+			bad("backup.skip_default_excludes: %q isn't a pattern", p)
 		}
 	}
 

@@ -40,7 +40,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `user_cmd`, `sh`, `call`, `have`.
 - **Done when:** other packages can be tested without running real programs.
 
-### T02 Config, complete ⬜
+### T02 Config, complete ✅
 - **Package:** `internal/config` (the skeleton already loads and validates the basics).
 - **Scope:** writing a commented config file (for `init`), `config check|get|set` support,
   `config_version` migration, per-user config (paths limited to the user's home), the effective

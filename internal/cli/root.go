@@ -56,6 +56,8 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newVersionCmd(),
 		newConfigCmd(dirs),
 		newBundlesCmd(dirs),
+		newAddCmd(dirs),
+		newExcludeCmd(dirs),
 	)
 	for _, s := range plannedCommands {
 		root.AddCommand(s.command())
@@ -88,8 +90,6 @@ var plannedCommands = []planned{
 	{use: "capture", short: "Refresh the system record without backing up", task: "T07"},
 	{use: "verify", short: "Check that the backup is current, complete and restorable", task: "T13"},
 	{use: "restore", short: "Pick what to restore from a backup and apply it here", task: "T14 and T15"},
-	{use: "add", short: "Back up a folder outside the home folders", task: "T02"},
-	{use: "exclude", short: "Leave a path out of the backup", task: "T02"},
 	{use: "inbox", short: "Review suggestions about new things to back up", task: "v0.2"},
 	{use: "ignore", short: "Stop suggesting a path", task: "v0.2"},
 	{use: "why", short: "Explain whether and how a path is backed up", task: "v0.2"},

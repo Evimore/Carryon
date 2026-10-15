@@ -67,7 +67,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Done when:** an unmounted destination is never written to, proven by a test with a fake mount
   table.
 
-### T05 Machine facts ⬜
+### T05 Machine facts ✅
 - **Package:** `internal/facts`.
 - **Scope:** machine fingerprint, chassis, PCI and USB IDs, Bluetooth adapters, kernel modules (from
   modaliases), device names, root filesystem, bootloader, fingerprint readers, apps' USB devices. All

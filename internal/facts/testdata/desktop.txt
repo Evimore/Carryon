@@ -1,0 +1,97 @@
+# A made-up desktop: every ID, serial and address here is invented.
+#
+# Format: "-- path --" starts a file, whose contents run to the next header.
+# "-- path -> target --" makes a symlink. Paths are relative to the fake root.
+
+-- proc/modules --
+btusb 81920 0 - Live 0x0000000000000000
+btmtk 32768 1 btusb, Live 0x0000000000000000
+snd_hda_intel 61440 2 - Live 0x0000000000000000
+-- proc/self/mountinfo --
+22 1 0:21 / /proc rw,nosuid,nodev,noexec,relatime shared:5 - proc proc rw
+25 1 0:24 /@ / rw,noatime shared:1 - btrfs /dev/mapper/root rw,ssd,space_cache=v2,subvol=/@
+26 25 0:25 / /home rw,noatime shared:2 - btrfs /dev/mapper/root rw,subvol=/@home
+-- proc/sys/kernel/hostname --
+desktop
+-- proc/cpuinfo --
+processor	: 0
+vendor_id	: ExampleVendor
+flags		: fpu vme de pse tsc msr
+-- sys/class/dmi/id/product_uuid --
+00000000-1111-2222-3333-444444444444
+-- sys/class/dmi/id/board_serial --
+  EXAMPLE-SERIAL-0001 
+-- sys/class/dmi/id/board_name --
+Example Board X1
+-- sys/class/dmi/id/chassis_type --
+3
+-- sys/class/bluetooth/hci0 --
+-- sys/kernel/debug/bluetooth/hci0/identity --
+00:11:22:AA:BB:CC (type 0) 00000000000000000000000000000000 00:00:00:00:00:00
+
+-- sys/devices/pci0000:00/0000:00:02.0/vendor --
+0x1234
+-- sys/devices/pci0000:00/0000:00:02.0/device --
+0xABCD
+-- sys/devices/pci0000:00/0000:00:02.0/modalias --
+pci:v00001234d0000ABCDsv00001234sd00000001bc03sc00i00
+-- sys/devices/pci0000:00/0000:00:14.0/vendor --
+0x1234
+-- sys/devices/pci0000:00/0000:00:14.0/device --
+0x1111
+-- sys/devices/pci0000:00/0000:00:14.0/modalias --
+pci:v00001234d00001111sv00001234sd00000001bc0Csc03i30
+
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/idVendor --
+1d6b
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/idProduct --
+0002
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-3/idVendor --
+0a0b
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-3/idProduct --
+0c0d
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-3/product --
+Wireless Adapter
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-3/1-3:1.0/modalias --
+usb:v0A0Bp0C0Dd0100dcE0dsc01dp01icE0isc01ip01in00
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-4/idVendor --
+0f0f
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-4/idProduct --
+0101
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-4/product --
+Example Fingerprint Sensor
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/idVendor --
+0e0e
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/idProduct --
+0202
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-5/product --
+USB2.0 MISC
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-6/idVendor --
+0c0c
+-- sys/devices/pci0000:00/0000:00:14.0/usb1/1-6/idProduct --
+1b2c
+
+-- sys/bus/pci/devices/0000:00:02.0 -> ../../../devices/pci0000:00/0000:00:02.0 --
+-- sys/bus/pci/devices/0000:00:14.0 -> ../../../devices/pci0000:00/0000:00:14.0 --
+-- sys/bus/usb/devices/usb1 -> ../../../devices/pci0000:00/0000:00:14.0/usb1 --
+-- sys/bus/usb/devices/1-3 -> ../../../devices/pci0000:00/0000:00:14.0/usb1/1-3 --
+-- sys/bus/usb/devices/1-3:1.0 -> ../../../devices/pci0000:00/0000:00:14.0/usb1/1-3/1-3:1.0 --
+-- sys/bus/usb/devices/1-4 -> ../../../devices/pci0000:00/0000:00:14.0/usb1/1-4 --
+-- sys/bus/usb/devices/1-5 -> ../../../devices/pci0000:00/0000:00:14.0/usb1/1-5 --
+-- sys/bus/usb/devices/1-6 -> ../../../devices/pci0000:00/0000:00:14.0/usb1/1-6 --
+
+-- sys/bus/usb/drivers/btusb/1-3:1.0 -> ../../../../devices/pci0000:00/0000:00:14.0/usb1/1-3/1-3:1.0 --
+-- sys/bus/usb/drivers/btusb/bind --
+-- sys/bus/usb/drivers/btusb/module -> ../../../../module/btusb --
+-- sys/bus/pci/drivers/example_gpu/0000:00:02.0 -> ../../../../devices/pci0000:00/0000:00:02.0 --
+-- sys/module/btusb/drivers/usb:btusb -> ../../../bus/usb/drivers/btusb --
+-- sys/module/btmtk/holders/btusb -> ../../btusb --
+-- sys/module/example_gpu/drivers/pci:example_gpu -> ../../../bus/pci/drivers/example_gpu --
+
+-- usr/lib/udev/hwdb.d/60-autosuspend-fingerprint-reader.hwdb --
+# Readers libfprint supports
+usb:v0E0Ep0202*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+-- etc/default/limine --
+TARGET_OS_NAME="Example"

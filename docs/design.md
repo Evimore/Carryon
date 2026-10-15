@@ -487,7 +487,7 @@ cmd/carryon/          main
 internal/cli/         commands (cobra)
 internal/paths/       standard locations, overridable for tests
 internal/config/      config.toml: defaults, loading, validation, migration
-internal/ui/          terminal output with journal levels; terminal UI later
+internal/ui/          terminal output with journal levels; prompts and the terminal UI
 internal/sysexec/     running programs, as root or as a user (fakeable in tests)
 internal/record/      items, meta, bundles: reading, writing, diffing, summary, history
 internal/rules/       when-rules and bundles.conf

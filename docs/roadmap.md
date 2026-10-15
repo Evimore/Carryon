@@ -161,7 +161,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `install_one_by_one`, `apply_plan`, `remap_owner`, `merge_rclone`, `restore_data`,
   `cmd_restore`.
 
-### T16 Terminal UI ⬜
+### T16 Terminal UI ✅
 - **Package:** `internal/ui`.
 - **Scope:** checklist with reasons, item picker with search, menus, confirmations, all with a
   non-interactive fallback (flags, `--defaults`).

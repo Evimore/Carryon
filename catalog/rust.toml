@@ -1,0 +1,24 @@
+# rustup and cargo. Programs installed with `cargo install` are in the system record, so they come
+# back too; toolchains and the crate cache download again.
+id = "rust"
+name = "Rust (rustup and cargo)"
+
+[recognize]
+packages = ["rustup", "rust", "cargo"]
+paths = [".rustup", ".cargo"]
+
+[[redownload]]
+label = "Rust toolchains"
+how = "`rustup toolchain install <name>` (cargo does it on first use)"
+details = "entries"
+patterns = ["/home/*/.rustup/toolchains"]
+
+# Half-finished toolchain downloads: not worth listing.
+[[redownload]]
+hidden = true
+patterns = ["/home/*/.rustup/downloads", "/home/*/.rustup/tmp"]
+
+[[redownload]]
+label = "Cargo crate cache"
+how = "cargo downloads crates again when you build"
+patterns = ["/home/*/.cargo/registry", "/home/*/.cargo/git"]

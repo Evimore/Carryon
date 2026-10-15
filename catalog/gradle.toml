@@ -1,0 +1,17 @@
+# Gradle, also used by Android Studio.
+id = "gradle"
+name = "Gradle"
+
+[recognize]
+packages = ["gradle", "android-studio*"]
+paths = [".gradle"]
+
+[[redownload]]
+label = "Gradle caches"
+how = "Gradle refills them"
+patterns = ["/home/*/.gradle/caches"]
+
+[[redownload]]
+label = "Gradle versions downloaded by projects"
+how = "each project's `gradlew` downloads its version again"
+patterns = ["/home/*/.gradle/wrapper/dists"]

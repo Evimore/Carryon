@@ -1,0 +1,12 @@
+# The Claude desktop app. It downloads Claude Code into its settings folder by itself.
+id = "claude-desktop"
+name = "Claude desktop app"
+
+[recognize]
+packages = ["claude-desktop*"]
+paths = [".config/Claude"]
+
+[[redownload]]
+label = "Claude Code inside the Claude desktop app"
+how = "the Claude desktop app downloads it again"
+patterns = ["/home/*/.config/Claude/claude-code"]

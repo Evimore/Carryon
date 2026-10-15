@@ -365,12 +365,16 @@ desktop = true
   `/usr/share/carryon/excludes.default` and update with the package; the user can switch single
   defaults off. Carryon builds one effective exclude file per run and uses it **both** for restic and
   for its own matching, with restic's pattern rules. **Fix** for the prototype's two matchers
-  disagreeing.
+  disagreeing. The file holds, in order: the defaults and the catalog's patterns (minus the ones
+  switched off), mount points and the repository's own folder (matched literally), then the user's
+  patterns, last so that a `!` pattern can take back a default.
 - `bundles.conf`: bundle rules, as above.
 - **Per-user settings**, `~/.config/carryon/config.toml`: excludes and notification preferences for
   that user's home. The root service never follows a user's setting outside that user's home.
 - **Catalog**, `/usr/share/carryon/catalog/*.toml`: what Carryon knows about apps: extra excludes,
   how excluded data comes back, post-restore notes. Shipped with the package; contributions welcome.
+  One file per app, described in [catalog/README.md](../catalog/README.md). Its patterns apply
+  whether or not the app is installed, and can be switched off like the defaults.
 - `carryon config check|get|set|edit` validates and changes settings. Unknown keys are reported.
   Settings from older versions are migrated (`config_version`). **Fix:** the prototype never updated
   an existing config.
@@ -529,5 +533,9 @@ Programs it runs: `restic` (required), `pacman` (on Arch), `git` (optional, for 
 - The tray library: a small StatusNotifierItem implementation over godbus keeps the binary free of
   cgo; `fyne.io/systray` needs cgo.
 - The exact btrfs snapshot procedure for consistent backups, and what to do on other filesystems.
-- The catalog file format, and whether to import Mackup's app definitions (GPL-3.0) and xdg-ninja's
-  (MIT).
+- Whether to import Mackup's app definitions (GPL-3.0) and xdg-ninja's (MIT). **The catalog format is
+  settled:** one TOML file per app with an id, a name, how to recognize it (packages, Flatpak ids,
+  settings folders), excludes, re-download hints and post-restore notes; see
+  [catalog/README.md](../catalog/README.md). Mackup's lists of settings files could fill in
+  `recognize.paths` for many apps (its licence matches ours); xdg-ninja's describe where apps
+  *should* keep files, which says less about what to back up.

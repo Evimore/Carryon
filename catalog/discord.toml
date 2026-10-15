@@ -1,0 +1,13 @@
+# Discord. Your login and settings stay in the backup; the app's own program files download again.
+id = "discord"
+name = "Discord"
+
+[recognize]
+packages = ["discord", "discord-canary", "discord-ptb"]
+flatpaks = ["com.discordapp.Discord"]
+paths = [".config/discord"]
+
+[[redownload]]
+label = "Discord app files"
+how = "the `discord` package downloads them on first start"
+patterns = ["/home/*/.config/discord/app-*"]

@@ -1,0 +1,12 @@
+# npm. Global packages are in the system record; the download cache refills.
+id = "npm"
+name = "npm"
+
+[recognize]
+packages = ["npm", "nodejs*"]
+paths = [".npm"]
+
+[[redownload]]
+label = "npm cache"
+how = "npm refills it"
+patterns = ["/home/*/.npm/_cacache"]

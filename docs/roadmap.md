@@ -113,7 +113,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `summary_md`, `publish`, `change_lines`.
 - **Done when:** publishing twice without changes makes no commit.
 
-### T10 Catalog ⬜
+### T10 Catalog ✅
 - **Package:** `internal/catalog`, data in `catalog/`.
 - **Scope:** the catalog file format; default excludes; re-download hints (Steam games from their
   manifests, toolchains, app files) and the `not-backed-up.md` list; post-restore notes; an exclude

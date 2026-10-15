@@ -1,0 +1,12 @@
+# Dart and Flutter.
+id = "dart"
+name = "Dart and Flutter"
+
+[recognize]
+packages = ["dart", "flutter*"]
+paths = [".pub-cache", ".dart-tool", ".flutter"]
+
+[[redownload]]
+label = "Dart/Flutter package cache"
+how = "`dart pub get` or `flutter pub get` in your projects (and `dart pub global activate` for global tools)"
+patterns = ["/home/*/.pub-cache"]

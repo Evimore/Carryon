@@ -1,0 +1,13 @@
+# Spotify through spotify-launcher, which downloads the app into your home folder.
+id = "spotify"
+name = "Spotify"
+
+[recognize]
+packages = ["spotify-launcher", "spotify"]
+flatpaks = ["com.spotify.Client"]
+paths = [".config/spotify", ".local/share/spotify-launcher"]
+
+[[redownload]]
+label = "Spotify"
+how = "`spotify-launcher` downloads it on first start"
+patterns = ["/home/*/.local/share/spotify-launcher/install"]

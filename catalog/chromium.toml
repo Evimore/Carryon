@@ -1,0 +1,25 @@
+# Chromium-based browsers and Electron apps (VS Code, Discord, Slack, Signal...). Most of them keep
+# caches inside their settings folder in ~/.config instead of ~/.cache, under these names.
+# Bookmarks, passwords, extensions and settings stay in the backup.
+id = "chromium"
+name = "Chromium and Electron apps"
+
+excludes = [
+  "/home/*/.config/**/Cache",
+  "/home/*/.config/**/Code Cache",
+  "/home/*/.config/**/GPUCache",
+  "/home/*/.config/**/DawnCache",
+  "/home/*/.config/**/DawnGraphiteCache",
+  "/home/*/.config/**/DawnWebGPUCache",
+  "/home/*/.config/**/GrShaderCache",
+  "/home/*/.config/**/ShaderCache",
+  "/home/*/.config/**/Service Worker/CacheStorage",
+  "/home/*/.config/**/Service Worker/ScriptCache",
+  "/home/*/.config/**/component_crx_cache",
+  "/home/*/.config/**/extensions_crx_cache",
+]
+
+[recognize]
+packages = ["chromium", "electron*", "google-chrome*", "brave-bin", "vivaldi", "microsoft-edge*"]
+flatpaks = ["org.chromium.Chromium", "com.google.Chrome", "com.brave.Browser"]
+paths = [".config/chromium", ".config/google-chrome", ".config/BraveSoftware", ".config/vivaldi"]

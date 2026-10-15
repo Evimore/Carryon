@@ -1,0 +1,51 @@
+# Steam. Game saves, settings and Proton prefixes stay in the backup; games, shaders and Steam's
+# own runtime download again.
+id = "steam"
+name = "Steam"
+
+[recognize]
+packages = ["steam", "steam-native-runtime"]
+flatpaks = ["com.valvesoftware.Steam"]
+paths = [".local/share/Steam", ".steam"]
+
+[[redownload]]
+label = "Steam games"
+how = "reinstall them from your Steam library; saves in Proton prefixes and Steam Cloud come back on their own"
+details = "steam-games"
+patterns = [
+  "/home/*/.local/share/Steam/steamapps/common",
+  "/home/*/.local/share/Steam/steamapps/downloading",
+  "/home/*/.local/share/Steam/steamapps/temp",
+]
+
+[[redownload]]
+label = "Steam shader caches"
+how = "rebuilt by Steam and Proton while you play"
+patterns = ["/home/*/.local/share/Steam/steamapps/shadercache"]
+
+[[redownload]]
+label = "Steam Workshop items"
+how = "Steam downloads them again for your subscriptions"
+patterns = ["/home/*/.local/share/Steam/steamapps/workshop"]
+
+# Each game's Proton prefix is kept (saves often live there), except its copy of Windows.
+[[redownload]]
+label = "Proton's Windows system files"
+how = "Proton recreates them when a game starts"
+patterns = ["/home/*/.local/share/Steam/steamapps/compatdata/*/pfx/drive_c/windows"]
+
+[[redownload]]
+label = "Steam client runtime"
+how = "Steam downloads it on first start"
+patterns = [
+  "/home/*/.local/share/Steam/ubuntu12_32",
+  "/home/*/.local/share/Steam/ubuntu12_64",
+  "/home/*/.local/share/Steam/steamrt32",
+  "/home/*/.local/share/Steam/steamrt64",
+  "/home/*/.local/share/Steam/linux32",
+  "/home/*/.local/share/Steam/linux64",
+  "/home/*/.local/share/Steam/package",
+  "/home/*/.local/share/Steam/appcache",
+  "/home/*/.local/share/Steam/depotcache",
+  "/home/*/.local/share/Steam/logs",
+]

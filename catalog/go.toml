@@ -1,0 +1,12 @@
+# Go. Your code in ~/go/src and programs in ~/go/bin stay; the module cache downloads again.
+id = "go"
+name = "Go"
+
+[recognize]
+packages = ["go"]
+paths = ["go", ".config/go"]
+
+[[redownload]]
+label = "Go module cache"
+how = "go refills it"
+patterns = ["/home/*/go/pkg/mod"]

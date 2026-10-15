@@ -1,0 +1,14 @@
+# KDE Wallet keeps saved passwords (browsers, Wi-Fi, apps). Nothing to leave out, but restoring it
+# on a new install needs a word of warning.
+id = "kwallet"
+name = "KDE Wallet"
+
+[recognize]
+packages = ["kwallet", "kwallet5", "kwalletmanager"]
+paths = [".local/share/kwalletd"]
+
+[[note]]
+paths = [".local/share/kwalletd"]
+text = """KDE Wallet was restored. It opens with the login password it was created with. \
+If your password is different now, enter the old one once, then change it in KDE Wallet Manager \
+(browsers keep their saved passwords in it)."""

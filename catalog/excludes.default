@@ -1,0 +1,23 @@
+# Carryon's default exclude patterns, installed as /usr/share/carryon/excludes.default.
+#
+# Restic pattern rules: "*" stays inside one folder, "**" spans any number of folders, a leading
+# "/" anchors the pattern at the root, and a matching folder is left out with everything in it.
+# One pattern per line; comments go on their own line.
+#
+# Only things every machine has go here. What belongs to one app (Steam games, toolchains, browser
+# caches) is in that app's catalog file, which also says how it comes back after a restore.
+# To keep one of these in the backup, switch it off in the config (backup.skip_default_excludes).
+
+# Caches: apps refill them as needed. The XDG standard says nothing in them may be needed later.
+/home/*/.cache
+/root/.cache
+
+# Flatpak apps' caches: the same thing, inside each app's own folder.
+/home/*/.var/app/*/cache
+
+# The trash: deleted on purpose, and often large.
+/home/*/.local/share/Trash
+/root/.local/share/Trash
+
+# KDE's file search index (Baloo): rebuilt from your files after a restore.
+/home/*/.local/share/baloo

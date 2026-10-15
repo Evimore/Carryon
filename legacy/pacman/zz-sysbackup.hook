@@ -1,0 +1,12 @@
+# Refresh the sysbackup system record after installs/removals (paru builds go through pacman too)
+# and back up an hour after the last one (AFTER_INSTALL_DELAY in /etc/sysbackup/sysbackup.conf).
+[Trigger]
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Updating the sysbackup system record...
+When = PostTransaction
+Exec = /usr/local/bin/sysbackup pacman-hook

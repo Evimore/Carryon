@@ -1,0 +1,6 @@
+[Unit]
+Description=Desktop notification: %i failed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/sysbackup notify %i

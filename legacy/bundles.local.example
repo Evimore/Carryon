@@ -1,0 +1,24 @@
+# /etc/sysbackup/bundles.local: your tweaks to how captured items are grouped for restore.
+# Run `sysbackup bundles` to see the current bundles and their ids. Changes apply at the next capture.
+#
+#   title <bundle> <text>          name shown in the restore checklist
+#   when  <bundle> <rule>          when the bundle starts ticked on the target machine:
+#                                    always | never | samehost | chassis:laptop | chassis:desktop
+#                                    hw:pci:VVVV:DDDD[,usb:VVVV:PPPP,module:NAME,bt:MAC]  (any present)
+#                                    rootfs:btrfs | bootloader:limine (or grub, systemd-boot, refind)
+#                                    join rules with + when all must hold: rootfs:btrfs+bootloader:limine
+#   put   <bundle> <type> <glob>   move matching items into a bundle (new or existing)
+#                                    types: pkg aur repo file svc usvc uunit kparam path group cargo ... or *
+#                                    home paths can be written as ~/...
+#   drop  <type> <glob>            never record these at all
+#
+# App bundles are auto-built from your hand-made services, extra repos and AUR packages:
+# everything sharing their name (binaries, configs, udev rules, ~/.config dirs) travels together.
+
+# Examples:
+#   when  myapp       samehost
+#   when  remotedesk  chassis:desktop
+#   put   gaming      pkg   steam
+#   put   gaming      pkg   lutris
+#   title gaming      Gaming stack
+#   drop  path        ~/.local/share/some-huge-cache

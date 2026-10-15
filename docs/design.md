@@ -500,6 +500,13 @@ Libraries: `spf13/cobra` (commands), `BurntSushi/toml` (config), `charmbracelet/
 Programs it runs: `restic` (required), `pacman` (on Arch), `git` (optional, for history), `rclone`
 (optional), `paru` or `yay` (restore of AUR packages).
 
+**Fix:** the prototype's `sh` returned whatever a program printed even when it failed, and an empty
+string when the program was missing or timed out, so a broken call could look like "nothing found".
+Carryon runs every program through `internal/sysexec`, which returns the output **and** an error
+naming the command, its exit status and the end of its error output. Each caller decides whether a
+failure matters: `pacman -Qkk` exiting non-zero because it found changed files is a result, a missing
+`pacman` is not.
+
 ## Install layout
 
 | Path | What |

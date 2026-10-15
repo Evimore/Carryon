@@ -1,0 +1,47 @@
+name: Bug report
+description: Something didn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Issues are public: before pasting output, replace usernames, hostnames,
+        paths and repository addresses you'd rather not share.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Carryon version
+      description: Output of `carryon version`.
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      description: For example CachyOS, Arch Linux, EndeavourOS.
+    validations:
+      required: true
+  - type: dropdown
+    id: destination
+    attributes:
+      label: Where backups go
+      options:
+        - Local disk or NAS path
+        - SFTP
+        - REST server
+        - S3 or compatible (B2, Wasabi, R2...)
+        - rclone remote
+        - Other
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: "`carryon status`, and the relevant part of `journalctl -u 'carryon*' -e`."
+      render: text

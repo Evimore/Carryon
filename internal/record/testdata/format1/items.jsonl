@@ -1,0 +1,18 @@
+{"bundle": "packages", "id": "base", "repo": "core", "type": "pkg"}
+{"asdeps": true, "bundle": "packages", "for_unit": "rclone-mount.service", "id": "fuse3", "repo": "extra", "type": "pkg"}
+{"bundle": "aur", "id": "paru-bin", "type": "aur"}
+{"bundle": "repos", "conf": "", "id": "myrepo", "key_names": ["Example Repo <repo@example.com>"], "keys": ["0123456789ABCDEF0123456789ABCDEF01234567"], "section": "[myrepo]\nServer = https://repo.example.com/$arch\n", "type": "repo"}
+{"bundle": "services", "id": "sshd.service", "pkg": "openssh", "type": "svc", "unit_file": "/usr/lib/systemd/system/sshd.service"}
+{"bundle": "configs", "id": "/etc/ssh/sshd_config", "kind": "modified", "mode": "644", "owner": "root:root", "pkg": "openssh", "sha": "1111111111111111111111111111111111111111111111111111111111111111", "type": "file"}
+{"bundle": "locale", "id": "/etc/locale.conf", "kind": "unowned", "mode": "644", "owner": "root:root", "sha": "2222222222222222222222222222222222222222222222222222222222222222", "type": "file"}
+{"bundle": "other-files", "id": "/usr/local/bin/hello", "kind": "unowned", "link": "/opt/hello/bin/hello", "mode": "777", "owner": "root:root", "type": "file"}
+{"bundle": "kparams", "id": "quiet", "source": "/etc/kernel/cmdline", "type": "kparam"}
+{"bundle": "account", "id": "wheel", "type": "group"}
+{"bundle": "account", "id": "/usr/bin/zsh", "type": "shell"}
+{"bundle": "user-services", "id": "rclone-mount.service", "type": "usvc"}
+{"bundle": "user-services", "id": "rclone-mount.service", "sha": "3333333333333333333333333333333333333333333333333333333333333333", "type": "uunit"}
+{"bundle": "user-services", "for_unit": "rclone-mount.service", "id": "/home/alice/Cloud", "rel": "Cloud", "type": "mkdir"}
+{"bundle": "dev-tools", "id": "org.example.App", "origin": "flathub", "scope": "system", "type": "flatpak"}
+{"bundle": "identity", "id": "/etc/ssh/ssh_host_*", "type": "path"}
+{"bundle": "root-home", "gid": 0, "id": "/root", "owner": "root:root", "type": "path", "uid": 0}
+{"bundle": "home-apps", "home": ".config/kitty", "id": "/home/alice/.config/kitty", "type": "path"}

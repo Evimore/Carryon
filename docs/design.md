@@ -236,6 +236,15 @@ silently goes wrong:
   and writes a summary, `/run/carryon/status.json` mirrored to `/var/lib/carryon/status.json`, that is
   world-readable and holds no secrets: last runs, results, short error text, next runs, inbox count.
   **Fix:** so `carryon status` works without root and after reboots.
+- **Failure alerts:** `carryon-notify@.service` runs `carryon notify UNIT`, which sends the unit's last
+  error lines through every channel in `[notify]`. **Generalized:** the prototype alerted one user;
+  Carryon alerts every user with an open graphical session who is in `backup.users` and hasn't
+  switched desktop notifications off in their own settings, running `notify-send` (or `busctl` without
+  libnotify) as that user. **Generalized:** the prototype's "iCloud signed you out" check works for any
+  `rclone:` remote and names it with the reconnect command, without probing a fixed website first.
+  **New:** ntfy and webhook alerts, with passwords, keys and `user:password@` hidden before anything
+  leaves the machine, and `carryon notify --test` to try every channel. With a missing or broken
+  config, it still alerts with the default settings.
 - **Paused while restoring:** a `restoring` flag stops automatic backups on a fresh install, so a
   half-restored system never becomes the newest snapshot. Kept from the prototype.
 - **Sleep:** a running backup holds a logind inhibitor so the machine doesn't suspend mid-upload.

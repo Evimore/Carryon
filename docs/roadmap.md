@@ -172,7 +172,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   the repository; enables units), `--connect`, the recovery kit, `--from-sysbackup`.
 - **Legacy:** `install.sh`.
 
-### T18 Notifications ⬜
+### T18 Notifications ✅
 - **Package:** `internal/notify`.
 - **Scope:** `carryon notify UNIT` for `OnFailure=`, a fallback notification into the user's session,
   ntfy and webhook senders.

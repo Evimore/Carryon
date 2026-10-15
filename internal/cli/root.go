@@ -60,6 +60,7 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newExcludeCmd(dirs),
 		newResticCmd(dirs),
 		newRcloneShimCmd(),
+		newNotifyCmd(dirs),
 	)
 	for _, s := range plannedCommands {
 		root.AddCommand(s.command())
@@ -99,7 +100,6 @@ var plannedCommands = []planned{
 	{use: "recovery-kit", short: "Show what you need to get back in on a new machine", task: "T17"},
 	{use: "hook", short: "Called by the pacman hook", task: "T11", hidden: true},
 	{use: "settle", short: "Back up once changes have settled", task: "T11", hidden: true},
-	{use: "notify", short: "Tell the user a run failed", task: "T18", hidden: true},
 	{use: "agent", short: "Run the per-user notification agent", task: "v0.2", hidden: true},
 }
 

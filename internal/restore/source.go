@@ -1,13 +1,14 @@
-// Package restore rebuilds a machine from a backup. This part chooses what to restore from (the
-// machine, the snapshot and its record), works out which bundles start ticked here, and makes the
-// plan: only what differs from this machine, in the order applying it will follow. Applying the
-// plan is roadmap T15. See docs/design.md, "Restoring".
+// Package restore rebuilds a machine from a backup. It chooses what to restore from (the machine,
+// the snapshot and its record), works out which bundles start ticked here, makes the plan (only
+// what differs from this machine, in the order applying it follows), and applies it (Applier).
+// See docs/design.md, "Restoring".
 //
-// Nothing here changes the system. Fetching a record writes into a temp folder, remembered choices
-// go to Carryon's state folder (SaveChoices), and the plan file is written by the caller.
+// Only the Applier changes the system. Planning reads: fetching a record writes into a temp
+// folder, remembered choices go to Carryon's state folder (SaveChoices), and the plan file is
+// written by the caller.
 //
-// It ports the prototype's get_source, pick, adapt, file_state, boot_risk, make_plan and show_plan
-// (legacy/sysbackup.py).
+// It ports the prototype's get_source, pick, adapt, file_state, boot_risk, make_plan, show_plan,
+// apply_plan, install_one_by_one, remap_owner, merge_rclone and restore_data (legacy/sysbackup.py).
 package restore
 
 import (

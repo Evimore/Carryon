@@ -169,6 +169,21 @@ var scenarios = map[string]scenario{
 // it with the ticks.
 func planFor(t *testing.T, dir string, sc scenario) (*Plan, []Tick) {
 	t.Helper()
+	plan, ticks, _ := planOn(t, dir, sc)
+	return plan, ticks
+}
+
+// planned is a plan with the machine it was made for.
+type planned struct {
+	src   *Source
+	root  string
+	local []LocalUser
+	host  string
+}
+
+// planOn is planFor, also returning the source and the fake system tree the plan was made on.
+func planOn(t *testing.T, dir string, sc scenario) (*Plan, []Tick, planned) {
+	t.Helper()
 	ctx := context.Background()
 	root := buildTree(t, sc.tree)
 	src, err := OpenRecord(dir)
@@ -212,7 +227,7 @@ func planFor(t *testing.T, dir string, sc scenario) (*Plan, []Tick) {
 			t.Errorf("unexpected command: %s", c)
 		}
 	}
-	return plan, ticks
+	return plan, ticks, planned{src: src, root: root, local: local, host: here.Host}
 }
 
 // render is everything a golden file pins: the ticks, the summary and the full plan.

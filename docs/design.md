@@ -401,6 +401,29 @@ Where planning differs from the prototype on purpose:
   get diffs too, review-only files say why they're never copied, and per-user steps say which user
   here they're for and where they go.
 
+Where applying differs from the prototype on purpose:
+
+- **Asking first.** Applying needs a yes to "Apply this plan?" after the plan is shown, or `--yes`
+  without a terminal; `--defaults` alone shows the plan and stops. The prototype's `--yes` only
+  stopped pacman from asking.
+- **Backups stay paused after a failure.** The prototype started automatic backups again even when
+  steps had failed. Carryon keeps the restoring flag until a full restore applies cleanly, says how
+  to finish (run it again: only what's still missing is done) or how to start backups anyway.
+  Nothing to do counts as finished.
+- **The first `*.pre-restore` copy is kept.** Running the restore again replaces what the first run
+  wrote, not the original copy.
+- **Rails checked again while applying.** Review-only and boot-risk files are checked on the path a
+  file would really be written to, after following symlinks on this machine, so neither a changed
+  plan nor a link can copy them. Data from the backup is never restored over them either. Writes
+  into a home never follow a symlink out of it.
+- **Several users.** Each user's home files are checked for a desktop session and handed to that
+  user; folders made on the way (such as `~/.config`) are theirs too, not root's. Without a
+  terminal, home files of a signed-in user are skipped and listed.
+- **AUR helper.** paru or yay if installed, else one from the configured repositories, else
+  `paru-bin` built from the AUR, always as the user. The prototype only tried `pacman -S paru`.
+- **A missing initramfs tool is reported** instead of skipped, since the machine may not boot
+  without it.
+
 ### As you go
 
 **New.** On a fresh machine connected to an existing repository, nothing has to be restored up front.
@@ -412,6 +435,9 @@ bundle has settings, files or services in the backup:
 - on a desktop, the agent shows **Restore** and **Not now**. **Restore** starts
   `carryon-restore@<bundle>.service` through polkit, which applies only that bundle's non-package
   items, after warning if the app is running.
+
+`carryon restore --bundle ID` does the same by hand, with the same plan, confirmation and safety
+rails, packages included. It leaves the restoring flag alone.
 
 ### Several users
 

@@ -1,0 +1,68 @@
+== commands
+restic restore 5e1f0c0ffee5 --target $TMP/carryon-restore-N/home-bob --include-file $TMP/carryon-restore-N/home-bob.txt
+  include /home/alice/.config/kitty
+  include /home/alice/.local/share/fonts
+groupadd -r video
+usermod -aG video bob
+loginctl enable-linger bob
+as bob: systemctl --user daemon-reload
+as bob: systemctl --user enable rclone-mount.service
+pacman -S --needed --noconfirm flatpak
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install -y flathub org.example.App
+as bob: cargo install --locked ripgrep
+npm install -g typescript
+
+== changed files
+~ /etc/environment  file 0644
+    | PATH=/srv/home/bob/bin:/usr/local/bin:/usr/bin
+    | NOTES=/home/alice2/notes
++ /etc/environment.pre-restore  file 0644
+    | PATH=/usr/local/bin:/usr/bin
++ /etc/locale.conf  file 0644
+    | LANG=en_GB.UTF-8
+    | LC_TIME=en_GB.UTF-8
++ /etc/ssh  folder 0755
++ /etc/ssh/sshd_config  file 0644
+    | PasswordAuthentication no
+    | PermitRootLogin no
++ /srv/home/bob/.config/kitty  folder 0755  owner 1001:1001
++ /srv/home/bob/.config/kitty/current  -> /srv/home/bob/.config/kitty/theme.conf  owner 1001:1001
++ /srv/home/bob/.config/kitty/kitty.conf  file 0644  owner 1001:1001
+    | include /srv/home/bob/.config/kitty/theme.conf
+    | font_size 11
++ /srv/home/bob/.config/kitty/theme.conf  file 0644  owner 1001:1001
+    | background #000000
+~ /srv/home/bob/.config/systemd/user/rclone-mount.service  file 0644  owner 1001:1001
+    | [Unit]
+    | Description=Mount the cloud drive
+    | 
+    | [Service]
+    | ExecStart=/usr/bin/rclone mount cloud: /srv/home/bob/Cloud --log-file=/srv/home/bob/.cache/rclone.log
+    | 
+    | [Install]
+    | WantedBy=default.target
++ /srv/home/bob/.local  folder 0755  owner 1001:1001
++ /srv/home/bob/.local/share  folder 0755  owner 1001:1001
++ /srv/home/bob/.local/share/fonts  folder 0755  owner 1001:1001
++ /srv/home/bob/.local/share/fonts/Example.ttf  file 0644  owner 1001:1001  (19 bytes, sha256 d331ae5c8fde2384dbd2147cb7859b890baabb292ab9dfebc892283716fc2429)
++ /srv/home/bob/not-backed-up.md  file 0644  owner 1001:1001  (577 bytes, sha256 b3eaaba73e1f9561c7f8182995791b27fffb63a8158781129448a71c32c5a1a0)
++ /usr/local/bin/hello  -> /opt/hello/bin/hello
+~ /usr/local/bin/notes  -> /srv/home/bob/bin/notes
++ /usr/local/bin/notes.pre-restore  -> /home/alice/bin/notes
++ /var/log  folder 0755
++ /var/log/myapp  folder 0755
+
+== problems
+
+== notes
+kitty: kitty reads its settings when it starts: open a new window.
+re-download list: /srv/home/bob/not-backed-up.md
+
+== output
+:: copying 5 system files
+:: restoring 2 home paths for bob from the backup
+:: pointed 2 restored files at bob's home, /srv/home/bob
+:: account
+:: user units
+:: language tools

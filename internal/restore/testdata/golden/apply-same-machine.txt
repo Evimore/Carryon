@@ -1,0 +1,126 @@
+== commands
+pacman-key --add testdata/desktop/repo-keys.asc
+pacman-key --lsign-key 0123456789ABCDEF0123456789ABCDEF01234567
+pacman -Syu --needed --noconfirm mypkg
+pacman -S --needed --asdeps --noconfirm fuse3
+pacman -S --needed --noconfirm base-devel
+as alice: paru -S --needed --noconfirm example-git
+restic restore 5e1f0c0ffee5 --target $ROOT --include-file $TMP/carryon-restore-N/system.txt
+  include /etc/ssh/ssh_host_*
+  include /root
+loginctl list-sessions --no-legend
+loginctl show-session 3 -p Type -p Class -p State
+restic restore 5e1f0c0ffee5 --target $TMP/carryon-restore-N/home-alice --include-file $TMP/carryon-restore-N/home-alice.txt
+  include /home/alice/.config/kitty
+  include /home/alice/.local/share/fonts
+usermod -aG video alice
+loginctl enable-linger alice
+systemctl daemon-reload
+systemctl mask -- systemd-networkd-wait-online.service
+mkinitcpio -P
+pacman -S --needed --noconfirm flatpak
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+as alice: flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+as alice: flatpak install -y --user flathub org.example.Notes
+as alice: pipx install black
+npm install -g typescript
+
+== changed files
+~ /etc/kernel/cmdline  file 0644
+    | root=UUID=bbbbbbbb-0000-0000-0000-000000000002 rw quiet nvidia_drm.modeset=1
++ /etc/kernel/cmdline.pre-restore  file 0644
+    | root=UUID=bbbbbbbb-0000-0000-0000-000000000002 rw quiet
+~ /etc/locale.conf  file 0644
+    | LANG=en_GB.UTF-8
+    | LC_TIME=en_GB.UTF-8
++ /etc/locale.conf.pre-restore  file 0644
+    | LANG=en_US.UTF-8
+~ /etc/mkinitcpio.conf  file 0644
+    | MODULES=()
+    | BINARIES=()
+    | HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
++ /etc/mkinitcpio.conf.pre-restore  file 0644
+    | MODULES=(btrfs)
+    | BINARIES=()
+    | HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
++ /etc/modprobe.d  folder 0755
++ /etc/modprobe.d/nvidia.conf  file 0644
+    | options nvidia_drm modeset=1
+~ /etc/pacman.conf  file 0644
+    | [options]
+    | Architecture = auto
+    | 
+    | [core]
+    | Include = /etc/pacman.d/mirrorlist
+    | 
+    | [extra]
+    | Include = /etc/pacman.d/mirrorlist
+    | 
+    | [myrepo]
+    | Server = https://repo.example.com/$arch
++ /etc/pacman.conf.pre-restore  file 0644
+    | [options]
+    | Architecture = auto
+    | 
+    | [core]
+    | Include = /etc/pacman.d/mirrorlist
+    | 
+    | [extra]
+    | Include = /etc/pacman.d/mirrorlist
++ /etc/sddm.conf.d  folder 0755
++ /etc/sddm.conf.d/autologin.conf  file 0644
+    | [Autologin]
+    | User=alice
+    | Session=plasma
++ /etc/ssh/ssh_host_ed25519_key  file 0644
+    | test host key
++ /etc/ssh/ssh_host_ed25519_key.pub  file 0644
+    | ssh-ed25519 AAAAtest root@desktop
++ /home/alice/.config/kitty  folder 0755  owner 1000:1000
++ /home/alice/.config/kitty/current  -> /home/alice/.config/kitty/theme.conf  owner 1000:1000
++ /home/alice/.config/kitty/kitty.conf  file 0644  owner 1000:1000
+    | include /home/alice/.config/kitty/theme.conf
+    | font_size 11
++ /home/alice/.config/kitty/theme.conf  file 0644  owner 1000:1000
+    | background #000000
++ /home/alice/.config/systemd/user/tracker-miner-fs-3.service  -> /dev/null  owner 1000:1000
++ /home/alice/.local  folder 0755  owner 1000:1000
++ /home/alice/.local/share  folder 0755  owner 1000:1000
++ /home/alice/.local/share/fonts  folder 0755  owner 1000:1000
++ /home/alice/.local/share/fonts/Example.ttf  file 0644  owner 1000:1000  (19 bytes, sha256 d331ae5c8fde2384dbd2147cb7859b890baabb292ab9dfebc892283716fc2429)
++ /home/alice/not-backed-up.md  file 0644  owner 1000:1000  (577 bytes, sha256 b3eaaba73e1f9561c7f8182995791b27fffb63a8158781129448a71c32c5a1a0)
++ /root  folder 0755
++ /root/.bashrc  file 0644
+    | export EDITOR=vim
++ /usr/local/bin/notes  -> /home/alice/bin/notes
++ /var/log/myapp  folder 0755
+
+== problems
+
+== notes
+kitty: kitty reads its settings when it starts: open a new window.
+re-download list: /home/alice/not-backed-up.md
+
+== output
+:: adding 1 package repositories
+:: updating the system and installing 2 packages
+:: building 1 AUR packages with paru (as alice)
+:: copying 5 system files
+
+Review by hand: /etc/fstab
+  NOT COPIED: disks have other IDs on every install, so this is never copied; kernel parameters are added on their own
+--- /etc/fstab (this machine)
++++ /etc/fstab (backup)
+@@ -1,2 +1,2 @@
+-UUID=3333-4444 /boot vfat defaults 0 2
+-UUID=bbbbbbbb-0000-0000-0000-000000000002 / btrfs subvol=/@,noatime 0 0
++UUID=1111-2222 /boot vfat defaults 0 2
++UUID=aaaaaaaa-0000-0000-0000-000000000001 / btrfs subvol=/@,noatime 0 0
+:: restoring 2 system paths from the backup
+:: restoring 2 home paths for alice from the backup
+:: account
+:: system services
+:: user units
+:: adding kernel parameters to /etc/kernel/cmdline: nvidia_drm.modeset=1
+:: making the initramfs and boot entries again
+:: language tools

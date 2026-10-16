@@ -155,7 +155,8 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `get_source`, `pick`, `adapt`, `file_state`, `boot_risk`, `make_plan`, `show_plan`.
 - **Done when:** a plan for a format-1 record from the prototype matches the prototype's dry run.
 
-### T15 Restore: apply ⬜
+### T15 Restore: apply ✅
+- **Package:** `internal/restore` (`Applier`), `carryon restore`.
 - **Scope:** every phase in order, with failures collected, `*.pre-restore` copies, path adaptation,
   owner remapping, rclone config merge, desktop-session check, `--bundle` for a single bundle.
 - **Legacy:** `install_one_by_one`, `apply_plan`, `remap_owner`, `merge_rclone`, `restore_data`,

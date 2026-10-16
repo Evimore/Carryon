@@ -118,6 +118,10 @@ func TestStatus(t *testing.T) {
 			statusMust(t, state.MarkPending(d, state.ReasonChange, time.Date(2026, 10, 16, 11, 20, 0, 0, time.UTC)))
 		}},
 		{name: "stale", fixture: "stale"},
+		{name: "connected", setup: func(t *testing.T, d paths.Dirs) {
+			// init --connect sets the restoring flag before any backup wrote status.json.
+			statusMust(t, os.WriteFile(d.RestoringFlag(), nil, 0o644))
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

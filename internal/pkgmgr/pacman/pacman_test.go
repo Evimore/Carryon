@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/Evimore/carryon/internal/pkgmgr"
+	"github.com/Evimore/carryon/internal/sysexec"
 )
 
 // exitError is what a runner returns for a program that ran and exited non-zero.
@@ -118,6 +119,34 @@ func TestPackagesEmptyQueries(t *testing.T) {
 	f.replies["pacman -Qqen"] = reply{[]byte("bash\n"), nil}
 	for _, q := range []string{"-Qqem", "-Qqdt", "-Qqdttn", "-Qqdttm"} {
 		f.replies["pacman "+q] = reply{nil, exitError(1)}
+	}
+	got, err := New(f, Options{}).Packages(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []pkgmgr.Package{{Name: "bash", Repo: "core"}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+}
+
+// TestPackagesEmptyQueriesThroughSysexec is TestPackagesEmptyQueries with sysexec's own fake,
+// whose failures are the *sysexec.ExitError the real runner returns. The fake in this file gives
+// its errors an ExitCode method of their own, which once hid that the real error had none: every
+// capture failed on a machine without orphans or foreign packages.
+func TestPackagesEmptyQueriesThroughSysexec(t *testing.T) {
+	read := func(name string) string {
+		data, err := os.ReadFile(filepath.Join("testdata", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+	f := (&sysexec.Fake{}).
+		On("pacman -Qq", sysexec.Response{Stdout: read("qq.txt")}).
+		On("pacman -Sl", sysexec.Response{Stdout: read("sl.txt")}).
+		On("pacman -Qqen", sysexec.Response{Stdout: "bash\n"})
+	for _, q := range []string{"-Qqem", "-Qqdt", "-Qqdttn", "-Qqdttm"} {
+		f.On("pacman "+q, sysexec.Response{Code: 1})
 	}
 	got, err := New(f, Options{}).Packages(ctx)
 	if err != nil {

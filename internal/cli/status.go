@@ -118,18 +118,17 @@ func statusInput(ctx context.Context, dirs paths.Dirs, snapshots bool) (status.I
 	default:
 		return in, fmt.Errorf("reading the status (%v): the next backup writes it again", err)
 	}
-	// The flags may be newer than the status: the pacman hook marks a backup owed without
-	// rewriting status.json, and a restore sets or clears the restoring flag.
-	if in.Found {
-		if p, ok, err := state.ReadPending(dirs); err == nil {
-			in.Status.Pending = nil
-			if ok {
-				p.Since = p.Since.UTC()
-				in.Status.Pending = &p
-			}
+	// The flags may be newer than the status, or there may be no status yet: the pacman hook marks
+	// a backup owed without rewriting status.json, and init --connect sets the restoring flag on a
+	// machine that has never backed up.
+	if p, ok, err := state.ReadPending(dirs); err == nil {
+		in.Status.Pending = nil
+		if ok {
+			p.Since = p.Since.UTC()
+			in.Status.Pending = &p
 		}
-		in.Status.Restoring = state.Restoring(dirs)
 	}
+	in.Status.Restoring = state.Restoring(dirs)
 	if runs, err := state.ReadRuns(dirs); err == nil {
 		in.Runs = runs
 	}

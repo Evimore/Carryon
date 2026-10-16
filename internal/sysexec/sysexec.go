@@ -45,6 +45,11 @@ func (e *ExitError) Error() string {
 	return msg
 }
 
+// ExitCode is the program's exit code. Packages that declare their own small Runner interface
+// (pkgmgr, facts, dest) read it with errors.As and interface{ ExitCode() int }, without importing
+// this package.
+func (e *ExitError) ExitCode() int { return e.Code }
+
 // ExitCode returns the exit code of a program that failed with err, and whether err came from a
 // program that ran and failed (rather than one that couldn't start or was never registered).
 func ExitCode(err error) (int, bool) {

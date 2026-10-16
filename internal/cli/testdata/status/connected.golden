@@ -1,0 +1,5 @@
+Needs attention
+  - Automatic backups are paused while a restore is in progress.
+    Backups start again when the restore finishes. If no restore is running, resume them with: sudo rm /var/lib/carryon/restoring
+  - No backup has run yet, so there is no status to show.
+    The first one runs at the next scheduled time; to run it now: sudo carryon backup

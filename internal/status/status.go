@@ -146,8 +146,9 @@ func Build(in Input) Report {
 				r.Next = append(r.Next, n)
 			}
 		}
-		r.Pending, r.Restoring, r.Inbox = s.Pending, s.Restoring, s.Inbox
+		r.Inbox = s.Inbox
 	}
+	r.Pending, r.Restoring = s.Pending, s.Restoring // read from their flags, status.json or not
 
 	if in.NotSetUp {
 		r.State = StateNotSetUp
@@ -156,6 +157,14 @@ func Build(in Input) Report {
 		if !in.Found {
 			return r
 		}
+	}
+	if r.Restoring {
+		fix := "Backups start again when the restore finishes."
+		if in.RestoringFlag != "" {
+			fix += " If no restore is running, resume them with: sudo rm " + in.RestoringFlag
+		}
+		r.add(Problem{Text: "Automatic backups are paused while a restore is in progress.", Fix: fix})
+		r.summary("Backups paused for a restore")
 	}
 	if !in.Found {
 		r.add(Problem{
@@ -166,14 +175,6 @@ func Build(in Input) Report {
 		return r
 	}
 
-	if r.Restoring {
-		fix := "Backups start again when the restore finishes."
-		if in.RestoringFlag != "" {
-			fix += " If no restore is running, resume them with: sudo rm " + in.RestoringFlag
-		}
-		r.add(Problem{Text: "Automatic backups are paused while a restore is in progress.", Fix: fix})
-		r.summary("Backups paused for a restore")
-	}
 	if b := r.LastBackup; b != nil {
 		switch b.Result {
 		case state.ResultFailed:

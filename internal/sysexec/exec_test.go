@@ -219,3 +219,16 @@ func TestExitErrorMessage(t *testing.T) {
 		t.Error("ExitCode(other error) reported an exit code")
 	}
 }
+
+// Packages with their own small Runner interface read the exit code through an interface, so
+// *ExitError must have the method.
+func TestExitErrorHasExitCodeMethod(t *testing.T) {
+	_, err := New().Output(context.Background(), "sh", "-c", "exit 3")
+	var e interface{ ExitCode() int }
+	if !errors.As(err, &e) {
+		t.Fatalf("%T has no ExitCode() int method", err)
+	}
+	if got := e.ExitCode(); got != 3 {
+		t.Errorf("ExitCode() = %d, want 3", got)
+	}
+}

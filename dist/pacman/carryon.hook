@@ -1,0 +1,15 @@
+# Refresh Carryon's system record after every install, upgrade or removal, and note that a backup
+# is owed; carryon-settle.timer backs up once changes have settled. `carryon hook` always exits
+# successfully and gives up after two minutes, so it never breaks or holds up pacman.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Updating Carryon's system record...
+When = PostTransaction
+Exec = /usr/bin/carryon hook
+NeedsTargets

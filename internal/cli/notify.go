@@ -29,9 +29,11 @@ var notifySystem = func() notify.System {
 	return notify.System{Runner: r, Euid: geteuid(), Path: os.Getenv("PATH")}
 }
 
-// notifyErrors returns where carryon notify reads a unit's errors; tests replace it. T11 switches
-// it to Carryon's own run history.
-var notifyErrors = func(r sysexec.Runner) notify.ErrorSource { return notify.Journal{Runner: r} }
+// notifyErrors returns where carryon notify reads a unit's errors: Carryon's own run history,
+// then the journal. Tests replace it.
+var notifyErrors = func(dirs paths.Dirs, r sysexec.Runner) notify.ErrorSource {
+	return notify.RunHistory{Dirs: dirs, Runner: r, Fallback: notify.Journal{Runner: r}}
+}
 
 func newNotifyCmd(dirs paths.Dirs) *cobra.Command {
 	var test bool
@@ -75,7 +77,7 @@ can check your setup: sudo carryon notify --test`,
 				msg = notify.Test(host)
 			} else {
 				remote := &notify.RemoteCheck{Runner: sys.Runner, Euid: sys.Euid, Path: sys.Path, LookupUser: sys.LookupUser}
-				msg = notify.Failure(ctx, args[0], host, cfg.Repository, notifyErrors(sys.Runner), remote, log.Warn)
+				msg = notify.Failure(ctx, args[0], host, cfg.Repository, notifyErrors(dirs, sys.Runner), remote, log.Warn)
 			}
 
 			results := notify.SendAll(ctx, msg, senders)

@@ -1,0 +1,13 @@
+# The default schedule. `carryon init` writes a drop-in
+# (/etc/systemd/system/carryon-verify.timer.d/schedule.conf) with verify.schedule.
+[Unit]
+Description=Weekly Carryon backup check
+Documentation=https://github.com/Evimore/carryon
+
+[Timer]
+OnCalendar=Sun 14:00
+RandomizedDelaySec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

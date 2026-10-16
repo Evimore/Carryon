@@ -1,6 +1,5 @@
 # build output
 /bin/
-/dist/
 /carryon
 
 # Go test and coverage output

@@ -9,16 +9,17 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/Evimore/carryon/internal/backup"
 	"github.com/Evimore/carryon/internal/capture"
-	"github.com/Evimore/carryon/internal/catalog"
 	"github.com/Evimore/carryon/internal/config"
-	"github.com/Evimore/carryon/internal/dest"
+	"github.com/Evimore/carryon/internal/notify"
 	"github.com/Evimore/carryon/internal/paths"
-	"github.com/Evimore/carryon/internal/pkgmgr/pacman"
-	"github.com/Evimore/carryon/internal/sysexec"
+	"github.com/Evimore/carryon/internal/record"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/ui"
 )
 
@@ -26,28 +27,31 @@ func newCaptureCmd(dirs paths.Dirs) *cobra.Command {
 	var out string
 	var quick bool
 	cmd := &cobra.Command{
-		Use:   "capture --out DIR",
+		Use:   "capture [--out DIR]",
 		Short: "Refresh the system record without backing up",
-		Long: `Look at this machine and write its system record (packages, changed system files,
-services, users, language tools and backed-up paths) into DIR, which must be empty.
+		Long: `Look at this machine and refresh its system record (packages, changed system files,
+services, users, language tools and backed-up paths) in ` + dirs.RecordDir() + `,
+keeping its history. The next backup takes it along.
 
-For now the record only goes to --out, so you can look at it or compare it with the record the
-sysbackup prototype wrote. Publishing it into ` + dirs.RecordDir() + ` comes with the backup run.
+With --out DIR, the record goes into DIR instead, which must be empty, so you can look at it or
+compare it with the record the sysbackup prototype wrote.
 
-Run it with sudo: without root, files only root can read are skipped and the record is marked
-incomplete.`,
+Run it with sudo: without root, only --out works, files only root can read are skipped and the
+record is marked incomplete.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if out == "" {
-				return fmt.Errorf("carryon capture needs --out DIR for now: publishing into %s comes with the backup run (roadmap T11)", dirs.RecordDir())
+			if out == "" && geteuid() != 0 {
+				return fmt.Errorf("refreshing the system record in %s needs root: run it with sudo, or give --out DIR to write one somewhere else", dirs.RecordDir())
 			}
-			if err := checkEmptyDir(out); err != nil {
-				return err
+			if out != "" {
+				if err := checkEmptyDir(out); err != nil {
+					return err
+				}
 			}
 			return runCapture(cmd, dirs, out, !quick)
 		},
 	}
-	cmd.Flags().StringVar(&out, "out", "", "empty folder to write the record into")
+	cmd.Flags().StringVar(&out, "out", "", "write the record into this empty folder instead of refreshing the machine's record")
 	cmd.Flags().BoolVar(&quick, "quick", false, "leave out the slow checks, like the pacman hook does (edited package files, the not-backed-up list)")
 	return cmd
 }
@@ -73,62 +77,43 @@ func runCapture(cmd *cobra.Command, dirs paths.Dirs, out string, nightly bool) e
 	if err != nil {
 		return err
 	}
-	run := sysexec.New()
-	pm := pacman.New(run, pacman.Options{ExtraStandardRepos: cfg.Pacman.ExtraStandardRepos})
-	if !pm.Present() {
-		return errors.New("pacman isn't installed here: Carryon captures Arch-based systems for now")
-	}
-	users, warnings, err := capture.SelectUsers("/", cfg.Backup.Users)
+	sys, err := backupSystem(cfg)
 	if err != nil {
 		return err
 	}
-	for _, w := range warnings {
-		log.Warn("%s", w)
-	}
-	mounts, err := dest.ReadMounts("/")
-	if err != nil {
-		log.Warn("%v", err)
-	}
-	cat, err := catalog.Load(filepath.Join(dirs.Share, "catalog"))
-	if err != nil {
-		log.Warn("the app catalog wasn't read, so its excludes and hints are missing: %v", err)
-	}
-	tmp, err := os.MkdirTemp("", "carryon-capture-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmp)
-	excludes, warnings, err := capture.BuildExcludes(filepath.Join(tmp, "excludes"), capture.ExcludeSources{
-		Dirs: dirs, Config: cfg, Catalog: cat, Users: users, Mounts: mounts,
+	start := time.Now()
+	res, err := backup.Capture(cmd.Context(), backup.CaptureOptions{
+		Dirs: dirs, Config: cfg, System: sys, Nightly: nightly, Out: out, Log: log,
 	})
+	if out == "" {
+		recordCapture(cmd, dirs, cfg, sys, start, res, err, log)
+	}
 	if err != nil {
 		return err
 	}
-	for _, w := range warnings {
-		log.Warn("%s", w)
+	printCaptureSummary(cmd.OutOrStdout(), res.Result)
+	if res.Published {
+		printChanges(cmd.OutOrStdout(), res.Publish)
 	}
-	var hints []catalog.Hint
-	if cat != nil {
-		hints = cat.Hints()
-	}
-	res, err := capture.Run(cmd.Context(), capture.Options{
-		Dir:      out,
-		Runner:   run,
-		Packages: pm,
-		Config:   cfg,
-		Users:    users,
-		Excludes: excludes,
-		Mounts:   mounts,
-		Nightly:  nightly,
-		Hints:    hints,
-		IsRoot:   geteuid() == 0,
-		Log:      log,
-	})
-	if err != nil {
-		return err
-	}
-	printCaptureSummary(cmd.OutOrStdout(), res)
 	return nil
+}
+
+// recordCapture adds a capture of the machine's record to the run history.
+func recordCapture(cmd *cobra.Command, dirs paths.Dirs, cfg config.Config, sys backup.System, start time.Time, res *backup.Captured, err error, log *ui.Logger) {
+	run := state.Run{Kind: state.KindCapture, Trigger: state.TriggerManual, Machine: machineName(cfg), Start: start, End: time.Now()}
+	switch {
+	case err != nil:
+		run.Result, run.Error = state.ResultFailed, notify.Redact(err.Error())
+	case len(res.Warnings) > 0:
+		run.Result, run.Warnings = state.ResultWarning, res.Warnings
+	default:
+		run.Result = state.ResultOK
+	}
+	if res != nil {
+		run.Changes = len(res.Publish.Changes())
+	}
+	host := backupHost(cmd.Context(), sys.Runner)
+	backup.Record(cmd.Context(), dirs, run, run.Machine, host.Timers, log)
 }
 
 // captureConfig reads the settings, or uses the defaults before `carryon init` has written any.
@@ -149,6 +134,29 @@ func captureConfig(dirs paths.Dirs, log *ui.Logger) (config.Config, error) {
 		return config.Config{}, fmt.Errorf("%s has problems:\n%w", file, err)
 	}
 	return cfg, nil
+}
+
+// maxChangeLines is how many change lines capture prints.
+const maxChangeLines = 20
+
+// printChanges says what changed in the published record.
+func printChanges(w io.Writer, pub record.PublishResult) {
+	lines := pub.Changes()
+	switch {
+	case pub.First:
+		fmt.Fprintln(w, "This is the machine's first record.")
+	case len(lines) == 0:
+		fmt.Fprintln(w, "Nothing changed since the last capture.")
+	default:
+		fmt.Fprintf(w, "%s since the last capture:\n", plural(len(lines), "change"))
+		for i, l := range lines {
+			if i == maxChangeLines && len(lines) > maxChangeLines+1 {
+				fmt.Fprintf(w, "  and %d more (carryon history shows them all)\n", len(lines)-i)
+				break
+			}
+			fmt.Fprintf(w, "  %s\n", l)
+		}
+	}
 }
 
 // printCaptureSummary says what the record holds: items per type and anything skipped.

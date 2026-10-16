@@ -1,0 +1,15 @@
+# Backs up once package changes have settled (backup.after_change_delay), or when a backup that
+# waited for its destination can go ahead. It only starts while a backup is owed.
+[Unit]
+Description=Carryon: back up after changes have settled
+Documentation=https://github.com/Evimore/carryon
+ConditionPathExists=/var/lib/carryon/pending
+ConditionPathExists=!/var/lib/carryon/restoring
+OnFailure=carryon-notify@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon settle
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch

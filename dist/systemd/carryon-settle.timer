@@ -1,0 +1,11 @@
+[Unit]
+Description=Check every few minutes whether Carryon owes a backup
+Documentation=https://github.com/Evimore/carryon
+
+[Timer]
+OnCalendar=*:0/10
+RandomizedDelaySec=1min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

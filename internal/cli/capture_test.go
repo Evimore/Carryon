@@ -12,9 +12,10 @@ import (
 	"github.com/Evimore/carryon/internal/record"
 )
 
-func TestCaptureNeedsOut(t *testing.T) {
+func TestCaptureIntoTheRecordNeedsRoot(t *testing.T) {
+	asRoot(t, false)
 	_, err := run(t, paths.Dirs{State: "/var/lib/carryon"}, "capture")
-	if err == nil || !strings.Contains(err.Error(), "--out DIR") || !strings.Contains(err.Error(), "T11") {
+	if err == nil || !strings.Contains(err.Error(), "needs root") || !strings.Contains(err.Error(), "--out DIR") {
 		t.Fatalf("err = %v", err)
 	}
 }

@@ -69,8 +69,8 @@ func TestConfigCheck(t *testing.T) {
 }
 
 func TestPlannedCommandsSayWhenTheyArrive(t *testing.T) {
-	_, err := run(t, paths.Dirs{}, "backup", "--now")
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet (roadmap: T11)") {
+	_, err := run(t, paths.Dirs{}, "verify", "--deep")
+	if err == nil || !strings.Contains(err.Error(), "not implemented yet (roadmap: T13)") {
 		t.Fatalf("err = %v", err)
 	}
 }

@@ -1,0 +1,14 @@
+[Unit]
+Description=Carryon: record the system and back it up
+Documentation=https://github.com/Evimore/carryon
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/carryon/restoring
+OnFailure=carryon-notify@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon backup --quiet --timer
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch

@@ -247,8 +247,17 @@ drop  <type> <glob>            never record these
   **Fix:** the prototype used the hostname, so two machines with the same hostname would share a
   retention group. Carryon stores a machine name in its config at `init`, and `init` refuses a name
   that another machine (different fingerprint) already uses in the repository.
+- **Snapshot layout.** Every backup is one snapshot, made with `restic backup --host <machine name>
+  --tag carryon --one-file-system --exclude-caches` and the effective exclude file. It holds, at
+  their places on the machine: `/etc` (so `/etc/carryon` travels with it), `/root`, `/srv`, the
+  record's backed-up `path` items, `backup.extra_paths`, the included users' homes, nested btrfs
+  subvolumes inside any of these, and the record itself at `/var/lib/carryon/record`. Restore finds
+  the record there. **Changes from the prototype:** the tag is `carryon` (the prototype's was
+  `auto`), and only the record is taken from `/var/lib/carryon`, not the whole state folder.
 - **Retention** per machine, by default everything from the last 2 days, then 7 daily, 4 weekly and 6
-  monthly. Pruning runs weekly.
+  monthly (`restic forget --host <machine name> --group-by host`). Pruning runs every
+  `prune_every_days` (weekly), counted from the first backup. A failed `forget` or `prune` is a
+  warning and is tried again next time; the snapshot is already saved.
 - **Password:** generated at `init` (40 random characters) or entered when connecting to an existing
   repository. Stored root-only in `/etc/carryon/repository-password`, or encrypted with
   `systemd-creds` (bound to the TPM when there is one), or fetched with a command
@@ -284,6 +293,16 @@ silently goes wrong:
 | `carryon-agent.service` (user unit) | **New:** the user's notifications, and later the tray icon. |
 | `/usr/share/libalpm/hooks/carryon.hook` | After every install, upgrade or removal: quick capture, write the pending marker, print hints. Never fails or blocks the transaction. |
 
+- **One backup at a time:** a lock in the state folder. A scheduled or settle run that finds
+  another backup running does nothing; `carryon backup` by hand says so.
+- **Order of a run:** **Changes from the prototype.** The destination is checked first, before the
+  capture, so a run that can't write does nothing at all (the pacman hook still keeps the record
+  fresh). When the capture fails (say the package database is locked), the backup goes on with the
+  last record and ends with a warning: the prototype stopped, which could leave the files without
+  any backup for days.
+- **Settle after a failure:** when a settle run fails, the pending marker gets the current time, so
+  the next try, and the next alert, waits another `after_change_delay` instead of repeating every
+  10 minutes.
 - **Run history:** **Fix.** The prototype read errors back from the journal, which some
   distributions keep for about a day. Carryon keeps its own history in `/var/lib/carryon/runs.jsonl`
   and writes a summary, `/run/carryon/status.json` mirrored to `/var/lib/carryon/status.json`, that is
@@ -299,14 +318,20 @@ silently goes wrong:
   leaves the machine, and `carryon notify --test` to try every channel. With a missing or broken
   config, it still alerts with the default settings.
 - **Paused while restoring:** a `restoring` flag stops automatic backups on a fresh install, so a
-  half-restored system never becomes the newest snapshot. Kept from the prototype.
+  half-restored system never becomes the newest snapshot. Kept from the prototype. **Change:** the
+  pacman hook does nothing at all while it is there; the prototype still refreshed the record.
 - **Sleep:** a running backup holds a logind inhibitor so the machine doesn't suspend mid-upload.
   **New.**
 - **Consistent copies:** on btrfs, a later version backs up from read-only snapshots of the
   subvolumes, so databases aren't read while they change. **New, v0.3.**
 - **Nested subvolumes and mounts:** **Fix.** The prototype's `--one-file-system` silently skipped
   them. Carryon lists the filesystems inside each backed-up folder, includes nested btrfs subvolumes of
-  the same device, and reports other mounts it leaves out.
+  the same device, and reports other mounts it leaves out. Mounted subvolumes come from the mount
+  table; unmounted ones (made with `btrfs subvolume create`) show up as a change of device number,
+  so on btrfs Carryon walks the backed-up folders, skipping what the exclude list leaves out.
+  Snapper's `.snapshots` subvolumes are left out and reported, since they hold copies of everything
+  else. What is left out is listed in the run history and `status.json` as notes; adding a path to
+  `backup.extra_paths` takes it in.
 
 ## Noticing new things
 

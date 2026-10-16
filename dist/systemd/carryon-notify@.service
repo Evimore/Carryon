@@ -1,0 +1,8 @@
+# OnFailure= of Carryon's units: tells the user that %i failed, through every channel in [notify].
+[Unit]
+Description=Carryon: tell the user %i failed
+Documentation=https://github.com/Evimore/carryon
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon notify %i

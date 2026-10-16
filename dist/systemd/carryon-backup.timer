@@ -1,0 +1,13 @@
+# The default schedule. `carryon init` writes a drop-in
+# (/etc/systemd/system/carryon-backup.timer.d/schedule.conf) with backup.schedule.
+[Unit]
+Description=Daily Carryon backup
+Documentation=https://github.com/Evimore/carryon
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

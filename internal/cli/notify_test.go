@@ -52,7 +52,7 @@ func fakeNotify(t *testing.T, f *sysexec.Fake, errText string) {
 	t.Helper()
 	oldSys, oldErr := notifySystem, notifyErrors
 	notifySystem = func() notify.System { return notify.System{Runner: f, Euid: 0, Path: "/usr/bin"} }
-	notifyErrors = func(sysexec.Runner) notify.ErrorSource { return stubErrors(errText) }
+	notifyErrors = func(paths.Dirs, sysexec.Runner) notify.ErrorSource { return stubErrors(errText) }
 	t.Cleanup(func() { notifySystem, notifyErrors = oldSys, oldErr })
 }
 

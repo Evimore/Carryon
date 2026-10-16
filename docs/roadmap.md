@@ -122,7 +122,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `legacy/excludes.txt`.
 - **Done when:** the matcher agrees with restic on a table of patterns and paths.
 
-### T11 Backup run ⬜
+### T11 Backup run ✅
 - **Packages:** `internal/backup`, `internal/state`, `internal/detect` (hook part), `dist/`.
 - **Scope:** the backup run (guards, capture, restic backup with the effective excludes, retention,
   weekly prune, run history, `status.json`), the restoring flag, the pending marker and

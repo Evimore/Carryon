@@ -24,6 +24,24 @@ gofmt -l .        # must print nothing
   `example.com`.
 - New behavior comes with a test. CI runs the tests on Ubuntu and in an Arch Linux container.
 
+## End-to-end tests
+
+The end-to-end tests back up a whole Arch Linux machine, restore it onto a fresh one and compare
+the two, and run Carryon's systemd units and pacman hook for real. They run in containers booted
+with systemd, so they need Docker or Podman able to run privileged containers, plus Go:
+
+```sh
+test/e2e/run.sh            # both: about 5 minutes, mostly downloading packages
+test/e2e/run.sh restore    # only the backup and restore
+test/e2e/run.sh systemd    # only the units and the hook
+ENGINE=podman test/e2e/run.sh   # with Podman (as root: sudo -E)
+KEEP=1 test/e2e/run.sh restore  # leave the containers to look at; test/e2e/run.sh clean removes them
+```
+
+They never touch your system: everything happens inside the containers and two volumes named
+`carryon-e2e-*`. CI runs them on every pull request ("End-to-end"). See
+[test/e2e/README.md](test/e2e/README.md) for what they check.
+
 ## Licence
 
 By contributing you agree that your contribution is licensed under the GNU General Public License

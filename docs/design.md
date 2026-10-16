@@ -681,10 +681,26 @@ system's loader, and the same binary must run from the recovery kit anywhere. Se
 - **Unit tests** use fakes: a fake package manager, a fake program runner, and temporary folders via
   `CARRYON_CONF_DIR`, `CARRYON_STATE_DIR` and `CARRYON_ROOT` (a fake filesystem root for capture).
 - **Golden tests** pin the record format and prove prototype records (format 1) still load.
-- **End to end in CI:** in an Arch container, install a few packages and settings, back up to a
-  local restic repository, then restore into a fresh container and compare the records. The prototype
-  never tested a full restore; this does, on every change.
-- **systemd and the hook** are tested in a VM job.
+- **End to end in CI** (`test/e2e/`, the "End-to-end" workflow): machine A, an Arch container, gets a
+  few packages, changed and added system files, a service, two users with home files and an extra
+  path; it backs up to a restic repository on a shared volume and passes `verify --deep`. Machine B,
+  a fresh container with the same users (other user IDs), runs `init --connect` and `restore
+  --defaults --yes`. Then packages, files with their modes and owners, the service, groups, shells
+  and home files must match A, and B's record must match A's except for differences the test lists
+  with their reasons. It also checks the safety rails for real: `--defaults` without `--yes` and
+  `--plan` change nothing, `/etc/fstab` is never copied, the restoring flag is there from
+  `--connect` until a clean restore, and a backup to an unmounted volume or a different repository
+  writes nothing. The prototype never tested a full restore; this does, on every change.
+- **systemd and the hook** are tested in a container booted with systemd as PID 1 (rather than a VM:
+  it boots in seconds on CI runners): the units parse (`systemd-analyze verify`), the timers are on,
+  `carryon-backup.service` records a run, `pacman -S` runs the hook, which refreshes the record and
+  marks a backup owed, and never fails pacman, even with a broken config; `carryon-settle.service`
+  only starts while a backup is owed; and while restoring the hook and the backup service do
+  nothing. The machines of the restore test boot with systemd too, so services are captured and
+  enabled as on a real machine.
+- **Not covered end to end yet:** AUR packages (an AUR helper would have to be built from the AUR
+  in every run), user units, rclone and other remote backends, a machine name or users that differ
+  between the machines, and real hardware (the containers share the runner's).
 - **Real machines:** before a release, a maintainer runs the backup and the deep check through the
   real systemd services, as the prototype's notes require.
 

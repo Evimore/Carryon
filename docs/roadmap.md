@@ -187,7 +187,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   requests) and the "Package" workflow, which builds `carryon-git` with `makepkg`, runs namcap and
   installs it in an Arch container. See [packaging.md](packaging.md).
 
-### T20 End-to-end tests ⬜
+### T20 End-to-end tests ✅
 - **Scope:** a CI job in an Arch container: set up packages and settings, `carryon init` with a local
   repository, `backup`, then a fresh container, `init --connect`, `restore --defaults`, and compare the
   records. A VM job for systemd units and the hook.

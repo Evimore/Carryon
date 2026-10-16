@@ -1,0 +1,38 @@
+name: End-to-end
+
+# Backs up an Arch Linux machine, restores it onto a fresh one and compares them, and runs Carryon's
+# units and pacman hook under a real systemd. Both run test/e2e/run.sh, which works the same locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    name: Backup and restore (Arch Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Back up machine A, restore onto machine B, compare
+        run: test/e2e/run.sh restore
+
+  systemd:
+    name: systemd units and pacman hook (Arch Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run the units and the hook under systemd
+        run: test/e2e/run.sh systemd

@@ -1,0 +1,190 @@
+bundle packages | always | Packages from your distribution's repositories
+bundle aur | always | AUR packages (rebuilt with paru or yay)
+bundle app-chatterbox | always | chatterbox (app + autostart)
+bundle app-gnome-shell | always | gnome-shell (app + settings)
+bundle app-htop | always | htop (app + settings)
+bundle app-kitty | always | kitty (app + settings)
+bundle app-obs-studio | always | obs-studio (app + settings)
+bundle app-openrgb | never | OpenRGB (app + settings)
+bundle brave | always | Brave (auto-grouped)
+bundle cfg-openssh | always | openssh settings + service
+bundle example | always | Example (auto-grouped)
+bundle games | always | Games (auto-grouped)
+bundle limine | always | Limine (auto-grouped)
+bundle notes | always | Notes (auto-grouped)
+bundle openlinkhub | hw:usb:2345:0001 | Openlinkhub (auto-grouped)
+bundle rclone | always | Rclone (auto-grouped)
+bundle services | always | Enabled system services
+bundle user-services | always | Enabled user services
+bundle configs | always | Tweaked package settings
+bundle other-files | always | Other hand-installed system files
+bundle firmware-acmebt | hw:usb:1234:0b01 | Firmware acmebt for Example Bluetooth Adapter
+bundle firmware-acmewifi | hw:pci:1234:5678 | Firmware acmewifi for Example Wireless 9000
+bundle firmware-other | samehost | Firmware other
+bundle kparam-nvidia-drm | hw:module:nvidia_drm | Kernel params for the nvidia-drm driver
+bundle kparam-vfio-pci.ids | hw:pci:1234:abcd,pci:1234:abce | Kernel param vfio-pci.ids=1234:ABCD,1234:abce (hides Example Graphics 500)
+bundle snapshots | rootfs:btrfs | Btrfs snapshots (snapper)
+bundle boot | samehost | Initramfs & kernel module settings
+bundle kparams | always | Kernel parameters
+bundle locale | always | Locale, keyboard & timezone
+bundle xkb | always | Keyboard tweaks (/etc/xkb): custom
+bundle account | always | Group memberships & login shell
+bundle login | samehost | Login screen & automatic login
+bundle fingerprint | hw:usb:1234:0042 | Fingerprint login: reader driver, fingerprint for sudo/polkit, enrolled prints
+bundle dev-tools | always | Language tools (cargo, pipx, npm, flatpak)
+bundle network | always | Wi-Fi & VPN connections (with passwords)
+bundle bluetooth | hw:bt:00:11:22:aa:bb:cc | Bluetooth pairings
+bundle identity | samehost | Machine identity: hostname desktop, SSH host keys, Tailscale node
+bundle root-home | samehost | root's home directory
+bundle srv | samehost | /srv
+bundle other-paths | samehost | Other backed-up system paths
+bundle home-keys | always | Home: SSH & GPG keys
+bundle home-files | always | Home: documents and photos
+bundle home-apps | always | Home: app settings & data (dotfiles)
+bundle home-display | samehost | Home: monitor layout
+bundle disk-layout | samehost | Disk layout & bootloader config (shown as a diff, never copied)
+item packages pkg:base
+item packages pkg:bluez
+item packages pkg:docker
+item packages pkg:firefox
+item packages pkg:jellyfin-server
+item packages pkg:linux
+item packages pkg:networkmanager
+item packages pkg:nvidia-utils
+item packages pkg:openssh
+item packages pkg:plasma-desktop
+item packages pkg:python-pillow
+item packages pkg:sddm
+item packages pkg:sudo
+item aur aur:old-helper
+item aur aur:paru-bin
+item aur aur:visual-studio-code-bin
+item app-chatterbox path:/home/alice/.config/autostart/org.chatter.Desktop.desktop (alice)
+item app-chatterbox pkg:chatterbox
+item app-gnome-shell path:/home/bob/.local/share/gnome-shell (bob)
+item app-gnome-shell pkg:gnome-shell
+item app-htop path:/home/alice/.config/htop (alice)
+item app-htop path:/home/bob/.config/htop (bob)
+item app-htop pkg:htop
+item app-kitty path:/home/alice/.config/kitty (alice)
+item app-kitty pkg:kitty
+item app-obs-studio path:/home/alice/.config/obs-studio (alice)
+item app-obs-studio pkg:obs-studio
+item app-openrgb path:/home/alice/.config/OpenRGB (alice)
+item app-openrgb path:/home/alice/.config/autostart/openrgb.desktop (alice)
+item app-openrgb pkg:openrgb
+item brave aur:brave-bin
+item brave path:/home/alice/.config/BraveSoftware (alice)
+item cfg-openssh file:/etc/ssh/sshd_config
+item cfg-openssh svc:sshd.service
+item example file:/etc/example-tool/config.toml
+item example pkg:example-keyring
+item example pkg:example-tool
+item example repo:example
+item games path:/home/alice/.local/share/Steam (alice)
+item games path:/home/bob/.local/share/Steam (bob)
+item games pkg:steam
+item limine aur:limine-snapper-sync
+item limine file:/etc/limine-snapper-sync.conf
+item limine pkg:limine
+item limine svc:limine-snapper-sync.service
+item notes mkdir:/home/bob/Notes (bob)
+item notes pkg:unison
+item notes usvc:notes-sync.service (bob)
+item notes uunit:notes-sync.service (bob)
+item openlinkhub aur:openlinkhub
+item openlinkhub path:/var/lib/openlinkhub
+item openlinkhub svc:openlinkhub.service
+item rclone file:/etc/systemd/system/rclone-backup.service
+item rclone mkdir:/home/alice/Cloud (alice)
+item rclone mkdir:/var/log/rclone
+item rclone path:/home/alice/.config/rclone (alice)
+item rclone path:/home/bob/.config/rclone (bob)
+item rclone pkg:fuse3
+item rclone pkg:rclone
+item rclone svc:rclone-backup.service
+item rclone usvc:rclone-mount.service (alice)
+item rclone uunit:rclone-mount.service (alice)
+item services mask:systemd-networkd.service
+item services svc:NetworkManager.service
+item services svc:bluetooth.service
+item services svc:docker.service
+item services svc:getty@tty2.service
+item services svc:sddm.service
+item user-services linger:alice
+item user-services pkg:syncthing
+item user-services umask:tracker-miner-fs-3.service (alice)
+item user-services usvc:syncthing.service (alice)
+item user-services uunit:syncthing.service.d/override.conf (alice)
+item configs file:/etc/makepkg.conf
+item configs file:/etc/pam.d/system-login
+item other-files file:/etc/docker/daemon.json
+item other-files file:/etc/systemd/system/docker.service.d/override.conf
+item other-files file:/usr/local/bin/backup-notify
+item firmware-acmebt file:/usr/lib/firmware/acmebt/bt-fw.bin.xz
+item firmware-acmewifi file:/usr/lib/firmware/acmewifi/fw-1.bin.zst
+item firmware-other file:/usr/lib/firmware/other/blob.bin
+item kparam-nvidia-drm kparam:nvidia-drm.modeset=1
+item kparam-vfio-pci.ids kparam:vfio-pci.ids=1234:ABCD,1234:abce
+item snapshots file:/etc/snapper/configs/root
+item snapshots pkg:snap-pac
+item snapshots pkg:snapper
+item snapshots svc:snapper-timeline.timer
+item boot file:/etc/mkinitcpio.conf
+item boot file:/etc/modprobe.d/nvidia.conf
+item kparams kparam:quiet
+item kparams kparam:zswap.enabled=0
+item locale file:/etc/locale.conf
+item locale file:/etc/vconsole.conf
+item xkb file:/etc/xkb/symbols/custom
+item account group:audio (alice)
+item account group:audio (bob)
+item account group:wheel (alice)
+item account shell:/bin/bash (bob)
+item account shell:/usr/bin/zsh (alice)
+item login file:/etc/sddm.conf.d/kde_settings.conf
+item login group:autologin (alice)
+item fingerprint file:/etc/pam.d/polkit-1
+item fingerprint file:/etc/pam.d/sudo
+item fingerprint path:/var/lib/fprint
+item fingerprint pkg:fprintd
+item fingerprint pkg:libfprint
+item dev-tools cargo:ripgrep (alice)
+item dev-tools flatpak:com.example.Notes (alice)
+item dev-tools flatpak:org.example.App
+item dev-tools npm:typescript
+item dev-tools pipx:httpie (bob)
+item network path:/etc/NetworkManager/system-connections
+item bluetooth path:/var/lib/bluetooth
+item identity file:/etc/hostname
+item identity file:/etc/hosts
+item identity path:/etc/ssh/ssh_host_*
+item identity path:/var/lib/tailscale
+item root-home path:/root
+item srv path:/srv
+item other-paths path:/var/lib/jellyfin
+item home-keys path:/home/alice/.gnupg (alice)
+item home-keys path:/home/alice/.ssh (alice)
+item home-keys path:/home/bob/.ssh (bob)
+item home-files path:/home/alice/Documents (alice)
+item home-files path:/home/alice/Music (alice)
+item home-files path:/home/alice/Pictures (alice)
+item home-files path:/home/bob/Documents (bob)
+item home-apps path:/home/alice/.cargo (alice)
+item home-apps path:/home/alice/.config/Code (alice)
+item home-apps path:/home/alice/.config/autostart/thing.desktop (alice)
+item home-apps path:/home/alice/.config/kdeglobals (alice)
+item home-apps path:/home/alice/.config/kwinrc (alice)
+item home-apps path:/home/alice/.config/plasma-org.kde.plasma.desktop-appletsrc (alice)
+item home-apps path:/home/alice/.local/bin (alice)
+item home-apps path:/home/alice/.local/share/fonts (alice)
+item home-apps path:/home/alice/.local/state (alice)
+item home-apps path:/home/alice/.mozilla (alice)
+item home-apps path:/home/alice/.zshrc (alice)
+item home-apps path:/home/bob/.bashrc (bob)
+item home-apps path:/home/bob/.config/dconf (bob)
+item home-display path:/home/alice/.config/kwinoutputconfig.json (alice)
+item home-display path:/home/alice/.local/share/kscreen (alice)
+item home-display path:/home/bob/.config/monitors.xml (bob)
+item disk-layout file:/etc/default/limine
+item disk-layout file:/etc/fstab

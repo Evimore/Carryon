@@ -96,7 +96,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `capture_kernel`, `capture_account`, `capture_tools`, `sys_path_item`, `capture_paths`, `capture`.
 - **Done when:** a capture of a fake system tree produces the expected items.
 
-### T08 Bundles ⬜
+### T08 Bundles ✅
 - **Package:** `internal/bundle`.
 - **Scope:** the built-in bundles and their order, well-known rules, app stems, edited-config
   groups, settings-folder and autostart matching, extra-path matching, hardware bundles, fallbacks,

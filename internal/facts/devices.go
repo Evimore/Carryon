@@ -141,6 +141,31 @@ func (s *System) Modules(ctx context.Context) ([]string, error) {
 	return sorted(set), nil
 }
 
+// LoadedModules returns the names of the loaded kernel modules, as /proc/modules lists them, in
+// its order. A kernel built without loadable modules has none.
+func (s *System) LoadedModules() []string {
+	b, _ := os.ReadFile(s.path("proc/modules"))
+	var out []string
+	for _, line := range strings.Split(string(b), "\n") {
+		if f := strings.Fields(line); len(f) > 0 {
+			out = append(out, f[0])
+		}
+	}
+	return out
+}
+
+// ModuleExists reports whether a kernel module is installed for the running kernel, loaded or
+// not (`modinfo -n` finds its file).
+func (s *System) ModuleExists(ctx context.Context, mod string) bool {
+	return strings.TrimSpace(s.output(ctx, "modinfo", "-n", mod)) != ""
+}
+
+// ModuleFirmware returns the firmware files a kernel module asks for (`modinfo -F firmware`),
+// relative to the firmware folder and without a compression suffix.
+func (s *System) ModuleFirmware(ctx context.Context, mod string) []string {
+	return strings.Fields(s.output(ctx, "modinfo", "-F", "firmware", mod))
+}
+
 func moduleName(m string) string { return strings.ToLower(strings.ReplaceAll(m, "-", "_")) }
 
 // DevicesForModule returns the PCI and USB devices a loaded module drives, as "pci:VVVV:DDDD" or

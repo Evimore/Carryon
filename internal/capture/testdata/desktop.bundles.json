@@ -1,0 +1,106 @@
+{
+  "packages": {
+    "title": "Packages from your distribution's repositories",
+    "when": "always"
+  },
+  "aur": {
+    "title": "AUR packages (rebuilt with paru or yay)",
+    "when": "always"
+  },
+  "app-htop": {
+    "title": "htop (app + settings)",
+    "when": "always"
+  },
+  "cfg-openssh": {
+    "title": "openssh settings + service",
+    "when": "always"
+  },
+  "example": {
+    "title": "Example (auto-grouped)",
+    "when": "always"
+  },
+  "music": {
+    "title": "Music (auto-grouped)",
+    "when": "always"
+  },
+  "rclone": {
+    "title": "Rclone (auto-grouped)",
+    "when": "always"
+  },
+  "syncthing": {
+    "title": "Syncthing (auto-grouped)",
+    "when": "always"
+  },
+  "services": {
+    "title": "Enabled system services",
+    "when": "always"
+  },
+  "user-services": {
+    "title": "Enabled user services",
+    "when": "always"
+  },
+  "configs": {
+    "title": "Tweaked package settings",
+    "when": "always"
+  },
+  "other-files": {
+    "title": "Other hand-installed system files",
+    "when": "always"
+  },
+  "kparam-nvidia-drm": {
+    "title": "Kernel params for the nvidia-drm driver",
+    "when": "hw:module:nvidia_drm"
+  },
+  "kparams": {
+    "title": "Kernel parameters",
+    "when": "always"
+  },
+  "locale": {
+    "title": "Locale, keyboard \u0026 timezone",
+    "when": "always"
+  },
+  "account": {
+    "title": "Group memberships \u0026 login shell",
+    "when": "always"
+  },
+  "dev-tools": {
+    "title": "Language tools (cargo, pipx, npm, flatpak)",
+    "when": "always"
+  },
+  "network": {
+    "title": "Wi-Fi \u0026 VPN connections (with passwords)",
+    "when": "always"
+  },
+  "bluetooth": {
+    "title": "Bluetooth pairings",
+    "when": "hw:bt:00:11:22:aa:bb:cc"
+  },
+  "identity": {
+    "title": "Machine identity: hostname desktop, SSH host keys, Tailscale node",
+    "when": "samehost"
+  },
+  "root-home": {
+    "title": "root's home directory",
+    "when": "samehost"
+  },
+  "srv": {
+    "title": "/srv",
+    "when": "samehost"
+  },
+  "other-paths": {
+    "title": "Other backed-up system paths",
+    "when": "samehost"
+  },
+  "home-files": {
+    "title": "Home: documents and music",
+    "when": "always"
+  },
+  "home-apps": {
+    "title": "Home: app settings \u0026 data (dotfiles)",
+    "when": "always"
+  },
+  "disk-layout": {
+    "title": "Disk layout \u0026 bootloader config (shown as a diff, never copied)",
+    "when": "samehost"
+  }
+}

@@ -273,6 +273,32 @@ func TestDevicesForModule(t *testing.T) {
 	}
 }
 
+func TestModuleHelpers(t *testing.T) {
+	r := &fakeRunner{out: map[string]string{
+		"modinfo -n nvidia_drm":             "/usr/lib/modules/6.11.5-arch1-1/extramodules/nvidia-drm.ko.zst\n",
+		"modinfo -n nosuch":                 "",
+		"modinfo -F firmware btmtk":         "mediatek/BT_RAM_CODE_MT7961_1_2_hdr.bin\nmediatek/WIFI_RAM_CODE_MT7961_1.bin\n",
+		"modinfo -F firmware snd_hda_intel": "",
+	}}
+	s := New(buildTree(t, "desktop.txt"), r)
+	ctx := context.Background()
+	if got := s.LoadedModules(); !reflect.DeepEqual(got, []string{"btusb", "btmtk", "snd_hda_intel"}) {
+		t.Errorf("LoadedModules = %v", got)
+	}
+	if !s.ModuleExists(ctx, "nvidia_drm") || s.ModuleExists(ctx, "nosuch") {
+		t.Error("ModuleExists is wrong")
+	}
+	if got := s.ModuleFirmware(ctx, "btmtk"); !reflect.DeepEqual(got, []string{"mediatek/BT_RAM_CODE_MT7961_1_2_hdr.bin", "mediatek/WIFI_RAM_CODE_MT7961_1.bin"}) {
+		t.Errorf("ModuleFirmware(btmtk) = %v", got)
+	}
+	if got := s.ModuleFirmware(ctx, "snd_hda_intel"); len(got) != 0 {
+		t.Errorf("ModuleFirmware(snd_hda_intel) = %v", got)
+	}
+	if got := New(t.TempDir(), nil).LoadedModules(); len(got) != 0 {
+		t.Errorf("LoadedModules without /proc/modules = %v", got)
+	}
+}
+
 func TestDeviceName(t *testing.T) {
 	r := &fakeRunner{out: map[string]string{
 		"lspci -mm -d 1234:abcd": `00:02.0 "VGA compatible controller [0300]" "Example Corp [1234]" "Example Graphics 500 [abcd]" -r01 "Example Corp" "Device [0001]"` + "\n",

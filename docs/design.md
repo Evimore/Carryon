@@ -195,6 +195,32 @@ Kept from the prototype. Items are grouped into bundles in this order of precede
    a few device makers.
 7. Everything else into the built-in catch-all bundles.
 
+A unit's needs (the packages its `Exec` lines run, the folders it uses) go wherever the unit went.
+Capture groups the items itself before writing the record, so every capture (the nightly one, the
+backup run, the pacman hook) is grouped the same way, with the user's `bundles.conf` applied.
+
+**Several users (generalized).** Bundles are about things, not people: one bundle holds every user's
+items for it, and each item keeps its `user`. Alice's and Bob's `~/.config/htop` both go into
+`app-htop`, both users' SSH keys into `home-keys`, both users' groups into `account`. Rules about
+home folders (well-known places, settings folders, autostart entries, `~/...` globs in
+`bundles.conf`) match the path inside each user's home. A unit's needs follow that same user's
+unit. So a restore ticks bundles as before; which user receives a user's items is decided per item
+(see [Several users](#several-users) under restoring).
+
+Where grouping differs from the prototype on purpose:
+
+- **Files with disk UUIDs** (fstab, crypttab, bootloader configs) always go to `disk-layout`, the
+  bundle whose title says they're shown as a diff and never copied. In the prototype an app bundle
+  or a `put` rule could take them first (`/etc/default/limine` joined a `limine` app bundle).
+  Restore still refuses to copy them wherever they are.
+- `edited` package files (new, see [files](#what-gets-captured)) fall back to `configs` with the
+  other package tweaks.
+- A firmware file right in `/usr/lib/firmware` goes to `firmware-files`; the prototype made a
+  bundle called `firmware--usr-lib-firmware`.
+- The `packages` and `aur` titles no longer name one distribution or one AUR helper.
+- When two app names fit an item equally well, the alphabetically first wins; the prototype's choice
+  depended on Python's set order.
+
 When-rules: `always`, `never`, `samehost` (same machine fingerprint, not same hostname),
 `chassis:laptop|desktop|...`, `hw:pci:VVVV:DDDD,usb:VVVV:PPPP,module:NAME,bt:MAC` (any present),
 `rootfs:btrfs`, `bootloader:limine|grub|systemd-boot|refind`, joined with `+` when all must hold.

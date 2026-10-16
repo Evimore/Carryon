@@ -1,0 +1,51 @@
+{
+  "comment": "What the fake machine answers while grouping desktop.items.jsonl. Every name and ID is invented.",
+  "host": "desktop",
+  "repo_of": {
+    "base": "core", "linux": "core", "openssh": "core", "sudo": "core", "plasma-desktop": "extra",
+    "gnome-shell": "extra", "kitty": "extra", "firefox": "extra", "obs-studio": "extra", "openrgb": "extra",
+    "htop": "extra", "rclone": "extra", "networkmanager": "extra", "bluez": "extra", "sddm": "extra",
+    "snapper": "extra", "snap-pac": "extra", "fprintd": "extra", "limine": "extra", "nvidia-utils": "extra",
+    "docker": "extra", "jellyfin-server": "extra", "chatterbox": "extra", "steam": "multilib",
+    "libfprint": "extra", "python-pillow": "extra", "fuse3": "extra", "syncthing": "extra", "unison": "extra",
+    "example-tool": "example", "example-keyring": "example"
+  },
+  "fingerprint_readers": ["usb:1234:0042"],
+  "bluetooth_macs": ["00:11:22:aa:bb:cc"],
+  "modules_exist": ["nvidia-drm"],
+  "loaded_modules": ["acmewifi", "btusb", "btmtk", "nvidia_drm", "nvidia", "snd_hda_intel"],
+  "firmware": {
+    "acmewifi": ["acmewifi/fw-1.bin", "acmewifi/fw-2.bin"],
+    "btmtk": ["acmebt/bt-fw.bin"],
+    "snd_hda_intel": []
+  },
+  "holders": {"btmtk": ["btusb"], "nvidia": ["nvidia_drm"]},
+  "devices": {
+    "acmewifi": ["pci:1234:5678"],
+    "btusb": ["usb:1234:0b01"],
+    "nvidia": ["pci:1234:abcd"]
+  },
+  "device_names": {
+    "pci:1234:5678": "Example Wireless 9000",
+    "pci:1234:abcd": "Example Graphics 500",
+    "usb:1234:0b01": "Example Bluetooth Adapter"
+  },
+  "usb_present": ["usb:1234:0042", "usb:1234:0b01", "usb:2345:0001"],
+  "package_files": {
+    "openlinkhub": ["/usr/bin/OpenLinkHub", "/usr/lib/udev/rules.d/99-openlinkhub.rules"],
+    "openrgb": ["/usr/bin/openrgb", "/usr/lib/udev/rules.d/60-openrgb.rules"]
+  },
+  "files": {
+    "/usr/lib/udev/rules.d/99-openlinkhub.rules": "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"2345\", MODE=\"0666\"\n",
+    "/usr/lib/udev/rules.d/60-openrgb.rules": "ATTRS{idVendor}==\"1111\", ATTRS{idProduct}==\"0001\"\nATTRS{idVendor}==\"2222\", ATTRS{idProduct}==\"0002\"\nATTRS{idVendor}==\"3333\", ATTRS{idProduct}==\"0003\"\nATTRS{idVendor}==\"2345\", ATTRS{idProduct}==\"0001\"\n",
+    "/home/alice/.config/autostart/org.chatter.Desktop.desktop": "[Desktop Entry]\nName=Chat\nExec=env GDK_BACKEND=x11 chatterbox --minimized \"%U\"\n",
+    "/home/alice/.config/autostart/openrgb.desktop": "[Desktop Entry]\nExec=openrgb --startminimized\n"
+  },
+  "which": {"chatterbox": "/usr/bin/chatterbox", "openrgb": "/usr/bin/openrgb"},
+  "owners": {"/usr/bin/chatterbox": "chatterbox", "/usr/bin/openrgb": "openrgb"},
+  "record_files": {
+    "/etc/pam.d/sudo": "#%PAM-1.0\nauth sufficient pam_fprintd.so\nauth include system-auth\n",
+    "/etc/pam.d/polkit-1": "auth sufficient pam_fprintd.so\n",
+    "/etc/pam.d/system-login": "auth include system-auth\n"
+  }
+}

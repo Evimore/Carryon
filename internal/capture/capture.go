@@ -6,8 +6,8 @@
 // program runs through a sysexec.Runner, so tests use a fake. Packages come from a pkgmgr.Manager
 // and machine facts from internal/facts.
 //
-// Capture leaves grouping to internal/bundle: items have no bundle and bundles.json is empty.
-// Result carries what grouping needs, so it doesn't have to look at the machine again. Swapping the
+// Before writing, capture groups the items into bundles with internal/bundle, applying the user's
+// bundles.conf rules (Options.BundleRules), so every caller gets a grouped record. Swapping the
 // staged folder into place, SUMMARY.md and the history belong to the record store.
 //
 // It ports the prototype's capture and the collectors it calls (legacy/sysbackup.py).
@@ -31,6 +31,7 @@ import (
 	"github.com/Evimore/carryon/internal/facts"
 	"github.com/Evimore/carryon/internal/pkgmgr"
 	"github.com/Evimore/carryon/internal/record"
+	"github.com/Evimore/carryon/internal/rules"
 	"github.com/Evimore/carryon/internal/sysexec"
 	"github.com/Evimore/carryon/internal/version"
 )
@@ -91,6 +92,8 @@ type Options struct {
 	// Nightly turns on the slow parts the pacman hook's quick capture leaves out: package files
 	// edited outside their backup= list (pacman -Qkk) and the not-backed-up list.
 	Nightly bool
+	// BundleRules are the user's bundles.conf rules. The zero value means none.
+	BundleRules rules.BundleRules
 	// Hints are the catalog's re-download hints, for the not-backed-up list.
 	Hints []catalog.Hint
 	// IsRoot says Carryon runs as root. Without root, files root alone can read are skipped and
@@ -102,14 +105,14 @@ type Options struct {
 	Now func() time.Time
 }
 
-// Result is what a capture found. Besides the record's contents, it carries what grouping into
-// bundles needs (the prototype's ctx in assign_bundles), so bundling never looks at the machine
-// again.
+// Result is what a capture found: the record's contents and what was learned on the way (the
+// prototype's ctx in assign_bundles).
 type Result struct {
-	Dir   string        // the staged record folder
-	Meta  record.Meta   // as written to meta.json
-	Items []record.Item // as written to items.jsonl: sorted by type, then id, then user
-	Users []User        // the users captured, the main one first
+	Dir     string         // the staged record folder
+	Meta    record.Meta    // as written to meta.json
+	Items   []record.Item  // as written to items.jsonl: grouped, in restore order (bundle.SortItems)
+	Bundles record.Bundles // as written to bundles.json, in restore order
+	Users   []User         // the users captured, the main one first
 
 	// RepoOf maps each package the configured repositories offer to its repository.
 	RepoOf map[string]string
@@ -242,10 +245,11 @@ func (c *capturer) run(ctx context.Context) (*Result, error) {
 	}
 	c.res.FingerprintReaders = c.opt.Facts.FingerprintReaders(ctx)
 
-	sortItems(c.items)
+	c.log.Info("grouping into bundles")
+	c.group(ctx)
 	c.res.Items = c.items
 	c.res.Meta = c.meta(ctx)
-	rec := record.Record{Meta: c.res.Meta, Items: c.items, Bundles: record.Bundles{}}
+	rec := record.Record{Meta: c.res.Meta, Items: c.items, Bundles: c.res.Bundles}
 	if err := rec.Save(c.stage); err != nil {
 		return nil, fmt.Errorf("writing the record to %s: %w", c.stage, err)
 	}
@@ -337,7 +341,7 @@ func (c *capturer) notBackedUp() string {
 	return strings.Join(parts, "\n")
 }
 
-// sortItems sorts by type, then id, then user.
+// sortItems sorts by type, then id, then user: the order grouping sees them in.
 func sortItems(items []record.Item) {
 	sort.SliceStable(items, func(i, j int) bool {
 		a, b := items[i], items[j]

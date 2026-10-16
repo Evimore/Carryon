@@ -16,6 +16,7 @@ import (
 
 	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/record"
+	"github.com/Evimore/carryon/internal/rules"
 	"github.com/Evimore/carryon/internal/sysexec"
 )
 
@@ -54,6 +55,7 @@ LoadState=loaded
 FragmentPath=/usr/lib/systemd/system/sshd.service
 LoadState=loaded
 `})
+	f.On("modinfo -n nvidia-drm", sysexec.Response{Stdout: "/usr/lib/modules/6.11.5-arch1-1/extramodules/nvidia-drm.ko.zst\n"})
 	f.On("npm ls -g --depth=0 --parseable", sysexec.Response{Stdout: "/usr/lib\n/usr/lib/node_modules/corepack\n/usr/lib/node_modules/npm\n/usr/lib/node_modules/typescript\n"})
 	f.On("flatpak list --app --system --columns=application,origin", sysexec.Response{Stdout: "org.example.App\tflathub\n"})
 	f.On(asUser("alice", 1000, "flatpak list --app --user --columns=application,origin"), sysexec.Response{Stdout: "com.example.Notes\tflathub\n"})
@@ -68,15 +70,20 @@ func desktopOptions(t *testing.T, root string) Options {
 	cfg := config.Default()
 	cfg.MachineName = "desktop"
 	cfg.Backup.ExtraPaths = []string{"/root", "/srv", "/usr/local", "/var/lib/jellyfin", "/home/alice/Music", "/var/lib/missing"}
+	r, problems, err := rules.ParseBundleRules(strings.NewReader("title home-files Home: documents and music\nput music path ~/Music\n"), "bundles.conf")
+	if err != nil || len(problems) > 0 {
+		t.Fatal(err, problems)
+	}
 	return Options{
-		Dir:      filepath.Join(t.TempDir(), "record"),
-		Root:     root,
-		Runner:   desktopRunner(),
-		Packages: desktopPM(),
-		Config:   cfg,
-		Excludes: []string{"/home/*/.cache", "/home/alice/.local/share/Steam", "node_modules"},
-		IsRoot:   true,
-		Now:      func() time.Time { return time.Date(2026, 10, 1, 3, 0, 0, 0, time.UTC) },
+		BundleRules: r,
+		Dir:         filepath.Join(t.TempDir(), "record"),
+		Root:        root,
+		Runner:      desktopRunner(),
+		Packages:    desktopPM(),
+		Config:      cfg,
+		Excludes:    []string{"/home/*/.cache", "/home/alice/.local/share/Steam", "node_modules"},
+		IsRoot:      true,
+		Now:         func() time.Time { return time.Date(2026, 10, 1, 3, 0, 0, 0, time.UTC) },
 	}
 }
 
@@ -174,12 +181,12 @@ func TestCaptureDesktop(t *testing.T) {
 	if !reflect.DeepEqual(m, wantMeta) || len(m.Machine) != 16 || m.Carryon == "" {
 		t.Errorf("meta = %+v\nwant %+v", m, wantMeta)
 	}
-	if len(rec.Bundles) != 0 {
-		t.Errorf("bundles = %v; grouping is bundling's job", rec.Bundles)
+	if !reflect.DeepEqual(rec.Bundles, res.Bundles) {
+		t.Error("Result.Bundles differ from bundles.json")
 	}
 	for _, it := range rec.Items {
-		if it.Bundle != "" {
-			t.Errorf("%s has bundle %q", it.Key(), it.Bundle)
+		if _, ok := rec.Bundles.Get(it.Bundle); !ok {
+			t.Errorf("%s is in bundle %q, which bundles.json doesn't list", it.Key(), it.Bundle)
 		}
 	}
 
@@ -215,9 +222,7 @@ func TestCaptureDesktop(t *testing.T) {
 	if got := read(VersionsFile); got != "base 3-2\nopenssh 9.9p1-2\n" {
 		t.Errorf("versions.txt = %q", got)
 	}
-	if got := read(record.BundlesFile); got != "{}\n" {
-		t.Errorf("bundles.json = %q", got)
-	}
+	golden(t, "desktop.bundles.json", []byte(read(record.BundlesFile)))
 	if got := read(NotBackedUpMD); !strings.Contains(got, "desktop, alice's home") || !strings.Contains(got, "desktop, bob's home") {
 		t.Errorf("not-backed-up.md = %q", got)
 	}

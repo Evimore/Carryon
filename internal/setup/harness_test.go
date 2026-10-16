@@ -19,6 +19,7 @@ import (
 	"github.com/Evimore/carryon/internal/dest"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/sysexec"
 	"github.com/Evimore/carryon/internal/ui"
 )
@@ -235,8 +236,8 @@ func (h *harness) config() config.Config {
 
 func (h *harness) identity() dest.Identity {
 	h.t.Helper()
-	id, ok, err := ReadIdentity(h.env.Dirs)
-	if err != nil || !ok {
+	id, err := state.ReadDestination(h.env.Dirs)
+	if err != nil {
 		h.t.Fatalf("no destination identity recorded: %v", err)
 	}
 	return id

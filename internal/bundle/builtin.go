@@ -79,10 +79,6 @@ func rankOf(id string) int {
 	return len(Order)
 }
 
-// ReviewOnly matches the system files holding disk UUIDs. Restore shows them as a diff and never
-// copies them.
-var ReviewOnly = regexp.MustCompile(`^/etc/(fstab|crypttab|default/limine|kernel/cmdline|default/grub|sdboot-manage\.conf)$`)
-
 // wellKnown is a rule putting items of one type whose ID matches into a bundle. With home set, it
 // matches the path inside the user's home instead ("~/" + Home, without "~/"), so it holds for
 // every user. The prototype matched its one user's absolute paths.
@@ -104,7 +100,6 @@ func (r wellKnown) matches(it record.Item) bool {
 
 // wellKnownRules are the prototype's early_rules: well-known places, first match wins.
 var wellKnownRules = []wellKnown{
-	{"disk-layout", "file", ReviewOnly, false},
 	{"locale", "file", regexp.MustCompile(`^/etc/(locale\.(conf|gen)|vconsole\.conf|timezone|localtime|default/(keyboard|locale)` +
 		`|X11/xorg\.conf\.d/00-keyboard\.conf)$`), false},
 	{"identity", "file", regexp.MustCompile(`^/etc/(hostname|hosts|machine-info)$`), false},

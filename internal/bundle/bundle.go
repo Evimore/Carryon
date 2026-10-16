@@ -134,7 +134,7 @@ func (g *grouper) free(i int) bool { return g.items[i].Bundle == "" }
 // (/etc/default/limine joined a "limine" app bundle).
 func (g *grouper) diskLayout() {
 	for i, it := range g.items {
-		if it.Type == record.TypeFile && ReviewOnly.MatchString(it.ID) {
+		if it.Type == record.TypeFile && record.ReviewOnly(it.ID) {
 			g.items[i].Bundle = "disk-layout"
 		}
 	}

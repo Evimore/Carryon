@@ -10,6 +10,7 @@ import (
 
 	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/engine"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/ui"
 )
 
@@ -135,8 +136,8 @@ func (e *Env) finish(ctx context.Context, eng *engine.Engine, cfg config.Config)
 	if err != nil {
 		return err
 	}
-	if err := writeIdentity(e.Dirs, id); err != nil {
-		return err
+	if err := state.WriteDestination(e.Dirs, id); err != nil {
+		return fmt.Errorf("recording the destination: %w", err)
 	}
 	if err := os.MkdirAll(e.Dirs.Conf, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", e.Dirs.Conf, err)
@@ -426,8 +427,11 @@ func (e *Env) chooseUsersAndSchedules(cfg *config.Config, o Options) error {
 // checkSameRepository makes the user confirm before recording a different repository at the
 // place backups went before: a different disk at the same mount point looks just like this.
 func (e *Env) checkSameRepository(url, id, oldURL string, yes bool) error {
-	prev, ok, err := ReadIdentity(e.Dirs)
-	if err != nil || !ok || prev.RepoID == "" || prev.RepoID == id || oldURL != url {
+	prev, err := state.ReadDestination(e.Dirs)
+	if errors.Is(err, state.ErrNotSetUp) {
+		return nil
+	}
+	if err != nil || prev.RepoID == "" || prev.RepoID == id || oldURL != url {
 		return err
 	}
 	accept, err := e.confirmRisk(yes, ui.Confirm{

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Evimore/carryon/internal/config"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/ui"
 )
 
@@ -28,11 +29,11 @@ func (h *harness) desktopSettings(fingerprint string) {
 	}
 	d := h.env.Dirs
 	h.backup(e, "desktop", []string{"carryon"}, map[string]string{
-		d.ConfigFile():     string(text),
-		d.ExcludesFile():   "# mine\n/home/*/Videos\n",
-		d.BundlesFile():    "put gaming pkg steam\n",
-		d.PasswordFile():   "the other machine's password\n",
-		DestinationFile(d): `{"mount_point":"/mnt/other","repo_id":"other"}`,
+		d.ConfigFile():                            string(text),
+		d.ExcludesFile():                          "# mine\n/home/*/Videos\n",
+		d.BundlesFile():                           "put gaming pkg steam\n",
+		d.PasswordFile():                          "the other machine's password\n",
+		state.DestinationPath(d):                  `{"mount_point":"/mnt/other","repo_id":"other"}`,
 		filepath.Join(d.RecordDir(), "meta.json"): meta(fingerprint),
 	})
 }

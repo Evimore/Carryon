@@ -54,13 +54,14 @@ func ReadDestination(d paths.Dirs) (dest.Identity, error) {
 	return id, nil
 }
 
-// WriteDestination records the destination's identity, replacing any earlier one.
+// WriteDestination records the destination's identity, replacing any earlier one. The file is
+// readable by root only.
 func WriteDestination(d paths.Dirs, id dest.Identity) error {
 	data, err := json.MarshalIndent(id, "", "  ")
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(DestinationPath(d), append(data, '\n'), 0o644)
+	return writeFileAtomic(DestinationPath(d), append(data, '\n'), 0o600)
 }
 
 // Restoring reports whether a restore is in progress, which pauses automatic runs.

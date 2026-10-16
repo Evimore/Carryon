@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Evimore/carryon/internal/dest"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/ui"
 )
 
@@ -57,7 +58,7 @@ func TestInitCreatesARepository(t *testing.T) {
 	if got := h.identity(); got != want {
 		t.Errorf("identity = %+v, want %+v", got, want)
 	}
-	if m := h.mode(DestinationFile(d)); m != 0o600 {
+	if m := h.mode(state.DestinationPath(d)); m != 0o600 {
 		t.Errorf("destination.json mode %o, want 0600", m)
 	}
 

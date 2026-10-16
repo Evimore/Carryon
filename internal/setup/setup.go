@@ -8,7 +8,6 @@ package setup
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/Evimore/carryon/internal/config"
-	"github.com/Evimore/carryon/internal/dest"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/facts"
 	"github.com/Evimore/carryon/internal/paths"
@@ -116,36 +114,8 @@ func orDefault(s, def string) string {
 	return s
 }
 
-// DestinationFile is where init records the destination's identity, which every backup checks
-// before writing (see dest.Identity).
-func DestinationFile(d paths.Dirs) string { return filepath.Join(d.State, "destination.json") }
-
 // KitConfirmedFile holds the time the user confirmed they saved the recovery kit.
 func KitConfirmedFile(d paths.Dirs) string { return filepath.Join(d.State, "recovery-kit-confirmed") }
-
-// ReadIdentity reads the recorded destination identity. ok is false when none is recorded.
-func ReadIdentity(d paths.Dirs) (id dest.Identity, ok bool, err error) {
-	data, err := os.ReadFile(DestinationFile(d))
-	if errors.Is(err, fs.ErrNotExist) {
-		return dest.Identity{}, false, nil
-	}
-	if err != nil {
-		return dest.Identity{}, false, fmt.Errorf("reading %s: %w", DestinationFile(d), err)
-	}
-	if err := json.Unmarshal(data, &id); err != nil {
-		return dest.Identity{}, false, fmt.Errorf("reading %s: %w", DestinationFile(d), err)
-	}
-	return id, true, nil
-}
-
-// writeIdentity records the destination identity, readable by root only.
-func writeIdentity(d paths.Dirs, id dest.Identity) error {
-	data, err := json.MarshalIndent(id, "", "  ")
-	if err != nil {
-		return fmt.Errorf("recording the destination: %w", err)
-	}
-	return writePrivate(DestinationFile(d), append(data, '\n'))
-}
 
 // writePrivate writes a file only root can read, creating its folder.
 func writePrivate(path string, data []byte) error {

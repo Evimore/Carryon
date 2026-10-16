@@ -8,9 +8,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/Evimore/carryon/internal/record"
 )
 
 // PreRestore is added to the name of a file a restore replaces. An existing copy is kept, so
@@ -93,10 +96,8 @@ func within(p, dir string) bool {
 
 // protected are system paths a restore never writes: the review-only files and the initramfs
 // config, which is copied only from the files phase after the boot-risk check.
-var protected = []string{
-	"/etc/crypttab", "/etc/default/grub", "/etc/default/limine", "/etc/fstab", "/etc/kernel/cmdline",
-	"/etc/mkinitcpio.conf", "/etc/mkinitcpio.conf.d", "/etc/mkinitcpio.d", "/etc/sdboot-manage.conf",
-}
+var protected = append(slices.Clone(record.ReviewOnlyFiles),
+	"/etc/mkinitcpio.conf", "/etc/mkinitcpio.conf.d", "/etc/mkinitcpio.d")
 
 // coversProtected reports whether restoring the path or pattern p from the backup would write a
 // protected path: p is one, holds one, or matches one or a folder holding one.

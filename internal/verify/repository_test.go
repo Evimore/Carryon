@@ -42,7 +42,7 @@ func (f *fakeRestic) run(_ context.Context, c engine.Cmd) (int, error) {
 	f.calls = append(f.calls, c.Args)
 	sub := ""
 	for i, a := range c.Args {
-		if a == "--retry-lock" {
+		if a == "--retry-lock" || a == "--no-lock" {
 			continue
 		}
 		if i > 0 && c.Args[i-1] == "--retry-lock" {

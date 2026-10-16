@@ -19,8 +19,14 @@ import (
 	"github.com/Evimore/carryon/internal/state"
 )
 
-// noLock lets read-only restic commands run without writing a lock into the repository.
-const noLock = "--no-lock"
+// readOnly is the engine for restic commands that only read (snapshots, ls, restore into a temp
+// folder): it passes --no-lock, so they never write a lock into the repository. restic check keeps
+// using the normal engine, since it needs its lock.
+func readOnly(e *engine.Engine) *engine.Engine {
+	ro := *e
+	ro.NoLock = true
+	return &ro
+}
 
 // checkRepository checks the repository: the destination is the one recorded at init (before any
 // restic command), it opens, this machine's newest snapshot is recent and the recovery kit is
@@ -59,8 +65,7 @@ func (v *verifier) checkRepository(ctx context.Context) {
 		return
 	}
 
-	e := opt.Engine
-	out, err := e.Run(ctx, "snapshots", "--json", noLock)
+	out, err := readOnly(opt.Engine).Run(ctx, "snapshots", "--json")
 	if err == nil {
 		err = out.Err()
 	}
@@ -181,11 +186,11 @@ func (v *verifier) checkContents(ctx context.Context, snap engine.Snapshot) {
 	for _, w := range want {
 		parents[filepath.Dir(w)] = true
 	}
-	args := []string{"ls", "--json", noLock, snap.ID}
+	args := []string{"ls", "--json", snap.ID}
 	for _, p := range sortedKeys(parents) {
 		args = append(args, p)
 	}
-	out, err := v.opt.Engine.Run(ctx, args...)
+	out, err := readOnly(v.opt.Engine).Run(ctx, args...)
 	if err == nil {
 		err = out.Err()
 	}
@@ -247,11 +252,11 @@ func (v *verifier) checkIntegrity(ctx context.Context) {
 func (v *verifier) checkRestore(ctx context.Context, snap engine.Snapshot) {
 	items := filepath.Join(v.opt.Dirs.RecordDir(), record.ItemsFile)
 	target := filepath.Join(v.tmp, "restore")
-	args := []string{"restore", noLock, snap.ID, "--target", target, "--include", items}
+	args := []string{"restore", snap.ID, "--target", target, "--include", items}
 	if _, err := os.Stat(v.opt.Dirs.ConfigFile()); err == nil {
 		args = append(args, "--include", v.opt.Dirs.ConfigFile())
 	}
-	out, err := v.opt.Engine.Run(ctx, args...)
+	out, err := readOnly(v.opt.Engine).Run(ctx, args...)
 	if err == nil {
 		err = out.Err()
 	}

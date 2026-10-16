@@ -105,12 +105,10 @@ func (p *Plan) Todo() int {
 // Done is how many picked items need no change.
 func (p *Plan) Done() int { return p.Picked - p.Todo() - len(p.Skipped) }
 
-// reviewOnly are files with disk UUIDs or the kernel command line: shown as a diff, never copied.
-var reviewOnly = regexp.MustCompile(`^/etc/(fstab|crypttab|default/limine|kernel/cmdline|default/grub|sdboot-manage\.conf)$`)
-
 // ReviewOnly reports whether a recorded file is only ever shown, never copied: files naming
-// disks by UUID (fstab, crypttab, bootloader configs) and /etc/kernel/cmdline.
-func ReviewOnly(path string) bool { return reviewOnly.MatchString(path) }
+// disks by UUID (fstab, crypttab, bootloader configs) and /etc/kernel/cmdline. The list is
+// record.ReviewOnlyFiles, which bundling uses too.
+func ReviewOnly(path string) bool { return record.ReviewOnly(path) }
 
 // reviewOnlyWhy is said of review-only files.
 const reviewOnlyWhy = "disks have other IDs on every install, so this is never copied; kernel parameters are added on their own"

@@ -1,0 +1,40 @@
+{"bundle": "packages", "id": "base", "repo": "core", "type": "pkg"}
+{"asdeps": true, "bundle": "packages", "for_unit": "rclone-mount.service", "id": "fuse3", "repo": "extra", "type": "pkg"}
+{"bundle": "packages", "id": "htop", "repo": "extra", "type": "pkg"}
+{"bundle": "packages", "id": "mypkg", "repo": "myrepo", "type": "pkg"}
+{"bundle": "packages", "id": "oldtool", "repo": "community", "type": "pkg"}
+{"bundle": "aur", "id": "paru-bin", "type": "aur"}
+{"bundle": "aur", "id": "example-git", "type": "aur"}
+{"bundle": "repos", "conf": "", "id": "myrepo", "key_names": ["Example Repo <repo@example.com>"], "keys": ["0123456789ABCDEF0123456789ABCDEF01234567"], "section": "[myrepo]\nServer = https://repo.example.com/$arch\n", "type": "repo"}
+{"bundle": "services", "id": "sshd.service", "pkg": "openssh", "type": "svc", "unit_file": "/usr/lib/systemd/system/sshd.service"}
+{"bundle": "services", "id": "systemd-networkd-wait-online.service", "pkg": "systemd", "type": "mask"}
+{"bundle": "services", "for_unit": "myapp.service", "id": "/var/log/myapp", "type": "mkdir"}
+{"bundle": "configs", "id": "/etc/ssh/sshd_config", "kind": "modified", "mode": "644", "owner": "root:root", "pkg": "openssh", "sha": "1111111111111111111111111111111111111111111111111111111111111111", "type": "file"}
+{"bundle": "configs", "id": "/etc/environment", "kind": "modified", "mode": "644", "owner": "root:root", "pkg": "pam", "sha": "4444444444444444444444444444444444444444444444444444444444444444", "type": "file"}
+{"bundle": "configs", "id": "/etc/sddm.conf.d/autologin.conf", "kind": "unowned", "mode": "644", "owner": "root:root", "sha": "5555555555555555555555555555555555555555555555555555555555555555", "type": "file"}
+{"bundle": "other-files", "id": "/usr/local/bin/hello", "kind": "unowned", "link": "/opt/hello/bin/hello", "mode": "777", "owner": "root:root", "type": "file"}
+{"bundle": "other-files", "id": "/usr/local/bin/notes", "kind": "unowned", "link": "/home/alice/bin/notes", "mode": "777", "owner": "root:root", "type": "file"}
+{"bundle": "other-files", "id": "/opt/vm/disk.img", "kind": "unowned", "mode": "644", "owner": "root:root", "too_big": true, "type": "file"}
+{"bundle": "hw-nvidia", "id": "/etc/modprobe.d/nvidia.conf", "kind": "unowned", "mode": "644", "owner": "root:root", "sha": "6666666666666666666666666666666666666666666666666666666666666666", "type": "file"}
+{"bundle": "hw-nvidia", "id": "nvidia_drm.modeset=1", "source": "/etc/kernel/cmdline", "type": "kparam"}
+{"bundle": "kparams", "id": "quiet", "source": "/etc/kernel/cmdline", "type": "kparam"}
+{"bundle": "locale", "id": "/etc/locale.conf", "kind": "unowned", "mode": "644", "owner": "root:root", "sha": "2222222222222222222222222222222222222222222222222222222222222222", "type": "file"}
+{"bundle": "account", "id": "wheel", "type": "group"}
+{"bundle": "account", "id": "video", "type": "group"}
+{"bundle": "account", "id": "/usr/bin/zsh", "type": "shell"}
+{"bundle": "account", "id": "alice", "type": "linger"}
+{"bundle": "user-services", "id": "rclone-mount.service", "type": "usvc"}
+{"bundle": "user-services", "id": "rclone-mount.service", "sha": "3333333333333333333333333333333333333333333333333333333333333333", "type": "uunit"}
+{"bundle": "user-services", "id": "tracker-miner-fs-3.service", "type": "umask"}
+{"bundle": "user-services", "for_unit": "rclone-mount.service", "id": "/home/alice/Cloud", "rel": "Cloud", "type": "mkdir"}
+{"bundle": "dev-tools", "id": "org.example.App", "origin": "flathub", "scope": "system", "type": "flatpak"}
+{"bundle": "dev-tools", "id": "org.example.Notes", "origin": "flathub", "scope": "user", "type": "flatpak"}
+{"bundle": "dev-tools", "id": "ripgrep", "type": "cargo"}
+{"bundle": "dev-tools", "id": "black", "type": "pipx"}
+{"bundle": "dev-tools", "id": "typescript", "type": "npm"}
+{"bundle": "identity", "id": "/etc/ssh/ssh_host_*", "type": "path"}
+{"bundle": "initramfs", "id": "/etc/mkinitcpio.conf", "kind": "modified", "mode": "644", "owner": "root:root", "pkg": "mkinitcpio", "sha": "7777777777777777777777777777777777777777777777777777777777777777", "type": "file"}
+{"bundle": "disk-layout", "id": "/etc/fstab", "kind": "modified", "mode": "644", "owner": "root:root", "pkg": "filesystem", "sha": "8888888888888888888888888888888888888888888888888888888888888888", "type": "file"}
+{"bundle": "root-home", "gid": 0, "id": "/root", "owner": "root:root", "type": "path", "uid": 0}
+{"bundle": "home-apps", "home": ".config/kitty", "id": "/home/alice/.config/kitty", "type": "path"}
+{"bundle": "home-apps", "home": ".local/share/fonts", "id": "/home/alice/.local/share/fonts", "type": "path"}

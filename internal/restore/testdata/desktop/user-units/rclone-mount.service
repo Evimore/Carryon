@@ -1,0 +1,8 @@
+[Unit]
+Description=Mount the cloud drive
+
+[Service]
+ExecStart=/usr/bin/rclone mount cloud: /home/alice/Cloud --log-file=/home/alice/.cache/rclone.log
+
+[Install]
+WantedBy=default.target

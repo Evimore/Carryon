@@ -1,0 +1,70 @@
+{
+  "packages": {
+    "title": "Packages from the official repos",
+    "when": "always"
+  },
+  "aur": {
+    "title": "AUR packages (rebuilt with paru)",
+    "when": "always"
+  },
+  "repos": {
+    "title": "Extra package repositories",
+    "when": "always"
+  },
+  "services": {
+    "title": "Enabled system services",
+    "when": "always"
+  },
+  "user-services": {
+    "title": "Enabled user services",
+    "when": "always"
+  },
+  "configs": {
+    "title": "Tweaked package settings",
+    "when": "always"
+  },
+  "other-files": {
+    "title": "Other hand-installed system files",
+    "when": "always"
+  },
+  "hw-nvidia": {
+    "title": "NVIDIA driver settings",
+    "when": "hw:pci:10de:2484"
+  },
+  "kparams": {
+    "title": "Kernel parameters",
+    "when": "always"
+  },
+  "locale": {
+    "title": "Locale, keyboard & timezone",
+    "when": "always"
+  },
+  "account": {
+    "title": "Group memberships & login shell",
+    "when": "always"
+  },
+  "dev-tools": {
+    "title": "Language tools (cargo, pipx, npm, flatpak)",
+    "when": "always"
+  },
+  "identity": {
+    "title": "Machine identity: hostname, SSH host keys, Tailscale node",
+    "when": "samehost"
+  },
+  "initramfs": {
+    "title": "Initramfs & boot settings",
+    "when": "samehost"
+  },
+  "disk-layout": {
+    "title": "Disk layout (shown, never copied)",
+    "when": "samehost"
+  },
+  "root-home": {
+    "title": "root's home directory",
+    "when": "samehost"
+  },
+  "home-apps": {
+    "title": "Home: app settings & data (dotfiles)",
+    "when": "always"
+  }
+}

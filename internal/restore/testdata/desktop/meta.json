@@ -1,0 +1,10 @@
+{
+  "chassis": "desktop",
+  "complete": true,
+  "format": 1,
+  "home": "/home/alice",
+  "host": "desktop",
+  "kernel": "6.17.1-arch1-1",
+  "machine": "268b81f2a8e0a139",
+  "user": "alice"
+}

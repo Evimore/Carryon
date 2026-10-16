@@ -1,0 +1,63 @@
+# The same desktop, reinstalled and partly set up again: same hardware (the fingerprint matches the
+# record's), same user. Every name, ID and address is invented.
+#
+# Format: "-- path --" starts a file, whose contents run to the next header. "-- path -> target --"
+# makes a symlink and "-- path/ --" an empty folder. Paths are relative to the fake root.
+
+-- proc/self/mountinfo --
+25 1 0:24 /@ / rw,noatime shared:1 - btrfs /dev/mapper/root rw,ssd,subvol=/@
+-- proc/sys/kernel/hostname --
+desktop
+-- sys/class/dmi/id/product_uuid --
+00000000-0000-0000-0000-000000000001
+-- sys/class/dmi/id/board_serial --
+EXAMPLE-0001
+-- sys/class/dmi/id/board_name --
+EXAMPLE-BOARD
+-- sys/class/dmi/id/chassis_type --
+3
+-- sys/devices/pci0000:00/0000:01:00.0/vendor --
+0x10de
+-- sys/devices/pci0000:00/0000:01:00.0/device --
+0x2484
+-- sys/bus/pci/devices/0000:01:00.0 -> ../../../devices/pci0000:00/0000:01:00.0 --
+-- etc/passwd --
+root:x:0:0::/root:/usr/bin/bash
+alice:x:1000:1000:Alice:/home/alice:/usr/bin/zsh
+-- etc/group --
+root:x:0:root
+wheel:x:998:alice
+video:x:985:
+alice:x:1000:
+-- etc/ssh/sshd_config --
+PasswordAuthentication no
+PermitRootLogin no
+-- etc/environment --
+PATH=/home/alice/bin:/usr/local/bin:/usr/bin
+NOTES=/home/alice2/notes
+-- etc/locale.conf --
+LANG=en_US.UTF-8
+-- etc/mkinitcpio.conf --
+MODULES=(btrfs)
+BINARIES=()
+HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
+-- etc/fstab --
+UUID=3333-4444 /boot vfat defaults 0 2
+UUID=bbbbbbbb-0000-0000-0000-000000000002 / btrfs subvol=/@,noatime 0 0
+-- etc/kernel/cmdline --
+root=UUID=bbbbbbbb-0000-0000-0000-000000000002 rw quiet
+-- usr/local/bin/hello -> /opt/hello/bin/hello --
+-- home/alice/.cargo/bin/cargo --
+-- home/alice/.config/systemd/user/rclone-mount.service --
+[Unit]
+Description=Mount the cloud drive
+
+[Service]
+ExecStart=/usr/bin/rclone mount cloud: /home/alice/Cloud --log-file=/home/alice/.cache/rclone.log
+
+[Install]
+WantedBy=default.target
+-- home/alice/.config/systemd/user/default.target.wants/rclone-mount.service -> ../rclone-mount.service --
+-- home/alice/Cloud/ --
+-- var/lib/systemd/linger/ --
+-- var/log/ --

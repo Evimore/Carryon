@@ -1,0 +1,94 @@
+== ticks
+[x] packages (5)
+[x] aur (2)
+[x] repos (1)
+[x] services (3)
+[x] user-services (4)
+[x] configs (3)
+[x] other-files (3)
+[x] hw-nvidia (2)
+[x] kparams (1)
+[x] locale (1)
+[x] account (4)
+[x] dev-tools (5)
+[x] identity (1)  - same machine
+[x] initramfs (1)  - same machine
+[x] disk-layout (1)  - same machine
+[x] root-home (1)  - same machine
+[x] home-apps (2)
+
+== summary
+Restore plan: desktop -> desktop  (17/17 bundles)
+  Package repos      1  myrepo
+  Packages           2  fuse3, mypkg
+  AUR                1  example-git
+  System files       5  3 new, 2 replaced: /etc/sddm.conf.d/autologin.conf, /usr/local/bin/notes, /etc/modprobe.d/nvidia.conf, /etc/locale.conf, /etc/mkinitcpio.conf
+  Review by hand     1  /etc/fstab  (diffs in the plan file, never copied automatically)
+  From backup        4  /etc/ssh/ssh_host_*, /root, ~/.config/kitty, ~/.local/share/fonts
+  Account            2  video, alice
+  Services           1  systemd-networkd-wait-online.service
+  Folders            1  /var/log/myapp
+  User units         1  tracker-miner-fs-3.service
+  Kernel params      1  nvidia_drm.modeset=1
+  Language tools     3  org.example.Notes, black, typescript
+  Skipped              oldtool (not in any repository), /opt/vm/disk.img (too big to keep in the record; copy it from the backup by hand)
+  Already done      15  items need no change
+
+  Full plan with diffs: /var/lib/carryon/restore-plan.txt
+
+  Not in the backup, re-download after restoring: 2 Steam games (45.0 GB), Rust toolchains, Browser caches
+  The full list is saved to ~/not-backed-up.md when you apply the restore.
+
+== restore-plan.txt
+Restore plan: desktop -> desktop  (17/17 bundles)
+
+[Package repos] repo       [myrepo] + signing key (Example Repo <repo@example.com>)
+[Packages] package    fuse3  [extra]  (as dependency)
+[Packages] package    mypkg  [myrepo]
+[AUR] AUR        example-git
+[System files] file       /etc/sddm.conf.d/autologin.conf  (new)
+[System files] file       /usr/local/bin/notes  (new)
+[System files] file       /etc/modprobe.d/nvidia.conf  (new)
+[System files] file       /etc/locale.conf  (replace)
+--- /etc/locale.conf (this machine)
++++ /etc/locale.conf (backup)
+@@ -1 +1,2 @@
+-LANG=en_US.UTF-8
++LANG=en_GB.UTF-8
++LC_TIME=en_GB.UTF-8
+
+[System files] file       /etc/mkinitcpio.conf  (edited package file)  (replace)
+--- /etc/mkinitcpio.conf (this machine)
++++ /etc/mkinitcpio.conf (backup)
+@@ -1,3 +1,3 @@
+-MODULES=(btrfs)
++MODULES=()
+ BINARIES=()
+ HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
+
+[Review by hand] file       /etc/fstab  (edited package file)  (replace)
+    NOT COPIED: disks have other IDs on every install, so this is never copied; kernel parameters are added on their own
+--- /etc/fstab (this machine)
++++ /etc/fstab (backup)
+@@ -1,2 +1,2 @@
+-UUID=3333-4444 /boot vfat defaults 0 2
+-UUID=bbbbbbbb-0000-0000-0000-000000000002 / btrfs subvol=/@,noatime 0 0
++UUID=1111-2222 /boot vfat defaults 0 2
++UUID=aaaaaaaa-0000-0000-0000-000000000001 / btrfs subvol=/@,noatime 0 0
+
+[From backup] backup     /etc/ssh/ssh_host_*
+[From backup] backup     /root
+[From backup] backup     ~/.config/kitty
+[From backup] backup     ~/.local/share/fonts
+[Account] group      video
+[Account] linger     alice
+[Services] mask       systemd-networkd-wait-online.service
+[Folders] folder     /var/log/myapp
+[User units] user unit  mask tracker-miner-fs-3.service
+    goes to /home/alice/.config/systemd/user/tracker-miner-fs-3.service
+[Kernel params] kernel     nvidia_drm.modeset=1
+[Language tools] flatpak    org.example.Notes
+[Language tools] pipx       black
+[Language tools] npm -g     typescript
+[skipped] package    oldtool  [community]: not in any repository
+[skipped] file       /opt/vm/disk.img: too big to keep in the record; copy it from the backup by hand

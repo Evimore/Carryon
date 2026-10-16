@@ -1,0 +1,104 @@
+== ticks
+[x] packages (5)
+[x] aur (2)
+[x] repos (1)
+[x] services (3)
+[x] user-services (4)
+[x] configs (3)
+[x] other-files (3)
+[ ] hw-nvidia (2)  - needs PCI 10de:2484, not found here
+[x] kparams (1)
+[x] locale (1)
+[x] account (4)
+[x] dev-tools (5)
+[ ] identity (1)  - specific to desktop (this is a different machine)
+[ ] initramfs (1)  - specific to desktop (this is a different machine)
+[ ] disk-layout (1)  - specific to desktop (this is a different machine)
+[ ] root-home (1)  - specific to desktop (this is a different machine)
+[x] home-apps (2)
+
+== summary
+Restore plan: desktop -> laptop  (17/17 bundles)
+  Package repos      1  myrepo
+  Packages           2  fuse3, mypkg
+  AUR                2  paru-bin, example-git
+  System files       7  6 new, 1 replaced: /etc/ssh/sshd_config, /etc/environment, /etc/sddm.conf.d/autologin.conf, /usr/local/bin/hello, /usr/local/bin/notes ... (+2 more)
+  Review by hand     2  /etc/mkinitcpio.conf, /etc/fstab  (diffs in the plan file, never copied automatically)
+  From backup        4  /etc/ssh/ssh_host_*, /root, ~/.config/kitty, ~/.local/share/fonts
+  Account            1  /usr/bin/zsh
+  Services           2  sshd.service, systemd-networkd-wait-online.service
+  Folders            1  ~/Cloud
+  User units         3  rclone-mount.service, rclone-mount.service, tracker-miner-fs-3.service
+  Kernel params      1  nvidia_drm.modeset=1
+  Language tools     4  org.example.App, org.example.Notes, ripgrep, black
+  Skipped              oldtool (not in any repository), /opt/vm/disk.img (too big to keep in the record; copy it from the backup by hand)
+  Already done       7  items need no change
+
+  Full plan with diffs: /var/lib/carryon/restore-plan.txt
+
+  Not in the backup, re-download after restoring: 2 Steam games (45.0 GB), Rust toolchains, Browser caches
+  The full list is saved to ~/not-backed-up.md when you apply the restore.
+
+== restore-plan.txt
+Restore plan: desktop -> laptop  (17/17 bundles)
+
+[Package repos] repo       [myrepo] + signing key (Example Repo <repo@example.com>)
+[Packages] package    fuse3  [extra]  (as dependency)
+[Packages] package    mypkg  [myrepo]
+[AUR] AUR        paru-bin
+[AUR] AUR        example-git
+[System files] file       /etc/ssh/sshd_config  (edited package file)  (replace)
+--- /etc/ssh/sshd_config (this machine)
++++ /etc/ssh/sshd_config (backup)
+@@ -1 +1,2 @@
+-#PasswordAuthentication yes
++PasswordAuthentication no
++PermitRootLogin no
+
+[System files] file       /etc/environment  (edited package file)  (new)
+[System files] file       /etc/sddm.conf.d/autologin.conf  (new)
+[System files] file       /usr/local/bin/hello  (new)
+[System files] file       /usr/local/bin/notes  (new)
+[System files] file       /etc/modprobe.d/nvidia.conf  (new)
+[System files] file       /etc/locale.conf  (new)
+[Review by hand] file       /etc/mkinitcpio.conf  (edited package file)  (replace)
+    NOT COPIED: this machine needs initramfs hooks the backup lacks (encrypt, lvm2): copying it could stop it booting
+--- /etc/mkinitcpio.conf (this machine)
++++ /etc/mkinitcpio.conf (backup)
+@@ -1,3 +1,3 @@
+-MODULES=(i915)
++MODULES=()
+ BINARIES=()
+ HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
+
+[Review by hand] file       /etc/fstab  (edited package file)  (replace)
+    NOT COPIED: disks have other IDs on every install, so this is never copied; kernel parameters are added on their own
+--- /etc/fstab (this machine)
++++ /etc/fstab (backup)
+@@ -1,2 +1,2 @@
+-UUID=5555-6666 /boot vfat defaults 0 2
+-/dev/mapper/root / ext4 rw,relatime 0 1
++UUID=1111-2222 /boot vfat defaults 0 2
++UUID=aaaaaaaa-0000-0000-0000-000000000001 / btrfs subvol=/@,noatime 0 0
+
+[From backup] backup     /etc/ssh/ssh_host_*
+[From backup] backup     /root
+[From backup] backup     ~/.config/kitty
+[From backup] backup     ~/.local/share/fonts
+[Account] shell      /usr/bin/zsh
+[Services] enable     sshd.service
+[Services] mask       systemd-networkd-wait-online.service
+[Folders] folder     ~/Cloud
+[User units] user unit  enable rclone-mount.service
+    goes to /home/alice/.config/systemd/user/rclone-mount.service
+[User units] user unit  rclone-mount.service  (new)
+    goes to /home/alice/.config/systemd/user/rclone-mount.service
+[User units] user unit  mask tracker-miner-fs-3.service
+    goes to /home/alice/.config/systemd/user/tracker-miner-fs-3.service
+[Kernel params] kernel     nvidia_drm.modeset=1
+[Language tools] flatpak    org.example.App
+[Language tools] flatpak    org.example.Notes
+[Language tools] cargo      ripgrep
+[Language tools] pipx       black
+[skipped] package    oldtool  [community]: not in any repository
+[skipped] file       /opt/vm/disk.img: too big to keep in the record; copy it from the backup by hand

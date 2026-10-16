@@ -362,6 +362,20 @@ Safety rails, all kept:
 - App notes after restore (such as "KDE Wallet opens with the old login password") come from the
   catalog. **Generalized.**
 
+Where planning differs from the prototype on purpose:
+
+- **Records from both tools.** Only the record is fetched from the snapshot, from
+  `/var/lib/carryon/record` or, for the prototype's snapshots, `/var/lib/sysbackup/manifest`.
+- **One checklist.** Single items are unticked inside the bundle checklist, instead of a second
+  "fine-tune" list. Remembered choices live in `/var/lib/carryon/selections/<machine>.json` (the
+  prototype kept them in `/etc/sysbackup/selections/`), and are saved only when the user actually
+  picked; `--defaults` and runs without a terminal take the default ticks and remember nothing.
+- **Several machines without a terminal:** when this machine's own name is among them, it's taken;
+  otherwise `--from` is required, as before.
+- **The plan file says more:** diffs are made by Carryon itself (no `diff` needed), user unit files
+  get diffs too, review-only files say why they're never copied, and per-user steps say which user
+  here they're for and where they go.
+
 ### As you go
 
 **New.** On a fresh machine connected to an existing repository, nothing has to be restored up front.
@@ -377,7 +391,9 @@ bundle has settings, files or services in the backup:
 ### Several users
 
 Users are matched by name. If a source user doesn't exist on the new machine, the restore asks which
-user receives their files.
+user receives their files (by default, with one user in the backup, whoever runs `sudo carryon
+restore`), or `--user OLD=NEW` says it. Paths and `User=` lines are adapted for every user whose
+name or home differs, in one pass, so `alice→bob` and `bob→carol` don't chain.
 
 ## Configuration
 

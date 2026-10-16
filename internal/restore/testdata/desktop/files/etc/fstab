@@ -1,0 +1,2 @@
+UUID=1111-2222 /boot vfat defaults 0 2
+UUID=aaaaaaaa-0000-0000-0000-000000000001 / btrfs subvol=/@,noatime 0 0

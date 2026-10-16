@@ -147,7 +147,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `Report`, `aur_info`, `repo_reachable`, `covered`, `cmd_verify`, `verify_cloud`,
   `finish`.
 
-### T14 Restore: source and plan ⬜
+### T14 Restore: source and plan ✅
 - **Package:** `internal/restore`.
 - **Scope:** choosing machine and snapshot, fetching its record, default ticks from when-rules,
   remembered choices, the plan (only what differs), diffs, boot-risk and review-only files, user

@@ -1,0 +1,40 @@
+# A different machine, a laptop with an encrypted disk, freshly installed for the same user. Every
+# name, ID and address is invented. Format: see here-desktop.txt.
+
+-- proc/self/mountinfo --
+25 1 0:24 / / rw,relatime shared:1 - ext4 /dev/mapper/root rw
+-- proc/sys/kernel/hostname --
+laptop
+-- sys/class/dmi/id/product_uuid --
+00000000-0000-0000-0000-000000000002
+-- sys/class/dmi/id/board_serial --
+EXAMPLE-0002
+-- sys/class/dmi/id/board_name --
+EXAMPLE-LAPTOP-BOARD
+-- sys/class/dmi/id/chassis_type --
+10
+-- etc/passwd --
+root:x:0:0::/root:/usr/bin/bash
+alice:x:1000:1000:Alice:/home/alice:/usr/bin/bash
+-- etc/group --
+root:x:0:root
+wheel:x:998:alice
+video:x:985:alice
+alice:x:1000:
+-- etc/ssh/sshd_config --
+#PasswordAuthentication yes
+-- etc/mkinitcpio.conf --
+MODULES=(i915)
+BINARIES=()
+HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
+-- etc/mkinitcpio.conf.d/10-encrypt.conf --
+HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt lvm2 filesystems fsck)
+-- etc/fstab --
+UUID=5555-6666 /boot vfat defaults 0 2
+/dev/mapper/root / ext4 rw,relatime 0 1
+-- etc/default/limine --
+TARGET_OS_NAME="Example"
+KERNEL_CMDLINE[default]="cryptdevice=UUID=cccccccc-0000-0000-0000-000000000003:root root=/dev/mapper/root rw quiet splash"
+-- home/alice/ --
+-- var/lib/systemd/linger/alice --
+-- var/log/myapp/ --

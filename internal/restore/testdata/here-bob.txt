@@ -1,0 +1,38 @@
+# Another machine with another person: bob, whose home is /srv/home/bob. alice has no account here,
+# so her files go to bob. Every name, ID and address is invented. Format: see here-desktop.txt.
+
+-- proc/self/mountinfo --
+25 1 0:24 / / rw,relatime shared:1 - ext4 /dev/nvme0n1p2 rw
+-- proc/sys/kernel/hostname --
+laptop
+-- sys/class/dmi/id/chassis_type --
+10
+-- etc/passwd --
+root:x:0:0::/root:/usr/bin/bash
+bin:x:1:1::/:/usr/bin/nologin
+bob:x:1001:1001::/srv/home/bob:/usr/bin/zsh
+-- etc/group --
+root:x:0:root
+wheel:x:998:bob
+bob:x:1001:
+-- etc/sddm.conf.d/autologin.conf --
+[Autologin]
+User=bob
+Session=plasma
+-- etc/environment --
+PATH=/usr/local/bin:/usr/bin
+-- etc/kernel/cmdline --
+root=/dev/nvme0n1p2 rw quiet
+-- usr/local/bin/notes -> /home/alice/bin/notes --
+-- srv/home/bob/.config/systemd/user/rclone-mount.service --
+[Unit]
+Description=Mount the cloud drive
+
+[Service]
+ExecStart=/usr/bin/rclone mount cloud: /home/alice/Cloud --log-file=/home/alice/.cache/rclone.log
+
+[Install]
+WantedBy=default.target
+-- srv/home/bob/.config/systemd/user/tracker-miner-fs-3.service -> /dev/null --
+-- srv/home/bob/Cloud/ --
+-- var/lib/systemd/linger/ --

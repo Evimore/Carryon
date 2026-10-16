@@ -1,0 +1,90 @@
+== ticks
+[x] packages (5)
+[x] aur (2)
+[x] repos (1)
+[x] services (3)
+[x] user-services (4)
+[x] configs (3)
+[x] other-files (3)
+[ ] hw-nvidia (2)  - needs PCI 10de:2484, not found here
+[x] kparams (1)
+[x] locale (1)
+[x] account (4)
+[x] dev-tools (5)
+[ ] identity (1)  - specific to desktop (this is a different machine)
+[ ] initramfs (1)  - specific to desktop (this is a different machine)
+[ ] disk-layout (1)  - specific to desktop (this is a different machine)
+[ ] root-home (1)  - specific to desktop (this is a different machine)
+[x] home-apps (2)
+
+== summary
+Restore plan: desktop -> laptop  (12/17 bundles)
+  alice's files go to bob (/srv/home/bob); paths inside them are adapted
+  System files       5  3 new, 2 replaced: /etc/ssh/sshd_config, /etc/environment, /usr/local/bin/hello, /usr/local/bin/notes, /etc/locale.conf
+  From backup        2  ~/.config/kitty, ~/.local/share/fonts
+  Account            2  video, bob
+  Folders            1  /var/log/myapp
+  User units         2  rclone-mount.service, rclone-mount.service
+  Language tools     3  org.example.App, ripgrep, typescript
+  Skipped              oldtool (not in any repository), /opt/vm/disk.img (too big to keep in the record; copy it from the backup by hand)
+  Already done      17  items need no change
+
+  Full plan with diffs: /var/lib/carryon/restore-plan.txt
+
+  Not in the backup, re-download after restoring: 2 Steam games (45.0 GB), Rust toolchains, Browser caches
+  The full list is saved to ~/not-backed-up.md when you apply the restore.
+
+== restore-plan.txt
+Restore plan: desktop -> laptop  (12/17 bundles)
+  alice's files go to bob (/srv/home/bob); paths inside them are adapted
+
+[System files] file       /etc/ssh/sshd_config  (edited package file)  (new)
+[System files] file       /etc/environment  (edited package file)  (replace)
+    paths inside are adapted: /home/alice -> /srv/home/bob
+--- /etc/environment (this machine)
++++ /etc/environment (backup)
+@@ -1 +1,2 @@
+-PATH=/usr/local/bin:/usr/bin
++PATH=/srv/home/bob/bin:/usr/local/bin:/usr/bin
++NOTES=/home/alice2/notes
+
+[System files] file       /usr/local/bin/hello  (new)
+[System files] file       /usr/local/bin/notes  (replace)
+    paths inside are adapted: /home/alice -> /srv/home/bob
+[System files] file       /etc/locale.conf  (new)
+[From backup] backup     ~/.config/kitty
+    for bob
+    goes to /srv/home/bob/.config/kitty
+[From backup] backup     ~/.local/share/fonts
+    for bob
+    goes to /srv/home/bob/.local/share/fonts
+[Account] group      video
+    for bob
+[Account] linger     alice
+    for bob
+[Folders] folder     /var/log/myapp
+[User units] user unit  enable rclone-mount.service
+    for bob
+    goes to /srv/home/bob/.config/systemd/user/rclone-mount.service
+[User units] user unit  rclone-mount.service  (replace)
+    for bob
+    goes to /srv/home/bob/.config/systemd/user/rclone-mount.service
+    paths inside are adapted: /home/alice -> /srv/home/bob
+--- /srv/home/bob/.config/systemd/user/rclone-mount.service (this machine)
++++ /srv/home/bob/.config/systemd/user/rclone-mount.service (backup)
+@@ -2,7 +2,7 @@
+ Description=Mount the cloud drive
+ 
+ [Service]
+-ExecStart=/usr/bin/rclone mount cloud: /home/alice/Cloud --log-file=/home/alice/.cache/rclone.log
++ExecStart=/usr/bin/rclone mount cloud: /srv/home/bob/Cloud --log-file=/srv/home/bob/.cache/rclone.log
+ 
+ [Install]
+ WantedBy=default.target
+
+[Language tools] flatpak    org.example.App
+[Language tools] cargo      ripgrep
+    for bob
+[Language tools] npm -g     typescript
+[skipped] package    oldtool  [community]: not in any repository
+[skipped] file       /opt/vm/disk.img: too big to keep in the record; copy it from the backup by hand

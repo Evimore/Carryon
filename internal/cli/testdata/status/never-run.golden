@@ -1,0 +1,11 @@
+Needs attention
+  - No backup has finished yet.
+    Run one now with: sudo carryon backup
+
+Last backup     never
+Last success    never
+Last check      never
+Record updated  2026-10-16 10:00 (1 hour ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Status from     2026-10-16 10:00 (2 hours ago)

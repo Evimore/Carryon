@@ -1,0 +1,12 @@
+Needs attention
+  - The newest backup is 6 days old, more than the 2 days allowed.
+    Run one now with: sudo carryon backup
+  - The status was last written 6 days ago, so it may be out of date.
+    Check that the backup timer runs: systemctl status carryon-backup.timer
+
+Last backup     ok, 2026-10-10 09:04 (6 days ago), scheduled
+                snapshot 3a4b5c6d
+Last check      never
+Record updated  2026-10-10 09:04 (6 days ago)
+Next runs       not known
+Status from     2026-10-10 09:04 (6 days ago)

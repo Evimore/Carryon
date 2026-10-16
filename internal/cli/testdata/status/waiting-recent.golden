@@ -1,0 +1,14 @@
+All good: backed up 9 hours ago.
+
+Last backup     waiting for its destination, 2026-10-16 09:00 (2 hours ago), scheduled
+                No drive is mounted at /mnt/backup.
+                Plug in or mount the backup drive. Carryon backs up when it appears.
+Last success    ok, 2026-10-16 02:03 (9 hours ago), by hand
+                snapshot 0d1e2f3a
+Last check      never
+Record updated  2026-10-16 02:03 (9 hours ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Owed            a backup, since 2026-10-16 09:00 (2 hours ago)
+                it runs when the destination is back
+Status from     2026-10-16 09:00 (2 hours ago)

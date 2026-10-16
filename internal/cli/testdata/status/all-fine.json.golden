@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "state": "ok",
+  "summary": "Backed up 2 hours ago",
+  "problems": [],
+  "machine": "desktop",
+  "updated": "2026-10-16T09:04:00Z",
+  "stale": false,
+  "last_backup": {
+    "kind": "backup",
+    "trigger": "timer",
+    "unit": "carryon-backup.service",
+    "machine": "desktop",
+    "start": "2026-10-16T09:00:00Z",
+    "end": "2026-10-16T09:04:00Z",
+    "result": "ok",
+    "snapshot": "1a2b3c4d5e6f7a8b9c0d",
+    "changes": 2
+  },
+  "last_success": {
+    "kind": "backup",
+    "trigger": "timer",
+    "unit": "carryon-backup.service",
+    "machine": "desktop",
+    "start": "2026-10-16T09:00:00Z",
+    "end": "2026-10-16T09:04:00Z",
+    "result": "ok",
+    "snapshot": "1a2b3c4d5e6f7a8b9c0d",
+    "changes": 2
+  },
+  "last_check": {
+    "kind": "verify",
+    "trigger": "timer",
+    "unit": "carryon-verify.service",
+    "machine": "desktop",
+    "start": "2026-10-12T04:00:00Z",
+    "end": "2026-10-12T04:20:00Z",
+    "result": "ok"
+  },
+  "last_capture": "2026-10-16T09:04:00Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "pending": null,
+  "restoring": false,
+  "inbox": 0
+}

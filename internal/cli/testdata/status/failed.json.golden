@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "state": "attention",
+  "summary": "Backup failed",
+  "problems": [
+    {
+      "text": "The last backup failed: Fatal: unable to open the repository at sftp:alice@example.com:/backups: ssh: connection refused",
+      "fix": "Check that example.com is reachable, then run: sudo carryon backup"
+    },
+    {
+      "text": "The last check found problems: 2 packages can't be reinstalled from any repository.",
+      "fix": "See them with: sudo carryon verify"
+    }
+  ],
+  "machine": "desktop",
+  "updated": "2026-10-16T09:00:40Z",
+  "stale": false,
+  "last_backup": {
+    "kind": "backup",
+    "trigger": "timer",
+    "unit": "carryon-backup.service",
+    "machine": "desktop",
+    "start": "2026-10-16T09:00:00Z",
+    "end": "2026-10-16T09:00:40Z",
+    "result": "failed",
+    "error": "Fatal: unable to open the repository at sftp:alice@example.com:/backups: ssh: connection refused",
+    "fix": "Check that example.com is reachable, then run: sudo carryon backup"
+  },
+  "last_success": {
+    "kind": "backup",
+    "trigger": "timer",
+    "unit": "carryon-backup.service",
+    "machine": "desktop",
+    "start": "2026-10-15T09:00:00Z",
+    "end": "2026-10-15T09:05:00Z",
+    "result": "ok",
+    "snapshot": "9f8e7d6c5b4a"
+  },
+  "last_check": {
+    "kind": "verify",
+    "trigger": "timer",
+    "unit": "carryon-verify.service",
+    "machine": "desktop",
+    "start": "2026-10-12T04:00:00Z",
+    "end": "2026-10-12T04:20:00Z",
+    "result": "failed",
+    "error": "2 packages can't be reinstalled from any repository."
+  },
+  "last_capture": "2026-10-16T09:00:20Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "pending": null,
+  "restoring": false,
+  "inbox": 0
+}

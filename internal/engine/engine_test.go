@@ -116,6 +116,7 @@ func TestEnv(t *testing.T) {
 func TestArgs(t *testing.T) {
 	tests := []struct {
 		name, url, self string
+		noLock          bool
 		want            []string
 		wantErr         string
 	}{
@@ -124,12 +125,16 @@ func TestArgs(t *testing.T) {
 			want: []string{"--retry-lock", "30m", "-o", "rclone.program=/usr/bin/carryon rclone-shim", "snapshots"}},
 		{name: "rclone, path with a space", url: "rclone:my-cloud:backups", self: "/opt/my apps/carryon",
 			want: []string{"--retry-lock", "30m", "-o", "rclone.program='/opt/my apps/carryon' rclone-shim", "snapshots"}},
+		{name: "no lock", url: "/mnt/backup", noLock: true, want: []string{"--no-lock", "snapshots"}},
+		{name: "rclone, no lock", url: "rclone:my-cloud:backups", self: "/usr/bin/carryon", noLock: true,
+			want: []string{"--no-lock", "-o", "rclone.program=/usr/bin/carryon rclone-shim", "snapshots"}},
 		{name: "rclone, path restic can't split", url: "rclone:my-cloud:backups", self: `/opt/alice's/carryon`, wantErr: "can't pass to rclone"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := New(config.Repository{URL: tt.url}, paths.Dirs{}, "desktop")
 			e.Self = tt.self
+			e.NoLock = tt.noLock
 			got, err := e.Args("snapshots")
 			if tt.wantErr != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {

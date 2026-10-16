@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "state": "not_set_up",
+  "summary": "Backups aren't set up",
+  "problems": [
+    {
+      "text": "Backups aren't set up on this machine yet.",
+      "fix": "Set them up with: sudo carryon init"
+    }
+  ],
+  "updated": null,
+  "stale": false,
+  "last_backup": null,
+  "last_success": null,
+  "last_check": null,
+  "last_capture": null,
+  "next": [],
+  "pending": null,
+  "restoring": false,
+  "inbox": 0
+}

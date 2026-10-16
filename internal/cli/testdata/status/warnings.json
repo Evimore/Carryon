@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "updated": "2026-10-16T09:06:00Z",
+  "machine": "desktop",
+  "last_backup": {
+    "kind": "backup",
+    "trigger": "timer",
+    "machine": "desktop",
+    "start": "2026-10-16T09:00:00Z",
+    "end": "2026-10-16T09:06:00Z",
+    "result": "warning",
+    "unit": "carryon-backup.service",
+    "snapshot": "7a8b9c0d1e2f",
+    "warnings": [
+      "/home/alice/.cache/broken: permission denied",
+      "Removing old snapshots failed: the repository is locked"
+    ]
+  },
+  "last_success": {
+    "kind": "backup",
+    "trigger": "timer",
+    "machine": "desktop",
+    "start": "2026-10-16T09:00:00Z",
+    "end": "2026-10-16T09:06:00Z",
+    "result": "warning",
+    "unit": "carryon-backup.service",
+    "snapshot": "7a8b9c0d1e2f",
+    "warnings": [
+      "/home/alice/.cache/broken: permission denied",
+      "Removing old snapshots failed: the repository is locked"
+    ]
+  },
+  "last_capture": "2026-10-16T09:06:00Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "inbox": 3,
+  "recent": [
+    {
+      "kind": "backup",
+      "trigger": "timer",
+      "machine": "desktop",
+      "start": "2026-10-16T09:00:00Z",
+      "end": "2026-10-16T09:06:00Z",
+      "result": "warning",
+      "unit": "carryon-backup.service",
+      "snapshot": "7a8b9c0d1e2f",
+      "warnings": [
+        "/home/alice/.cache/broken: permission denied",
+        "Removing old snapshots failed: the repository is locked"
+      ]
+    }
+  ]
+}

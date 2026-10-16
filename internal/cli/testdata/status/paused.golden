@@ -1,0 +1,11 @@
+Needs attention
+  - Automatic backups are paused while a restore is in progress.
+    Backups start again when the restore finishes. If no restore is running, resume them with: sudo rm /var/lib/carryon/restoring
+
+Last backup     ok, 2026-10-15 09:05 (26 hours ago), scheduled
+                snapshot 9f8e7d6c
+Last check      never
+Record updated  2026-10-15 09:05 (26 hours ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Status from     2026-10-16 09:00 (3 hours ago)

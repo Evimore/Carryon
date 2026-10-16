@@ -1,0 +1,11 @@
+All good: backed up 2 hours ago.
+
+Last backup     ok, 2026-10-16 09:04 (2 hours ago), scheduled
+                snapshot 1a2b3c4d
+Last check      ok, 2026-10-12 04:20 (4 days ago), scheduled
+Record updated  2026-10-16 11:20 (40 minutes ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Owed            a backup for changes made 2026-10-16 11:20 (40 minutes ago)
+                it runs once the changes settle
+Status from     2026-10-16 09:04 (2 hours ago)

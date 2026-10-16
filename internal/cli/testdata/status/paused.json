@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "updated": "2026-10-16T09:00:00Z",
+  "machine": "desktop",
+  "last_backup": {
+    "kind": "backup",
+    "trigger": "timer",
+    "machine": "desktop",
+    "start": "2026-10-15T09:00:00Z",
+    "end": "2026-10-15T09:05:00Z",
+    "result": "ok",
+    "unit": "carryon-backup.service",
+    "snapshot": "9f8e7d6c5b4a",
+    "changes": 0
+  },
+  "last_success": {
+    "kind": "backup",
+    "trigger": "timer",
+    "machine": "desktop",
+    "start": "2026-10-15T09:00:00Z",
+    "end": "2026-10-15T09:05:00Z",
+    "result": "ok",
+    "unit": "carryon-backup.service",
+    "snapshot": "9f8e7d6c5b4a",
+    "changes": 0
+  },
+  "last_capture": "2026-10-15T09:05:00Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "restoring": true,
+  "recent": [
+    {
+      "kind": "backup",
+      "trigger": "timer",
+      "machine": "desktop",
+      "start": "2026-10-16T09:00:00Z",
+      "end": "2026-10-16T09:00:00Z",
+      "result": "paused",
+      "unit": "carryon-backup.service"
+    },
+    {
+      "kind": "backup",
+      "trigger": "timer",
+      "machine": "desktop",
+      "start": "2026-10-15T09:00:00Z",
+      "end": "2026-10-15T09:05:00Z",
+      "result": "ok",
+      "unit": "carryon-backup.service",
+      "snapshot": "9f8e7d6c5b4a",
+      "changes": 0
+    }
+  ],
+  "inbox": 0
+}

@@ -131,7 +131,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `cmd_backup`, `cmd_pacman_hook`, `legacy/systemd/`, `legacy/pacman/`.
 - **Done when:** a backup to a local repository works in a test, and the hook never returns non-zero.
 
-### T12 Status ⬜
+### T12 Status ✅
 - **Scope:** `carryon status` from `status.json` without root; with root, optionally the snapshot
   list (`--snapshots`, since it opens the repository).
 - **Legacy:** `cmd_status`.

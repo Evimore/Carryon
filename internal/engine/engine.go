@@ -41,6 +41,9 @@ type Engine struct {
 	Stderr io.Writer
 	// Runner starts restic. Nil means running it with os/exec; tests may replace it.
 	Runner Runner
+	// NoLock passes --no-lock instead of --retry-lock, for read-only commands (snapshots, cat
+	// config) that must never write into the repository, not even a lock file: carryon status.
+	NoLock bool
 }
 
 // New returns an engine for a repository. machine is the name this machine's snapshots are stored
@@ -116,9 +119,13 @@ func home(env []string) string {
 	return "/"
 }
 
-// Args is restic's full argument list for a command: the default options, then args.
+// Args is restic's full argument list for a command: the default options, then args. With NoLock
+// the options say not to lock the repository, so args must be a command restic runs without one.
 func (e *Engine) Args(args ...string) ([]string, error) {
 	out := []string{"--retry-lock", RetryLock}
+	if e.NoLock {
+		out = []string{"--no-lock"}
+	}
 	if e.IsRclone() {
 		prog, err := e.rcloneProgram()
 		if err != nil {

@@ -1,0 +1,16 @@
+Needs attention
+  - The newest backup is 3 days old, more than the 2 days allowed.
+    Plug in or mount the backup drive. Carryon backs up when it appears.
+
+Last backup     waiting for its destination, 2026-10-16 11:50 (9 minutes ago), automatic
+                No drive is mounted at /mnt/backup.
+                Plug in or mount the backup drive. Carryon backs up when it appears.
+Last success    ok, 2026-10-13 09:04 (3 days ago), scheduled
+                snapshot 5e6f7a8b
+Last check      never
+Record updated  2026-10-13 09:04 (3 days ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Owed            a backup, since 2026-10-16 11:50 (9 minutes ago)
+                it runs when the destination is back
+Status from     2026-10-16 11:50 (9 minutes ago)

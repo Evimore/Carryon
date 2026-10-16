@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "updated": "2026-10-16T10:00:00Z",
+  "machine": "desktop",
+  "last_capture": "2026-10-16T10:00:04Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "recent": [
+    {
+      "kind": "capture",
+      "trigger": "hook",
+      "machine": "desktop",
+      "start": "2026-10-16T10:00:00Z",
+      "end": "2026-10-16T10:00:04Z",
+      "result": "ok"
+    }
+  ],
+  "inbox": 0
+}

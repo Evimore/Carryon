@@ -1,0 +1,13 @@
+Needs attention
+  - The last backup finished with 2 warnings:
+      /home/alice/.cache/broken: permission denied
+      Removing old snapshots failed: the repository is locked
+
+Last backup     ok, with warnings, 2026-10-16 09:06 (2 hours ago), scheduled
+                snapshot 7a8b9c0d
+Last check      never
+Record updated  2026-10-16 09:06 (2 hours ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Inbox           3 suggestions waiting: carryon inbox
+Status from     2026-10-16 09:06 (2 hours ago)

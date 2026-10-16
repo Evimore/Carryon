@@ -1,0 +1,18 @@
+Needs attention
+  - Carryon didn't read the snapshots: The repository at sftp:alice@example.com:/backups isn't the one Carryon set up (its ID is ffff9999, expected 0123abcd). Carryon wrote nothing to it.
+    Check repository.url in the config. If you replaced the repository on purpose, run `carryon init` again.
+
+Last backup     ok, 2026-10-16 09:04 (2 hours ago), scheduled
+                snapshot 1a2b3c4d
+Last check      ok, 2026-10-12 04:20 (4 days ago), scheduled
+Record updated  2026-10-16 09:04 (2 hours ago)
+Next runs       backup  2026-10-17 09:00 (in 21 hours)
+                check   2026-10-19 04:00 (in 2 days)
+Status from     2026-10-16 09:04 (2 hours ago)
+
+Recent changes to the system
+  2026-10-03 09:30  1 change(s): + package vim [extra]
+  2026-10-02 09:30  first record
+
+Snapshots in the repository
+  not read (see above)

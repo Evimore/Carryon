@@ -308,6 +308,17 @@ silently goes wrong:
   and writes a summary, `/run/carryon/status.json` mirrored to `/var/lib/carryon/status.json`, that is
   world-readable and holds no secrets: last runs, results, short error text, next runs, inbox count.
   **Fix:** so `carryon status` works without root and after reboots.
+- **`carryon status`:** reads `status.json` (the state folder's copy after a reboot), plus the
+  pending and restoring flags, which can be newer: the pacman hook marks a backup owed without
+  rewriting the summary. It says what needs attention and what to do: a failed backup or check, a
+  backup with warnings, the newest backup older than `verify.max_age_hours`, backups paused by a
+  restore, and a summary older than that, which means the timer may not be running. A backup waiting
+  for its destination needs attention only once the newest backup is too old, like the alerts.
+  **Changes from the prototype:** it reads Carryon's own history instead of asking systemd, so it
+  works after the journal is gone; as root it shows the record's latest changes and, with
+  `--snapshots`, the snapshots per machine, but only after checking the destination like a backup
+  does, and with restic's `--no-lock`, so a status check never writes into the repository. `--json`
+  exits with 2 when something needs attention, for status bars.
 - **Failure alerts:** `carryon-notify@.service` runs `carryon notify UNIT`, which sends the unit's last
   error lines through every channel in `[notify]`. **Generalized:** the prototype alerted one user;
   Carryon alerts every user with an open graphical session who is in `backup.users` and hasn't

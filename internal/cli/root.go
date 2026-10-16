@@ -56,6 +56,7 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newVersionCmd(),
 		newInitCmd(dirs),
 		newRecoveryKitCmd(dirs),
+		newStatusCmd(dirs),
 		newConfigCmd(dirs),
 		newBundlesCmd(dirs),
 		newCaptureCmd(dirs),
@@ -95,7 +96,6 @@ type planned struct {
 }
 
 var plannedCommands = []planned{
-	{use: "status", short: "Show recent and upcoming runs, and anything that needs attention", task: "T12"},
 	{use: "verify", short: "Check that the backup is current, complete and restorable", task: "T13"},
 	{use: "inbox", short: "Review suggestions about new things to back up", task: "v0.2"},
 	{use: "ignore", short: "Stop suggesting a path", task: "v0.2"},

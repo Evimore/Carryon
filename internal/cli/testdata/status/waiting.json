@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "updated": "2026-10-16T11:50:01Z",
+  "machine": "desktop",
+  "last_backup": {
+    "kind": "backup",
+    "trigger": "settle",
+    "machine": "desktop",
+    "start": "2026-10-16T11:50:00Z",
+    "end": "2026-10-16T11:50:01Z",
+    "result": "waiting",
+    "error": "No drive is mounted at /mnt/backup.",
+    "fix": "Plug in or mount the backup drive. Carryon backs up when it appears."
+  },
+  "last_success": {
+    "kind": "backup",
+    "trigger": "timer",
+    "machine": "desktop",
+    "start": "2026-10-13T09:00:00Z",
+    "end": "2026-10-13T09:04:00Z",
+    "result": "ok",
+    "unit": "carryon-backup.service",
+    "snapshot": "5e6f7a8b9c0d"
+  },
+  "last_capture": "2026-10-13T09:04:00Z",
+  "next": [
+    {
+      "unit": "carryon-settle.timer",
+      "at": "2026-10-16T12:10:00Z"
+    },
+    {
+      "unit": "carryon-backup.timer",
+      "at": "2026-10-17T09:00:00Z"
+    },
+    {
+      "unit": "carryon-verify.timer",
+      "at": "2026-10-19T04:00:00Z"
+    }
+  ],
+  "pending": {
+    "reason": "waiting",
+    "since": "2026-10-16T11:50:01Z"
+  },
+  "recent": [
+    {
+      "kind": "backup",
+      "trigger": "settle",
+      "machine": "desktop",
+      "start": "2026-10-16T11:50:00Z",
+      "end": "2026-10-16T11:50:01Z",
+      "result": "waiting",
+      "error": "No drive is mounted at /mnt/backup.",
+      "fix": "Plug in or mount the backup drive. Carryon backs up when it appears."
+    },
+    {
+      "kind": "backup",
+      "trigger": "timer",
+      "machine": "desktop",
+      "start": "2026-10-13T09:00:00Z",
+      "end": "2026-10-13T09:04:00Z",
+      "result": "ok",
+      "unit": "carryon-backup.service",
+      "snapshot": "5e6f7a8b9c0d"
+    }
+  ],
+  "inbox": 0
+}

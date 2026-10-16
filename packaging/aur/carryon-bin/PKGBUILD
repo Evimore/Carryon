@@ -1,0 +1,36 @@
+# Maintainer: Evimore <100224882+Evimore@users.noreply.github.com>
+#
+# Installs the static binary and files from a GitHub release (.github/workflows/release.yml).
+# Publishing it to the AUR: docs/packaging.md.
+
+pkgname=carryon-bin
+_pkgname=carryon
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Back up what makes your Linux machine yours, and get it back on any fresh install (release binary)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/Evimore/carryon'
+license=('GPL-3.0-or-later')
+depends=('restic')
+optdepends=('git: keep the history of the system record'
+            'rclone: back up to cloud storage through rclone'
+            'paru: reinstall AUR packages on restore'
+            'yay: reinstall AUR packages on restore'
+            'libnotify: desktop notifications when a backup fails')
+provides=("carryon=$pkgver")
+conflicts=('carryon')
+# The release binary is already stripped.
+options=('!strip' '!debug')
+# Empty on purpose: the package installs nothing under /etc, `carryon init` writes /etc/carryon.
+backup=()
+install=carryon.install
+source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-linux-x86_64.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-linux-aarch64.tar.gz")
+# updpkgsums fills these in for each release; they match the release's sha256sums file.
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  # The tarball holds the tree `make install` lays out.
+  cp -a --no-preserve=ownership "$_pkgname-$pkgver-linux-$CARCH/usr" "$pkgdir/"
+}

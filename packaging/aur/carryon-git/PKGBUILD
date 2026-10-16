@@ -1,0 +1,64 @@
+# Maintainer: Evimore <100224882+Evimore@users.noreply.github.com>
+#
+# Builds the latest commit on main. Publishing it to the AUR: docs/packaging.md.
+
+pkgname=carryon-git
+_pkgname=carryon
+pkgver=0.0.0.r1.gce1548c
+pkgrel=1
+pkgdesc='Back up what makes your Linux machine yours, and get it back on any fresh install (latest main)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/Evimore/carryon'
+license=('GPL-3.0-or-later')
+depends=('restic')
+makedepends=('go' 'git')
+optdepends=('git: keep the history of the system record'
+            'rclone: back up to cloud storage through rclone'
+            'paru: reinstall AUR packages on restore'
+            'yay: reinstall AUR packages on restore'
+            'libnotify: desktop notifications when a backup fails')
+provides=('carryon')
+conflicts=('carryon')
+# Empty on purpose: the package installs nothing under /etc, `carryon init` writes /etc/carryon.
+backup=()
+install=carryon.install
+source=("$_pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+    git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  else
+    # No release yet.
+    printf '0.0.0.r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+  fi
+}
+
+prepare() {
+  cd "$_pkgname"
+  export GOMODCACHE="$srcdir/gomodcache"
+  go mod download -modcacherw
+}
+
+# Carryon is one static binary (CGO_ENABLED=0, set by the Makefile), so the same file works from
+# the recovery kit on any distribution. That rules out -buildmode=pie from the Arch Go guidelines:
+# without cgo, Go's linker can only make a PIE that is dynamically linked against the loader.
+build() {
+  cd "$_pkgname"
+  export GOMODCACHE="$srcdir/gomodcache"
+  export GOFLAGS='-mod=readonly -modcacherw'
+  make VERSION="$pkgver" COMMIT="$(git rev-parse --short=7 HEAD)"
+}
+
+check() {
+  cd "$_pkgname"
+  export GOMODCACHE="$srcdir/gomodcache"
+  export GOFLAGS='-mod=readonly -modcacherw'
+  go test ./...
+}
+
+package() {
+  cd "$_pkgname"
+  make DESTDIR="$pkgdir" PREFIX=/usr install
+}

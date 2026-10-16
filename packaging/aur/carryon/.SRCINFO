@@ -1,0 +1,21 @@
+pkgbase = carryon
+	pkgdesc = Back up what makes your Linux machine yours, and get it back on any fresh install
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/Evimore/carryon
+	install = carryon.install
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	checkdepends = git
+	makedepends = go
+	depends = restic
+	optdepends = git: keep the history of the system record
+	optdepends = rclone: back up to cloud storage through rclone
+	optdepends = paru: reinstall AUR packages on restore
+	optdepends = yay: reinstall AUR packages on restore
+	optdepends = libnotify: desktop notifications when a backup fails
+	source = carryon-0.1.0.tar.gz::https://github.com/Evimore/carryon/archive/refs/tags/v0.1.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = carryon

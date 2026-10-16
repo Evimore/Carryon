@@ -635,8 +635,9 @@ internal/detect/      hook handling and scans
 internal/notify/      desktop and push notifications
 internal/agent/       the per-user agent
 catalog/              app definitions (TOML)
-dist/                 systemd units, pacman hook, polkit rules, completions
-packaging/aur/        PKGBUILDs
+internal/tools/gendocs/  man page and shell completions, generated at build time
+dist/                 systemd units, pacman hook, polkit rules
+packaging/            PKGBUILDs (aur/), the install layout check
 ```
 
 Libraries: `spf13/cobra` (commands), `BurntSushi/toml` (config), `charmbracelet/bubbletea`, `bubbles`,
@@ -661,9 +662,19 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 | `/usr/share/libalpm/hooks/carryon.hook` | pacman hook |
 | `/usr/share/polkit-1/rules.d/carryon.rules` | who may start backups and bundle restores |
 | `/usr/share/carryon/` | default excludes, catalog |
+| `/usr/share/man/man1/carryon.1` | the man page, generated from the commands |
+| `/usr/share/{bash-completion/completions,zsh/site-functions,fish/vendor_completions.d}/` | shell completions |
+| `/usr/share/doc/carryon/`, `/usr/share/licenses/carryon/` | README, this design, the catalog's README; the licence |
 | `/etc/carryon/` | config, excludes, bundle rules, password (created by `init`) |
 | `/var/lib/carryon/` | record, history, inbox, flags |
 | `/var/cache/carryon/restic/` | restic cache |
+
+`make install` lays out the `/usr` part; packages install nothing under `/etc` or `/var` and enable
+no units, `carryon init` does. `packaging/layout.txt` pins the list and CI checks it, on the release
+tarballs and on the installed pacman package too. The user agent and the polkit rules come with v0.2.
+The binary is static and not a PIE, against the Arch Go guidelines: without cgo, a Go PIE needs the
+system's loader, and the same binary must run from the recovery kit anywhere. See
+[packaging.md](packaging.md).
 
 ## Testing
 
@@ -707,6 +718,7 @@ the recovery kit counts as saved.
 | Storage | restic, any destination the user chooses, with mount guards |
 | Desktop integration | Notifications first, tray icon in v0.3 |
 | New system data | Ask by default |
+| Binary | Static, no cgo, not a PIE |
 
 ## Open questions
 

@@ -1,0 +1,16 @@
+# The files a Carryon package installs, relative to /. Matches docs/design.md, "Install layout".
+# packaging/check-layout.sh compares an installed file list with this one. Shell patterns are
+# allowed; the units in dist/systemd/ and the catalog's *.toml files are added from the source tree,
+# one entry each, so a file that isn't installed is caught.
+usr/bin/carryon
+usr/share/libalpm/hooks/carryon.hook
+usr/share/carryon/excludes.default
+# makepkg compresses man pages.
+usr/share/man/man1/carryon.1*
+usr/share/bash-completion/completions/carryon
+usr/share/zsh/site-functions/_carryon
+usr/share/fish/vendor_completions.d/carryon.fish
+usr/share/licenses/carryon/LICENSE
+usr/share/doc/carryon/README.md
+usr/share/doc/carryon/design.md
+usr/share/doc/carryon/catalog.md

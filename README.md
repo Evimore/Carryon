@@ -30,11 +30,31 @@ reinstalling packages, re-enabling services, copying config files and rememberin
 - An Arch-based distribution: Arch Linux, CachyOS, EndeavourOS, Manjaro... Others are planned.
 - A place for backups: a USB disk, a NAS, an SFTP server or a cloud storage account.
 
+## Install
+
+Carryon isn't released yet. Once it is, install it from the AUR with your AUR helper:
+
+```sh
+paru -S carryon          # or carryon-bin (the release binary), or carryon-git (latest main)
+sudo carryon init        # where to keep backups; switches on the timers
+```
+
+Without an AUR helper, or on another distribution, use the release tarball or build from source:
+
+```sh
+make                     # needs Go 1.24 or newer
+sudo make install
+```
+
+Carryon needs [restic](https://restic.net). Installing it sets nothing up: `sudo carryon init` does.
+`man carryon` lists every command.
+
 ## Documentation
 
 - [Design](docs/design.md): how Carryon works and why
 - [Roadmap](docs/roadmap.md): milestones and the task list
 - [The prototype](legacy/README.md): the Python tool Carryon grows out of
+- [Packaging](docs/packaging.md): building, releases and the AUR, for maintainers
 
 ## For developers
 

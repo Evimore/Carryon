@@ -11,3 +11,13 @@ coverage.*
 .idea/
 .vscode/
 *.swp
+
+# make output
+/build/
+
+# makepkg output when building the AUR packages locally
+/packaging/aur/*/src/
+/packaging/aur/*/pkg/
+/packaging/aur/*/carryon/
+/packaging/aur/*/*.tar.gz
+/packaging/aur/*/*.pkg.tar*

@@ -1,0 +1,87 @@
+name: Package
+
+# Checks the packaging: `make install` lays out exactly what docs/design.md says, and the
+# carryon-git AUR package builds from this checkout, passes namcap and installs with pacman.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  layout:
+    name: Install layout
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Lint the scripts
+        run: shellcheck -s bash packaging/check-layout.sh packaging/aur/*/carryon.install
+      - name: make install into a temporary folder
+        run: make check-install
+
+  aur:
+    name: AUR package (Arch Linux)
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - name: Install the build tools
+        run: pacman -Syu --noconfirm --needed base-devel git go restic namcap
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # pkgver() counts the commits
+      - name: Add a build user
+        # makepkg refuses to run as root.
+        run: |
+          useradd --create-home builder
+          cp -a "$GITHUB_WORKSPACE" /home/builder/carryon
+          chown -R builder: /home/builder/carryon
+          sudo -u builder git -C /home/builder/carryon checkout -q -B ci-package
+      - name: .SRCINFO is up to date
+        run: |
+          status=0
+          for dir in packaging/aur/*/; do
+            echo "== $dir"
+            (cd "/home/builder/carryon/$dir" && sudo -u builder makepkg --printsrcinfo) | diff -u "$dir/.SRCINFO" - || status=1
+            cmp packaging/aur/carryon/carryon.install "$dir/carryon.install" || status=1
+          done
+          if [ $status -ne 0 ]; then
+            echo "Regenerate with: makepkg --printsrcinfo > .SRCINFO (and keep the carryon.install files identical)"
+          fi
+          exit $status
+      - name: Build carryon-git from this checkout
+        run: |
+          mkdir /home/builder/pkg
+          cp packaging/aur/carryon-git/PKGBUILD packaging/aur/carryon-git/carryon.install /home/builder/pkg/
+          # Build the pull request's commit instead of main on GitHub.
+          sed -i 's|^source=.*|source=("$_pkgname::git+file:///home/builder/carryon#branch=ci-package")|' /home/builder/pkg/PKGBUILD
+          grep '^source=' /home/builder/pkg/PKGBUILD
+          chown -R builder: /home/builder/pkg
+          cd /home/builder/pkg && sudo -u builder makepkg --noconfirm
+      - name: namcap
+        # Expected warnings: the binary is static, so it "lacks PIE" and "FULL RELRO"; restic is run,
+        # not linked, so it "may not be needed"; carryon-bin's per-architecture sources name x86_64.
+        shell: bash
+        run: |
+          set -o pipefail
+          cd /home/builder/pkg
+          pkg=$(ls carryon-git-[0-9]*.pkg.tar.zst)
+          { for f in "$GITHUB_WORKSPACE"/packaging/aur/*/PKGBUILD; do namcap "$f"; done; namcap "$pkg"; } 2>&1 | tee namcap.txt
+          if grep -q ' E: ' namcap.txt; then echo "namcap found errors"; exit 1; fi
+      - name: Install with pacman
+        run: pacman -U --noconfirm /home/builder/pkg/carryon-git-[0-9]*.pkg.tar.zst
+      - name: Check the installed package
+        run: |
+          carryon version
+          carryon version | grep -q "^carryon $(pacman -Q carryon-git | cut -d' ' -f2 | sed 's/-[0-9]*$//') ("
+          carryon --help >/dev/null
+          pacman -Qlq carryon-git | grep -v '/$' | sed 's|^/||' | packaging/check-layout.sh
+          # Installing sets nothing up: no settings and no timers until `carryon init`.
+          test ! -e /etc/carryon
+          test ! -e /var/lib/carryon
+          if ls /etc/systemd/system/*.wants/carryon-* 2>/dev/null; then echo "the package enabled a unit"; exit 1; fi

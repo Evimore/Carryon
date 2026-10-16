@@ -1,0 +1,53 @@
+# Maintainer: Evimore <100224882+Evimore@users.noreply.github.com>
+#
+# Builds a tagged release from source. Publishing it to the AUR: docs/packaging.md.
+
+pkgname=carryon
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Back up what makes your Linux machine yours, and get it back on any fresh install'
+arch=('x86_64' 'aarch64')
+url='https://github.com/Evimore/carryon'
+license=('GPL-3.0-or-later')
+depends=('restic')
+makedepends=('go')
+checkdepends=('git')
+optdepends=('git: keep the history of the system record'
+            'rclone: back up to cloud storage through rclone'
+            'paru: reinstall AUR packages on restore'
+            'yay: reinstall AUR packages on restore'
+            'libnotify: desktop notifications when a backup fails')
+# Empty on purpose: the package installs nothing under /etc, `carryon init` writes /etc/carryon.
+backup=()
+install=carryon.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+# updpkgsums fills this in for each release.
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  export GOMODCACHE="$srcdir/gomodcache"
+  go mod download -modcacherw
+}
+
+# Carryon is one static binary (CGO_ENABLED=0, set by the Makefile), so the same file works from
+# the recovery kit on any distribution. That rules out -buildmode=pie from the Arch Go guidelines:
+# without cgo, Go's linker can only make a PIE that is dynamically linked against the loader.
+build() {
+  cd "$pkgname-$pkgver"
+  export GOMODCACHE="$srcdir/gomodcache"
+  export GOFLAGS='-mod=readonly -modcacherw'
+  make VERSION="$pkgver" COMMIT=
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export GOMODCACHE="$srcdir/gomodcache"
+  export GOFLAGS='-mod=readonly -modcacherw'
+  go test ./...
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  make DESTDIR="$pkgdir" PREFIX=/usr install
+}

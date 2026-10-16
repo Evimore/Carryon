@@ -1,0 +1,9 @@
+post_install() {
+  cat <<'NOTE'
+==> Carryon is installed, but nothing is backed up yet. To set it up, run:
+      sudo carryon init
+    It asks where to keep your backups, writes /etc/carryon and switches on
+    the backup timers. To restore this machine from an existing backup instead:
+      sudo carryon init --connect REPOSITORY-URL
+NOTE
+}

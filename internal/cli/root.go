@@ -54,6 +54,8 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 
 	root.AddCommand(
 		newVersionCmd(),
+		newInitCmd(dirs),
+		newRecoveryKitCmd(dirs),
 		newConfigCmd(dirs),
 		newBundlesCmd(dirs),
 		newCaptureCmd(dirs),
@@ -90,14 +92,12 @@ type planned struct {
 }
 
 var plannedCommands = []planned{
-	{use: "init", short: "Set up backups on this machine, or connect it to an existing repository", task: "T17"},
 	{use: "status", short: "Show recent and upcoming runs, and anything that needs attention", task: "T12"},
 	{use: "backup", short: "Capture the system and back it up now", task: "T11"},
 	{use: "verify", short: "Check that the backup is current, complete and restorable", task: "T13"},
 	{use: "inbox", short: "Review suggestions about new things to back up", task: "v0.2"},
 	{use: "ignore", short: "Stop suggesting a path", task: "v0.2"},
 	{use: "why", short: "Explain whether and how a path is backed up", task: "v0.2"},
-	{use: "recovery-kit", short: "Show what you need to get back in on a new machine", task: "T17"},
 	{use: "hook", short: "Called by the pacman hook", task: "T11", hidden: true},
 	{use: "settle", short: "Back up once changes have settled", task: "T11", hidden: true},
 	{use: "agent", short: "Run the per-user notification agent", task: "v0.2", hidden: true},

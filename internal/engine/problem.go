@@ -147,3 +147,14 @@ func orDefault(s, def string) string {
 	}
 	return s
 }
+
+// IsNoRepo reports whether a failed restic run found no repository at the URL, as opposed to one
+// it couldn't open.
+func IsNoRepo(code int, stderr string) bool {
+	return code == ExitNoRepo || (code != 0 && noRepoRE.MatchString(stderr) && !passwordRE.MatchString(stderr))
+}
+
+// IsBadPassword reports whether a failed restic run found a repository its password doesn't open.
+func IsBadPassword(code int, stderr string) bool {
+	return code == ExitBadPassword || (code != 0 && passwordRE.MatchString(stderr))
+}

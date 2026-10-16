@@ -519,6 +519,19 @@ unencrypted Toolkit copy next to the repository:
 - **On a new machine:** install Carryon from the AUR, run `sudo carryon init --connect URL` and enter
   the password; backups pause until `sudo carryon restore` finishes.
 - **Without Carryon:** the kit explains how to get files back with plain restic.
+- **What `init` checks:** before anything is written, a local folder on a FUSE or network mount gets
+  the direct backend offered, and a folder under `/mnt`, `/media` or `/run/media` that is really on the
+  system disk (an empty mount point) needs confirming (`--yes` without a terminal). It records the
+  destination in `/var/lib/carryon/destination.json` for every backup to check, and asks before
+  recording a different repository at the place backups went before. The password is saved before
+  `restic init` runs, so it can't be lost in between; a replaced password file is kept as `.old`.
+- **Changed from the prototype:** `install.sh` asked "is this a fresh install?" and had the user type
+  `saved` for the password. Carryon uses `--connect` for a fresh install, and a yes/no question (or
+  `--kit-saved`) for the kit. `--connect` counts typing the password in as having the kit. It never
+  takes another machine's password file or destination record from a backup, drops a
+  `password_command` (it may only work on that machine), and keeps replaced files as
+  `<file>.before-<machine>`. The new machine keeps the old name only when its hardware fingerprint
+  matches the reused machine's record; otherwise the default is its hostname.
 
 ## Code layout and libraries
 
@@ -599,7 +612,15 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 2. Reuses the same restic repository and password, with the old hostname as the machine name, so
    snapshot history continues.
 3. Restores from the prototype's snapshots work, because format 1 records can be read.
-4. After the first verified Carryon backup, offers to disable the prototype's timers and hook.
+4. After the first Carryon backup (a snapshot tagged `carryon` under the machine name), running it
+   again offers to disable the prototype's timers and hook; until then it prints the command. The hook
+   is renamed to `zz-sysbackup.hook.disabled` rather than deleted.
+
+Details: the prototype backed up one user's home (`SYSBACKUP_USER`), so `backup.users` becomes that
+user rather than `"*"`. `KEEP` is read option by option; `--keep-*` options Carryon has no setting
+for, and `TOOLKIT_MIRROR`, are reported and left out. Only the user's own lines of `excludes.txt` are
+carried over (the rest are Carryon defaults). If the prototype recorded that the password was saved,
+the recovery kit counts as saved.
 
 ## Decisions
 

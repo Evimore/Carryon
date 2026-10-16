@@ -120,6 +120,17 @@ func load(path string, steps map[int]migration, target int) (cfg Config, notes, 
 	if err != nil {
 		return Config{}, nil, nil, fmt.Errorf("reading %s: %w", path, err)
 	}
+	return parse(path, data, steps, target)
+}
+
+// Parse reads a config file's contents, as Load does; name says where it came from in messages.
+// init uses it for settings read out of a backup.
+func Parse(name string, data []byte) (Config, []string, error) {
+	cfg, notes, unknown, err := parse(name, data, migrations, CurrentVersion)
+	return cfg, append(notes, unknown...), err
+}
+
+func parse(path string, data []byte, steps map[int]migration, target int) (cfg Config, notes, unknown []string, err error) {
 	text, changes, err := migrate(string(data), steps, target)
 	if err != nil {
 		return Config{}, nil, nil, fmt.Errorf("%s: %w", path, err)

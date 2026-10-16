@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -156,4 +157,26 @@ func write(t *testing.T, content string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func TestParseMatchesLoad(t *testing.T) {
+	data := []byte("machine_name = \"desktop\"\ncolour = 1\n[repository]\nurl = \"/mnt/backup\"\n")
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	loaded, lw, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, pw, err := Parse(path, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(loaded, parsed) || !reflect.DeepEqual(lw, pw) {
+		t.Errorf("Parse = %+v %q, Load = %+v %q", parsed, pw, loaded, lw)
+	}
+	if _, _, err := Parse("snapshot:config.toml", []byte("[repository\n")); err == nil || !strings.Contains(err.Error(), "snapshot:config.toml") {
+		t.Errorf("err = %v", err)
+	}
 }

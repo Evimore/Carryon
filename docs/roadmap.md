@@ -167,7 +167,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   non-interactive fallback (flags, `--defaults`).
 - **Legacy:** `checklist`, `item_picker`, `menu`, `confirm`.
 
-### T17 init, recovery kit and migration ⬜
+### T17 init, recovery kit and migration ✅
 - **Scope:** `carryon init` (destination, password, machine name, users, schedule; creates or opens
   the repository; enables units), `--connect`, the recovery kit, `--from-sysbackup`.
 - **Legacy:** `install.sh`.

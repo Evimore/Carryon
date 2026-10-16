@@ -160,3 +160,25 @@ func TestRemoteName(t *testing.T) {
 		}
 	}
 }
+
+func TestIsNoRepoAndIsBadPassword(t *testing.T) {
+	for _, c := range []struct {
+		code             int
+		stderr           string
+		noRepo, password bool
+	}{
+		{ExitNoRepo, "Fatal: repository does not exist: unable to open config file", true, false},
+		{ExitFatal, "Fatal: unable to open config file: stat /mnt/backup/config: no such file or directory\nIs there a repository at the following location?", true, false},
+		{ExitBadPassword, "Fatal: wrong password or no key found", false, true},
+		{ExitFatal, "Fatal: wrong password or no key found", false, true}, // restic 0.17.0
+		{ExitFatal, "Fatal: unable to open repository: dial tcp: no such host", false, false},
+		{ExitOK, "", false, false},
+	} {
+		if got := IsNoRepo(c.code, c.stderr); got != c.noRepo {
+			t.Errorf("IsNoRepo(%d, %q) = %v", c.code, c.stderr, got)
+		}
+		if got := IsBadPassword(c.code, c.stderr); got != c.password {
+			t.Errorf("IsBadPassword(%d, %q) = %v", c.code, c.stderr, got)
+		}
+	}
+}

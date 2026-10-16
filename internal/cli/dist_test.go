@@ -37,9 +37,6 @@ func TestDistRunsRealCommands(t *testing.T) {
 					t.Errorf("%s: %s runs %q", f, key, val)
 					continue
 				}
-				if words[1] == "verify" {
-					continue // comes with T13
-				}
 				if cmd, _, err := root.Find(words[1:2]); err != nil || cmd == root {
 					t.Errorf("%s: carryon has no %q command", f, words[1])
 				}

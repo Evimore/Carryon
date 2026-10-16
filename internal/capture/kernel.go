@@ -27,6 +27,10 @@ var CmdlineSources = []CmdlineSource{
 var rootish = regexp.MustCompile(`^(BOOT_IMAGE|initrd|root|rootflags|rootfstype|cryptdevice|cryptkey|resume|` +
 	`resume_offset|rd\.luks\.[a-z.]+|rw|ro)(=|$)`)
 
+// PerInstallParam reports whether a kernel parameter differs per install (disks, root, resume), so
+// it is never recorded.
+func PerInstallParam(p string) bool { return rootish.MatchString(p) }
+
 // procCmdline is read when no bootloader config is found.
 const procCmdline = "/proc/cmdline"
 
@@ -54,7 +58,7 @@ func (c *capturer) captureKernel() {
 	src, params := c.cmdlineConfig()
 	seen := map[string]bool{}
 	for _, p := range params {
-		if seen[p] || rootish.MatchString(p) {
+		if seen[p] || PerInstallParam(p) {
 			continue
 		}
 		seen[p] = true

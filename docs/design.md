@@ -328,6 +328,18 @@ silently goes wrong:
   **New:** ntfy and webhook alerts, with passwords, keys and `user:password@` hidden before anything
   leaves the machine, and `carryon notify --test` to try every channel. With a missing or broken
   config, it still alerts with the default settings.
+- **Verify:** `carryon verify` checks the record, whether everything in it can be reinstalled,
+  whether what the machine runs is backed up, and the repository; `--deep` also lists the newest
+  snapshot, runs `restic check --read-data-subset` and restores the record into a temporary folder.
+  Like a backup, it checks the destination first and runs no restic command on one that doesn't
+  match; read-only restic commands use `--no-lock`. Each run goes into the run history (kind
+  `verify`). **Changes from the prototype:** an unconfirmed recovery kit is a warning, not a
+  failure; the AUR or an extra repository that can't be reached while the machine is offline is a
+  warning; an extra repository's `Include`d mirror list counts as its servers; the drift check uses
+  the quick capture, so files only the nightly capture finds (`edited`) aren't compared; a program
+  started by a unit counts as backed up when it is in any backed-up folder, not only a home; when
+  the destination isn't there, the age of the last backup comes from the run history; and the
+  prototype's Toolkit comparison is gone with the Toolkit.
 - **Paused while restoring:** a `restoring` flag stops automatic backups on a fresh install, so a
   half-restored system never becomes the newest snapshot. Kept from the prototype. **Change:** the
   pacman hook does nothing at all while it is there; the prototype still refreshed the record.

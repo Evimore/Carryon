@@ -137,7 +137,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `cmd_status`.
 - **Done when:** correct output without root and after a reboot.
 
-### T13 Verify ⬜
+### T13 Verify ✅
 - **Package:** `internal/verify`.
 - **Scope:** record checks (complete, fresh, drift), reinstallability (repository packages, AUR via
   its RPC API, extra repositories reachable, keys saved), coverage (units' programs, DKMS sources,

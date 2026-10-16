@@ -66,7 +66,7 @@ func BuildStatus(ctx context.Context, d paths.Dirs, machine string, timers Timer
 			p := public(r)
 			s.LastSuccess = &p
 		}
-		if s.LastCapture == nil && r.Succeeded() {
+		if s.LastCapture == nil && r.Succeeded() && r.Kind != KindVerify {
 			end := r.End.UTC()
 			s.LastCapture = &end
 		}

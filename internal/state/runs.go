@@ -19,6 +19,7 @@ import (
 const (
 	KindBackup  = "backup"  // carryon backup, from the timer, settle or by hand
 	KindCapture = "capture" // the record alone: carryon capture or the pacman hook
+	KindVerify  = "verify"  // carryon verify, from the timer or by hand
 )
 
 // What started a run.

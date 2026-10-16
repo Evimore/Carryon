@@ -63,6 +63,7 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newBackupCmd(dirs),
 		newHookCmd(dirs),
 		newSettleCmd(dirs),
+		newVerifyCmd(dirs),
 		newAddCmd(dirs),
 		newExcludeCmd(dirs),
 		newHistoryCmd(dirs),
@@ -96,7 +97,6 @@ type planned struct {
 }
 
 var plannedCommands = []planned{
-	{use: "verify", short: "Check that the backup is current, complete and restorable", task: "T13"},
 	{use: "inbox", short: "Review suggestions about new things to back up", task: "v0.2"},
 	{use: "ignore", short: "Stop suggesting a path", task: "v0.2"},
 	{use: "why", short: "Explain whether and how a path is backed up", task: "v0.2"},

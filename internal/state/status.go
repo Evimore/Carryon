@@ -93,8 +93,8 @@ func public(r Run) Run {
 	return r
 }
 
-// inboxCount is the number of suggestions in the inbox: the length of its list, or of its
-// "entries" list. The inbox comes with detection (v0.2); until then there is none.
+// inboxCount is the number of suggestions in the inbox: the length of its "entries" list, or of
+// the file's list if it is one.
 func inboxCount(file string) int {
 	data, err := os.ReadFile(file)
 	if err != nil {

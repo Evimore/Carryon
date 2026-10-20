@@ -104,7 +104,16 @@ func TestStatus(t *testing.T) {
 		{name: "all-fine", fixture: "all-fine"},
 		{name: "after-reboot", fixture: "all-fine", reboot: true},
 		{name: "failed", fixture: "failed"},
-		{name: "warnings", fixture: "warnings"},
+		{name: "warnings", fixture: "warnings", setup: func(t *testing.T, d paths.Dirs) {
+			// The count comes from the inbox itself, which can be newer than status.json.
+			_, err := state.UpdateInbox(d, state.InboxWait, func(in *state.Inbox) error {
+				for _, p := range []string{"/var/lib/a", "/var/lib/b", "/srv/c"} {
+					in.Put(state.NewEntry(state.KindPath, p))
+				}
+				return nil
+			})
+			statusMust(t, err)
+		}},
 		{name: "waiting", fixture: "waiting", setup: func(t *testing.T, d paths.Dirs) {
 			statusMust(t, state.MarkPending(d, state.ReasonWaiting, time.Date(2026, 10, 16, 11, 50, 1, 0, time.UTC)))
 		}},

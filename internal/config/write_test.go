@@ -74,6 +74,7 @@ func TestFormatLooksLikeTheDesign(t *testing.T) {
 		`users = ["*"]`,
 		"keep_daily = 7\n",
 		"large_path_gb = 5\n",
+		"# ignore = [\"/srv/scratch\"]\n",
 		"desktop = true\n",
 		"# ntfy_url = \"https://ntfy.sh/my-topic\"\n",
 		"# extra_standard_repos = [\"myrepo\"]\n",

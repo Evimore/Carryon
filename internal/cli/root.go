@@ -66,6 +66,8 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newVerifyCmd(dirs),
 		newAddCmd(dirs),
 		newExcludeCmd(dirs),
+		newInboxCmd(dirs),
+		newIgnoreCmd(dirs),
 		newHistoryCmd(dirs),
 		newRestoreCmd(dirs),
 		newResticCmd(dirs),
@@ -97,8 +99,6 @@ type planned struct {
 }
 
 var plannedCommands = []planned{
-	{use: "inbox", short: "Review suggestions about new things to back up", task: "T21"},
-	{use: "ignore", short: "Stop suggesting a path", task: "T21"},
 	{use: "why", short: "Explain whether and how a path is backed up", task: "T24"},
 	{use: "agent", short: "Run the per-user notification agent", task: "T27", hidden: true},
 }

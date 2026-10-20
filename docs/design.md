@@ -376,6 +376,29 @@ silently goes wrong:
 
 `detect.new_paths = "ask" | "auto" | "off"` in the config controls this (default `ask`).
 
+**The inbox** is `/var/lib/carryon/inbox.json`, `{"format": 1, "entries": [...]}`, world-readable
+and free of secrets: paths, sizes, app and bundle names, never file contents. Each entry asks one
+thing: `path` (back up this folder?) or `restore` (restore this app's saved settings? See
+[as you go](#as-you-go)). It has its size, probable app and bundle, whether it's large, and when and
+by what it was first found. Its ID is the kind and ten hex digits of a hash of the path or bundle
+(`path-3fa9c2d1e0`): the same each time the same thing is found, and safe as a systemd instance
+name, so the agent's buttons never pass a path.
+
+- **Writers** (the pacman hook, the nightly backup, the commands) change it under a lock of its
+  own, and each says how long it waits: the hook gives up after a moment instead of blocking
+  pacman. Readers need no lock; the file is always replaced in one step. A damaged file is set
+  aside as `inbox.json.damaged` and the inbox starts again empty.
+- **Settling:** `carryon add PATH|ID` adds the folder to `backup.extra_paths`, and to its app's
+  bundle with a `put` line in `bundles.conf` when grouping wouldn't find it by name.
+  `carryon ignore PATH|ID` adds it to `detect.ignore` in `config.toml`, so the choice travels with
+  `/etc/carryon` in the backup; a folder inside an ignored one isn't suggested either. Either
+  command settles the suggestions for that folder and the folders inside it. Ignoring a restore
+  offer keeps its bundle in the inbox's `ignored_bundles`, so it isn't offered again.
+  `carryon inbox` lists the entries (`--json`) and, as root in a terminal, goes through them: back
+  it up, ignore, or later.
+- `carryon status` counts the entries from the inbox itself, since settling one doesn't rewrite
+  `status.json`.
+
 ## Restoring
 
 ### Everything, from a plan
@@ -507,6 +530,7 @@ read_subset = "2%"
 [detect]
 new_paths = "ask"                    # ask | auto | off
 large_path_gb = 5
+# ignore = ["/srv/scratch"]         # never suggest these folders
 
 [notify]
 desktop = true

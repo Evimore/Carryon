@@ -221,7 +221,7 @@ T25 login message ────────────────────�
   `carryon-ignore@<entry>.service` (a suggestion's **Back it up** and **Ignore**). An instance name
   is a bundle ID or an inbox entry ID, never a path (T23 adds the restore unit, T26 the others).
 
-### T21 Inbox ⬜
+### T21 Inbox ✅
 - **Packages:** `internal/state` (the inbox file), `internal/cli` (`inbox`, `ignore`, `add`).
 - **Scope:** the inbox file, world-readable and free of secrets, shaped `{"entries": [...]}` as
   `carryon status` already counts it. Each entry has a short, stable ID that is safe as a systemd

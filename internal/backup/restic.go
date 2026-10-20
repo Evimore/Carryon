@@ -109,7 +109,7 @@ func (p *progressWriter) line(l []byte) {
 		if p.out != nil && p.now().Sub(p.last) >= p.every {
 			p.last = p.now()
 			fmt.Fprintf(p.out, "%3.0f%% done: %s of %s, %d of %d files\n", s.PercentDone*100,
-				humanBytes(s.BytesDone), humanBytes(s.TotalBytes), s.FilesDone, s.TotalFiles)
+				HumanBytes(s.BytesDone), HumanBytes(s.TotalBytes), s.FilesDone, s.TotalFiles)
 		}
 		return
 	case "error":

@@ -78,7 +78,7 @@ func TestValidateFindsEveryProblem(t *testing.T) {
 	c.Backup.Users = nil
 	c.Retention = Retention{KeepWithin: "2 days", KeepDaily: -1, PruneEveryDays: 0}
 	c.Verify = Verify{Schedule: "", MaxAgeHours: 0, ReadSubset: "150%"}
-	c.Detect = Detect{NewPaths: "maybe", LargePathGB: -1}
+	c.Detect = Detect{NewPaths: "maybe", LargePathGB: -1, Ignore: []string{"srv/scratch", "/srv/ok"}}
 	c.Notify.NtfyURL = "ntfy.sh/topic"
 
 	err := c.Validate()
@@ -104,13 +104,14 @@ func TestValidateFindsEveryProblem(t *testing.T) {
 		`verify.read_subset "150%" must be between`,
 		`detect.new_paths "maybe"`,
 		"detect.large_path_gb can't be negative",
+		`detect.ignore: "srv/scratch" isn't an absolute path`,
 		`notify.ntfy_url "ntfy.sh/topic"`,
 	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("missing problem %q in:\n%v", want, err)
 		}
 	}
-	if strings.Contains(err.Error(), "/var/lib/ok") {
+	if strings.Contains(err.Error(), "/var/lib/ok") || strings.Contains(err.Error(), "/srv/ok") {
 		t.Errorf("a valid extra path was reported: %v", err)
 	}
 }

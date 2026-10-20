@@ -72,8 +72,9 @@ type Verify struct {
 
 // Detect is how new data outside the backed-up folders is handled.
 type Detect struct {
-	NewPaths    string  `toml:"new_paths"`     // ask, auto or off
-	LargePathGB float64 `toml:"large_path_gb"` // suggestions bigger than this are marked as large
+	NewPaths    string   `toml:"new_paths"`     // ask, auto or off
+	LargePathGB float64  `toml:"large_path_gb"` // suggestions bigger than this are marked as large
+	Ignore      []string `toml:"ignore"`        // folders never suggested, nor anything inside them
 }
 
 // Notify is how problems reach the user.
@@ -290,6 +291,11 @@ func (c Config) Validate() error {
 	}
 	if c.Detect.LargePathGB < 0 {
 		bad("detect.large_path_gb can't be negative")
+	}
+	for _, p := range c.Detect.Ignore {
+		if !filepath.IsAbs(p) || strings.ContainsAny(p, "\n\r") {
+			bad("detect.ignore: %q isn't an absolute path", p)
+		}
 	}
 
 	for _, u := range []struct{ name, url string }{{"notify.ntfy_url", c.Notify.NtfyURL}, {"notify.webhook_url", c.Notify.WebhookURL}} {

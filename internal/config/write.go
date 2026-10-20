@@ -58,6 +58,7 @@ var layout = []section{
 	{"detect", "What happens when new data appears outside the backed-up folders.", []line{
 		{"new_paths", "\"ask\" to suggest it, \"auto\" to back it up, \"off\" to ignore it.", ""},
 		{"large_path_gb", "Suggestions bigger than this many GB are marked as large.", ""},
+		{"ignore", "Folders never suggested, nor anything inside them. Add more with \"carryon ignore\".", `["/srv/scratch"]`},
 	}},
 	{"notify", "How problems reach you.", []line{
 		{"desktop", "Show desktop notifications.", ""},

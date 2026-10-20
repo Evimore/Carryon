@@ -301,7 +301,7 @@ func (b *run) restic(ctx context.Context, excludeFile string) error {
 	}
 	if out.Summary != nil {
 		b.log.Info("Snapshot %s saved: %d new and %d changed file(s), %s added", shortID(out.Summary.SnapshotID),
-			out.Summary.FilesNew, out.Summary.FilesChanged, humanBytes(out.Summary.DataAddedPacked))
+			out.Summary.FilesNew, out.Summary.FilesChanged, HumanBytes(out.Summary.DataAddedPacked))
 	}
 	b.retention(ctx, &e)
 	return nil
@@ -442,8 +442,8 @@ func shortID(id string) string {
 	return id
 }
 
-// humanBytes writes a size the way people read it: "1.5 GiB".
-func humanBytes(n uint64) string {
+// HumanBytes writes a size the way people read it: "1.5 GiB".
+func HumanBytes(n uint64) string {
 	const unit = 1024
 	if n < unit {
 		return fmt.Sprintf("%d B", n)

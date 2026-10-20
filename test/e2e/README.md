@@ -9,7 +9,7 @@ CI runs them in the "End-to-end" workflow.
 | `run.sh` | on the host | builds Carryon, boots the machines, runs the scripts below in them |
 | `machine-a.sh` | in machine A, "desktop" | sets up packages, files, a service, users and home files; `init`, `backup`, `verify --deep`, `status --json`, `history`; a backup to an unmounted volume and to a different repository writes nothing |
 | `machine-b.sh` | in machine B, "laptop" | a fresh machine with the same users: `init --connect`, `restore --defaults` (changes nothing), `restore --plan` (changes nothing), `restore --defaults --yes`, then compares B with A |
-| `systemd.sh` | in its own machine | units parse, timers are on, the backup service records a run, the pacman hook, the settle service's condition, a broken config, the restoring flag |
+| `systemd.sh` | in its own machine | units parse, timers are on, the backup service records a run, the pacman hook, the settle service's condition, a broken config, the restoring flag, the login message after a failed backup |
 | `fixtures.sh` | | what A is set up with, and so what B must have |
 | `facts.sh` | in A and B | writes what is compared (packages, the service, files, users, home files) one per line |
 | `compare-records.sh` | in B | compares the records, allowing only the differences it lists, each with its reason |

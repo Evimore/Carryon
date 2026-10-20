@@ -48,15 +48,16 @@ func TestBuildState(t *testing.T) {
 		name        string
 		in          Input
 		state, line string
+		login       string // the login message
 	}{
-		{"not set up", Input{NotSetUp: true}, StateNotSetUp, "Backups aren't set up"},
-		{"no status", Input{}, StateAttention, "No backup yet"},
-		{"fine", Input{Found: true, Status: state.Status{Updated: now, LastBackup: ok, LastSuccess: ok}}, StateOK, "Backed up 3 hours ago"},
-		{"failed", Input{Found: true, Status: state.Status{Updated: now, LastBackup: failed, LastSuccess: ok}}, StateAttention, "Backup failed"},
-		{"too old", Input{Found: true, Status: state.Status{Updated: now, LastBackup: old, LastSuccess: old}}, StateAttention, "Backup 3 days old"},
-		{"old but allowed", Input{Found: true, MaxAge: 96 * time.Hour, Status: state.Status{Updated: now, LastBackup: old, LastSuccess: old}}, StateOK, "Backed up 3 days ago"},
-		{"restoring first", Input{Found: true, Status: state.Status{Updated: now, LastBackup: failed, LastSuccess: ok, Restoring: true}}, StateAttention, "Backups paused for a restore"},
-		{"snapshots not read", Input{Found: true, Status: state.Status{Updated: now, LastBackup: ok, LastSuccess: ok}, Snapshots: &Snapshots{Error: "offline"}}, StateAttention, "Snapshots not read"},
+		{"not set up", Input{NotSetUp: true}, StateNotSetUp, "Backups aren't set up", "Carryon: backups aren't set up on this machine. See: carryon status"},
+		{"no status", Input{}, StateAttention, "No backup yet", "Carryon: no backup has run yet. See: carryon status"},
+		{"fine", Input{Found: true, Status: state.Status{Updated: now, LastBackup: ok, LastSuccess: ok}}, StateOK, "Backed up 3 hours ago", ""},
+		{"failed", Input{Found: true, Status: state.Status{Updated: now, LastBackup: failed, LastSuccess: ok}}, StateAttention, "Backup failed", "Carryon: the last backup failed (Oct 16 11:00). See: carryon status"},
+		{"too old", Input{Found: true, Status: state.Status{Updated: now, LastBackup: old, LastSuccess: old}}, StateAttention, "Backup 3 days old", "Carryon: the newest backup is from Oct 13 12:00, more than 2 days ago. See: carryon status"},
+		{"old but allowed", Input{Found: true, MaxAge: 96 * time.Hour, Status: state.Status{Updated: now, LastBackup: old, LastSuccess: old}}, StateOK, "Backed up 3 days ago", ""},
+		{"restoring first", Input{Found: true, Status: state.Status{Updated: now, LastBackup: failed, LastSuccess: ok, Restoring: true}}, StateAttention, "Backups paused for a restore", "Carryon: automatic backups are paused for a restore. See: carryon status"},
+		{"snapshots not read", Input{Found: true, Status: state.Status{Updated: now, LastBackup: ok, LastSuccess: ok}, Snapshots: &Snapshots{Error: "offline"}}, StateAttention, "Snapshots not read", "Carryon: the snapshots couldn't be read. See: carryon status"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -64,6 +65,9 @@ func TestBuildState(t *testing.T) {
 			r := Build(tt.in)
 			if r.State != tt.state || r.Summary != tt.line {
 				t.Errorf("state %q, summary %q; want %q, %q", r.State, r.Summary, tt.state, tt.line)
+			}
+			if got := r.LoginLine(); got != tt.login {
+				t.Errorf("login line %q, want %q", got, tt.login)
 			}
 			if (r.State == StateOK) != (len(r.Problems) == 0) {
 				t.Errorf("state %q with problems %+v", r.State, r.Problems)

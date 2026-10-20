@@ -24,6 +24,7 @@ import (
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/state"
+	report "github.com/Evimore/carryon/internal/status"
 	"github.com/Evimore/carryon/internal/sysexec"
 )
 
@@ -416,9 +417,30 @@ func Record(ctx context.Context, d paths.Dirs, r state.Run, machine string, time
 	if err := state.AppendRun(d, r); err != nil {
 		log.Warn("The run history wasn't updated: %v", err)
 	}
-	if err := state.Refresh(ctx, d, machine, timers, r.End); err != nil {
-		log.Warn("The status file wasn't updated: %v", err)
+	s, err := state.BuildStatus(ctx, d, machine, timers, r.End)
+	if err == nil {
+		err = state.WriteStatus(d, s)
 	}
+	if err != nil {
+		log.Warn("The status file wasn't updated: %v", err)
+		return
+	}
+	if err := report.UpdateLogin(d, s, loginOptions(d), r.End); err != nil {
+		log.Warn("The login message wasn't updated: %v", err)
+	}
+}
+
+// loginOptions reads the login message's settings. Unreadable settings leave it on with the
+// default age limit, as carryon status reads them.
+func loginOptions(d paths.Dirs) report.LoginOptions {
+	opt := report.LoginOptions{Enabled: true, MaxAge: report.DefaultMaxAge}
+	if cfg, _, err := config.Load(d.ConfigFile()); err == nil {
+		opt.Enabled = cfg.Notify.LoginMessage
+		if cfg.Verify.MaxAgeHours > 0 {
+			opt.MaxAge = time.Duration(cfg.Verify.MaxAgeHours) * time.Hour
+		}
+	}
+	return opt
 }
 
 // asProblem turns a restic error into a Problem.

@@ -319,6 +319,19 @@ silently goes wrong:
   `--snapshots`, the snapshots per machine, but only after checking the destination like a backup
   does, and with restic's `--no-lock`, so a status check never writes into the repository. `--json`
   exits with 2 when something needs attention, for status bars.
+- **Login message:** **New.** Whenever `status.json` is written (after a backup, check, capture or
+  pacman hook run), Carryon also writes one line to `/run/motd.d/carryon.motd` when something needs
+  attention, by the same rules as `carryon status`, and removes it when all is well:
+  `Carryon: the last backup failed (Oct 18 14:02). See: carryon status`. `pam_motd`, which Arch's
+  `system-login` PAM stack includes, shows every file in that folder at console and SSH logins, so
+  no program runs at login. The line gives dates, not "2 days ago", so it stays true until it is
+  next written. `notify.login_message = false` removes it and stops writing it. Failing to write it
+  is a warning in the run's log; it never fails a backup or the status write. `/run` is emptied at
+  boot, and nothing writes the line again then: it comes back with the next run that writes the
+  status (a scheduled backup missed while the machine was off runs soon after boot, and the pacman
+  hook runs on the next package change), and `carryon status` always has the full picture. A
+  problem that only appears with time, like the newest backup getting too old because no backup
+  runs at all, shows in the line only once something writes the status again.
 - **Failure alerts:** `carryon-notify@.service` runs `carryon notify UNIT`, which sends the unit's last
   error lines through every channel in `[notify]`. **Generalized:** the prototype alerted one user;
   Carryon alerts every user with an open graphical session who is in `backup.users` and hasn't
@@ -534,6 +547,7 @@ large_path_gb = 5
 
 [notify]
 desktop = true
+login_message = true                 # a line at console and SSH logins while something needs attention
 # ntfy_url = "https://ntfy.sh/my-topic"
 
 [pacman]
@@ -587,8 +601,8 @@ Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-sh
   root service falls back to a plain notification in the user's session.
 - **Tray icon** (v0.3), a StatusNotifierItem over D-Bus. KDE and most bars show it; GNOME needs the
   AppIndicator extension.
-- **No desktop:** hints in pacman's output, `carryon status`, an optional one-line login message
-  when something needs attention, and alerts through ntfy or a webhook.
+- **No desktop:** hints in pacman's output, `carryon status`, a one-line login message when
+  something needs attention (on by default, see "Running by itself"), and alerts through ntfy or a webhook.
 
 ## Who runs what
 

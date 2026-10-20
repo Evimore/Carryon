@@ -113,7 +113,8 @@ type Report struct {
 	Changes     []record.Commit `json:"changes,omitempty"`
 	Snapshots   *Snapshots      `json:"snapshots,omitempty"`
 
-	now time.Time
+	now   time.Time
+	login string // the most important problem, for the login message
 }
 
 // NeedsAttention reports whether something in the report does.
@@ -153,6 +154,7 @@ func Build(in Input) Report {
 	if in.NotSetUp {
 		r.State = StateNotSetUp
 		r.Summary = "Backups aren't set up"
+		r.login = "backups aren't set up on this machine"
 		r.add(Problem{Text: "Backups aren't set up on this machine yet.", Fix: "Set them up with: sudo carryon init"})
 		if !in.Found {
 			return r
@@ -164,14 +166,14 @@ func Build(in Input) Report {
 			fix += " If no restore is running, resume them with: sudo rm " + in.RestoringFlag
 		}
 		r.add(Problem{Text: "Automatic backups are paused while a restore is in progress.", Fix: fix})
-		r.summary("Backups paused for a restore")
+		r.summary("Backups paused for a restore", "automatic backups are paused for a restore")
 	}
 	if !in.Found {
 		r.add(Problem{
 			Text: "No backup has run yet, so there is no status to show.",
 			Fix:  "The first one runs at the next scheduled time; to run it now: sudo carryon backup",
 		})
-		r.summary("No backup yet")
+		r.summary("No backup yet", "no backup has run yet")
 		return r
 	}
 
@@ -183,19 +185,19 @@ func Build(in Input) Report {
 				fix = "Run the backup by hand to see the whole error: sudo carryon backup"
 			}
 			r.add(Problem{Text: "The last backup failed: " + orDefault(b.Error, "no reason was recorded."), Fix: fix})
-			r.summary("Backup failed")
+			r.summary("Backup failed", "the last backup failed ("+r.when(b.End)+")")
 		case state.ResultWarning:
 			r.add(Problem{
 				Text:    fmt.Sprintf("The last backup finished with %s:", plural(len(b.Warnings), "warning")),
 				Details: b.Warnings,
 			})
-			r.summary("Backup had warnings")
+			r.summary("Backup had warnings", fmt.Sprintf("the last backup had %s (%s)", plural(len(b.Warnings), "warning"), r.when(b.End)))
 		}
 	}
 	switch {
 	case r.LastSuccess == nil:
 		r.add(Problem{Text: "No backup has finished yet.", Fix: "Run one now with: sudo carryon backup"})
-		r.summary("No backup yet")
+		r.summary("No backup yet", "no backup has finished yet")
 	case in.Now.Sub(r.LastSuccess.End) > in.MaxAge:
 		age := in.Now.Sub(r.LastSuccess.End)
 		fix := "Run one now with: sudo carryon backup"
@@ -203,25 +205,25 @@ func Build(in Input) Report {
 			fix = b.Fix
 		}
 		r.add(Problem{Text: fmt.Sprintf("The newest backup is %s old, more than the %s allowed.", Duration(age), Duration(in.MaxAge)), Fix: fix})
-		r.summary("Backup " + Duration(age) + " old")
+		r.summary("Backup "+Duration(age)+" old", fmt.Sprintf("the newest backup is from %s, more than %s ago", r.when(r.LastSuccess.End), Duration(in.MaxAge)))
 	}
 	if c := r.LastCheck; c != nil && c.Result == state.ResultFailed {
 		r.add(Problem{
 			Text: "The last check found problems: " + orDefault(c.Error, "no reason was recorded."),
 			Fix:  orDefault(c.Fix, "See them with: sudo carryon verify"),
 		})
-		r.summary("Check failed")
+		r.summary("Check failed", "the last check found problems ("+r.when(c.End)+")")
 	}
 	if sn := r.Snapshots; sn != nil && sn.Error != "" {
 		r.add(Problem{Text: "Carryon didn't read the snapshots: " + sn.Error, Fix: sn.Fix})
-		r.summary("Snapshots not read")
+		r.summary("Snapshots not read", "the snapshots couldn't be read")
 	}
 	if r.Stale {
 		r.add(Problem{
 			Text: fmt.Sprintf("The status was last written %s ago, so it may be out of date.", Duration(in.Now.Sub(s.Updated))),
 			Fix:  "Check that the backup timer runs: systemctl status carryon-backup.timer",
 		})
-		r.summary("Status out of date")
+		r.summary("Status out of date", "the status may be out of date")
 	}
 	if r.Summary == "" {
 		r.Summary = "Backed up " + Ago(in.Now.Sub(r.LastSuccess.End))
@@ -237,11 +239,21 @@ func (r *Report) add(p Problem) {
 	}
 }
 
-// summary sets the one-line summary unless an earlier, more important problem set it.
-func (r *Report) summary(s string) {
+// summary sets the one-line summary, and the login message's wording of the same problem, unless
+// an earlier, more important problem set them.
+func (r *Report) summary(s, login string) {
 	if r.Summary == "" {
 		r.Summary = s
 	}
+	if r.login == "" {
+		r.login = login
+	}
+}
+
+// when says when something happened as a date and time, which stays true after the line is
+// written: "Oct 18 14:02".
+func (r *Report) when(t time.Time) string {
+	return t.In(r.now.Location()).Format("Jan 2 15:04")
 }
 
 // lastCheck is the newest verify run: from status.json's recent runs, or from the run history when

@@ -90,3 +90,24 @@ expect_no_file /var/lib/carryon/pending
 systemctl start carryon-backup.service || true
 expect_eq "carryon-backup.service while restoring" skipped "$(unit_result carryon-backup.service)"
 rm /var/lib/carryon/restoring
+
+step "A failed backup leaves a login message, and the next good one removes it"
+expect_no_file /run/motd.d/carryon.motd
+# A different repository at the same place: the backup refuses it and fails. (A wrong password
+# only makes it wait for the destination.)
+mv "$REPO" "$REPO.real"
+restic init --repo "$REPO" --password-file "$E2E/secret/password" >/dev/null
+systemctl start carryon-backup.service || true
+expect_eq "carryon-backup.service with another repository" exit-code "$(unit_result carryon-backup.service)"
+expect_eq "the run's result" failed "$(tail -n1 /var/lib/carryon/runs.jsonl | jq -r .result)"
+expect_file /run/motd.d/carryon.motd
+sed 's/^/    | /' /run/motd.d/carryon.motd
+grep -q '^Carryon: the last backup failed .*See: carryon status$' /run/motd.d/carryon.motd ||
+	fail "the login message names the failed backup" "Carryon: the last backup failed ..." "$(cat /run/motd.d/carryon.motd)"
+ok "the login message names the failed backup"
+rm -rf "$REPO"
+mv "$REPO.real" "$REPO"
+systemctl reset-failed carryon-backup.service
+systemctl start carryon-backup.service || true
+expect_eq "carryon-backup.service result" success "$(unit_result carryon-backup.service)"
+expect_no_file /run/motd.d/carryon.motd

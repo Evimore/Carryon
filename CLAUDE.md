@@ -18,7 +18,7 @@ Read these before changing anything:
   addresses or hardware IDs from a real machine. Use `alice`, `desktop`, `example.com`, `my-bucket`.
   CI runs a secret scanner.
 - **Never touch the real system from tests.** Use `t.TempDir()` and the `CARRYON_CONF_DIR`,
-  `CARRYON_STATE_DIR`, `CARRYON_CACHE_DIR`, `CARRYON_RUN_DIR` and `CARRYON_SHARE_DIR` overrides
+  `CARRYON_STATE_DIR`, `CARRYON_CACHE_DIR`, `CARRYON_RUN_DIR`, `CARRYON_SHARE_DIR` and `CARRYON_MOTD_DIR` overrides
   (`internal/paths`). Unit tests never need root, never run pacman, and only use restic repositories
   they created in a temp folder.
 - **Keep the record format compatible.** `internal/record` uses the prototype's JSON field names so

@@ -303,7 +303,7 @@ T25 login message ────────────────────�
 - **Done when:** a table test covers each answer above, including a default exclude taken back by
   `!` and an item moved by a `put` rule.
 
-### T25 Login message ⬜
+### T25 Login message ✅
 - **Packages:** `internal/state`, `internal/status`, `internal/config`.
 - **Scope:** the "no desktop" path in [design: interfaces](design.md#interfaces). When something
   needs attention, by the same rules as `carryon status`, one line goes in

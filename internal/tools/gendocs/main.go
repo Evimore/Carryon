@@ -129,11 +129,15 @@ restic's cache.
 .I /usr/share/carryon/
 Default excludes and the app catalog, shipped with the package.
 .TP
+.I /run/motd.d/carryon.motd
+One line shown at console and SSH logins while something needs attention. Turn it off with
+.BR "notify.login_message = false" .
+.TP
 .I ~/.config/carryon/config.toml
 A user's own excludes and notification settings for their home folder.
 .SH ENVIRONMENT
 .TP
-.BR CARRYON_CONF_DIR ", " CARRYON_STATE_DIR ", " CARRYON_CACHE_DIR ", " CARRYON_RUN_DIR ", " CARRYON_SHARE_DIR
+.BR CARRYON_CONF_DIR ", " CARRYON_STATE_DIR ", " CARRYON_CACHE_DIR ", " CARRYON_RUN_DIR ", " CARRYON_SHARE_DIR ", " CARRYON_MOTD_DIR
 Use another folder instead of the standard one, for testing.
 .SH EXIT STATUS
 0 on success, 1 on failure.

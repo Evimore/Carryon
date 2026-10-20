@@ -62,6 +62,7 @@ var layout = []section{
 	}},
 	{"notify", "How problems reach you.", []line{
 		{"desktop", "Show desktop notifications.", ""},
+		{"login_message", "Show a line at console and SSH logins while something needs attention.", ""},
 		{"ntfy_url", "Also send alerts to this ntfy topic.", `"https://ntfy.sh/my-topic"`},
 		{"webhook_url", "Also send alerts to this web address.", `"https://example.com/carryon-hook"`},
 	}},

@@ -79,9 +79,10 @@ type Detect struct {
 
 // Notify is how problems reach the user.
 type Notify struct {
-	Desktop    bool   `toml:"desktop"`
-	NtfyURL    string `toml:"ntfy_url"`
-	WebhookURL string `toml:"webhook_url"`
+	Desktop      bool   `toml:"desktop"`
+	LoginMessage bool   `toml:"login_message"` // a line at console and SSH logins while something needs attention
+	NtfyURL      string `toml:"ntfy_url"`
+	WebhookURL   string `toml:"webhook_url"`
 }
 
 // Pacman holds Arch-specific settings.
@@ -102,7 +103,7 @@ func Default() Config {
 		Retention: Retention{KeepWithin: "2d", KeepDaily: 7, KeepWeekly: 4, KeepMonthly: 6, PruneEveryDays: 7},
 		Verify:    Verify{Schedule: "weekly", MaxAgeHours: 48, ReadSubset: "2%"},
 		Detect:    Detect{NewPaths: "ask", LargePathGB: 5},
-		Notify:    Notify{Desktop: true},
+		Notify:    Notify{Desktop: true, LoginMessage: true},
 	}
 }
 

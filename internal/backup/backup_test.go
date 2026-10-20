@@ -121,6 +121,7 @@ func newEnv(t *testing.T) *testEnv {
 	dirs := paths.Dirs{
 		Conf: filepath.Join(tmp, "etc-carryon"), State: filepath.Join(tmp, "state"),
 		Cache: filepath.Join(tmp, "cache"), Run: filepath.Join(tmp, "run"), Share: filepath.Join(tmp, "share"),
+		Motd: filepath.Join(tmp, "motd.d"),
 	}
 	write(t, dirs.DefaultExcludes(), "*.tmp\n")
 	pw := filepath.Join(tmp, "password")

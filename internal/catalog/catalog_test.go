@@ -255,6 +255,47 @@ func TestEffectiveExcludes(t *testing.T) {
 	}
 }
 
+func TestExcludeList(t *testing.T) {
+	in := ExcludeInputs{
+		Defaults:  []string{"/home/*/.cache", "/home/*/.local/share/Trash"},
+		Skip:      []string{"/home/*/.local/share/Trash"},
+		Catalog:   []string{"/home/*/.cargo/registry", "/home/*/.cache"},
+		Automatic: []string{"/home/alice/Cloud [Drive]/"},
+		User:      []string{"node_modules", "!/home/bob/.cache"},
+		From: map[string]string{
+			"/home/*/.cargo/registry":    "the Rust entry of the app catalog (rust.toml)",
+			"/home/*/.cache":             "never used: the default comes first",
+			"/home/alice/Cloud [Drive]/": "an rclone mount inside a home folder",
+			"!/home/bob/.cache":          "bob's own settings",
+		},
+	}
+	want := []Exclude{
+		{"/home/*/.cache", FromDefaults, "the default excludes in /usr/share/carryon/excludes.default", false},
+		{"/home/*/.cargo/registry", FromCatalog, "the Rust entry of the app catalog (rust.toml)", false},
+		{`/home/alice/Cloud \[Drive]`, FromAutomatic, "an rclone mount inside a home folder", false},
+		{"node_modules", FromUser, "your excludes in excludes.txt", false},
+		{"!/home/bob/.cache", FromUser, "bob's own settings", false},
+	}
+	if got := in.List(false); !reflect.DeepEqual(got, want) {
+		t.Errorf("List(false):\n got %+v\nwant %+v", got, want)
+	}
+	withSkipped := in.List(true)
+	if len(withSkipped) != len(want)+1 || withSkipped[1] != (Exclude{"/home/*/.local/share/Trash", FromDefaults,
+		"the default excludes in /usr/share/carryon/excludes.default", true}) {
+		t.Errorf("List(true) = %+v", withSkipped)
+	}
+	got, err := EffectiveExcludes(filepath.Join(t.TempDir(), "excludes"), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, e := range want {
+		if got[i] != e.Pattern {
+			t.Errorf("EffectiveExcludes = %q, List = %+v", got, want)
+			break
+		}
+	}
+}
+
 func TestEffectiveExcludesErrors(t *testing.T) {
 	dst := filepath.Join(t.TempDir(), "excludes")
 	if _, err := EffectiveExcludes(dst, ExcludeInputs{Automatic: []string{"relative/mount"}}); err == nil {

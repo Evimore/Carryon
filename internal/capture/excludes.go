@@ -25,14 +25,29 @@ type ExcludeSources struct {
 // switched-off ones, mount points inside home folders and a local repository's own folder, then
 // excludes.txt and each user's own excludes. The warnings say what was ignored along the way.
 func BuildExcludes(dst string, in ExcludeSources) ([]string, []string, error) {
-	var warnings []string
-	defaults, err := config.ReadExcludes(in.Dirs.DefaultExcludes())
+	inputs, warnings, err := ExcludeInputs(in)
 	if err != nil {
 		return nil, nil, err
 	}
+	pats, err := catalog.EffectiveExcludes(dst, inputs)
+	return pats, warnings, err
+}
+
+// ExcludeInputs reads the parts of the effective exclude list, saying where each pattern comes
+// from. BuildExcludes puts them together; carryon why explains them.
+func ExcludeInputs(in ExcludeSources) (catalog.ExcludeInputs, []string, error) {
+	var warnings []string
+	defaults, err := config.ReadExcludes(in.Dirs.DefaultExcludes())
+	if err != nil {
+		return catalog.ExcludeInputs{}, nil, err
+	}
 	mine, err := config.ReadExcludes(in.Dirs.ExcludesFile())
 	if err != nil {
-		return nil, nil, err
+		return catalog.ExcludeInputs{}, nil, err
+	}
+	from := map[string]string{}
+	for _, p := range mine {
+		from[p] = "your excludes in " + in.Dirs.ExcludesFile()
 	}
 	var homes []string
 	for _, u := range in.Users {
@@ -43,25 +58,42 @@ func BuildExcludes(dst string, in ExcludeSources) ([]string, []string, error) {
 			warnings = append(warnings, fmt.Sprintf("%s's own settings were ignored: %v", u.Name, err))
 			continue
 		}
+		for _, p := range ucfg.Excludes {
+			if _, ok := from[p]; !ok {
+				from[p] = u.Name + "'s own settings in ~/.config/carryon/config.toml"
+			}
+		}
 		mine = append(mine, ucfg.Excludes...)
 	}
 	var auto []string
 	for _, m := range in.Mounts.Under(homes...) {
 		auto = append(auto, m.MountPoint)
+		what := "a mount point"
+		if m.FSType != "" {
+			what = "a " + m.FSType + " mount"
+		}
+		if m.Source != "" && m.Source != "none" {
+			what += " of " + m.Source
+		}
+		from[m.MountPoint] = what + " inside a home folder"
 	}
 	if url := in.Config.Repository.URL; strings.HasPrefix(url, "/") {
 		auto = append(auto, filepath.Clean(url))
+		from[filepath.Clean(url)] = "the backup's own folder (repository.url)"
 	}
 	var cat []string
 	if in.Catalog != nil {
 		cat = in.Catalog.Excludes()
+		for p, app := range in.Catalog.ExcludeOwners() {
+			from[p] = app
+		}
 	}
-	pats, err := catalog.EffectiveExcludes(dst, catalog.ExcludeInputs{
+	return catalog.ExcludeInputs{
 		Defaults:  defaults,
 		Skip:      in.Config.Backup.SkipDefaultExcludes,
 		Catalog:   cat,
 		Automatic: auto,
 		User:      mine,
-	})
-	return pats, warnings, err
+		From:      from,
+	}, warnings, nil
 }

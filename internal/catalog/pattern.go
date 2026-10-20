@@ -248,6 +248,69 @@ func (m *Matcher) ExcludedFrom(source, path string) bool {
 	return false
 }
 
+// Verdict says whether a backup leaves out a path, and which patterns decided it.
+type Verdict struct {
+	Excluded bool
+	Pattern  string // the pattern leaving it out
+	At       string // what that pattern matched: the path itself or a folder above it
+	// TakenBack is a "!" pattern matching the path that took back Over, an earlier pattern. When
+	// Excluded is still set, it couldn't help: a folder above the path is left out.
+	TakenBack, Over string
+}
+
+// Explain is ExcludedFrom, saying which patterns decide.
+func (m *Matcher) Explain(source, path string) Verdict {
+	src := splitPath(filepath.Clean(source))
+	comps := splitPath(filepath.Clean(path))
+	if src[len(src)-1] == "" { // source "/"
+		src = src[:1]
+	}
+	var v Verdict
+	if len(comps) <= len(src) {
+		return v
+	}
+	for i := len(src) + 1; i <= len(comps); i++ {
+		matched, by, back, over := m.decide(comps[:i])
+		if back != nil {
+			v.TakenBack, v.Over = back.text, over.text
+		}
+		if matched {
+			v.Excluded, v.Pattern, v.At = true, by.text, joinPath(comps[:i])
+			break
+		}
+	}
+	if v.Excluded {
+		if _, _, back, over := m.decide(comps); back != nil {
+			v.TakenBack, v.Over = back.text, over.text
+		}
+	}
+	return v
+}
+
+// decide is matchComps, returning the pattern that matched and the last "!" pattern that took
+// back an earlier one (over).
+func (m *Matcher) decide(comps []string) (matched bool, by, back, over *Pattern) {
+	for i := range m.pats {
+		p := &m.pats[i]
+		if p.negated {
+			if matched && p.match(comps) {
+				matched, back, over, by = false, p, by, nil
+			}
+		} else if !matched && p.match(comps) {
+			matched, by = true, p
+		}
+	}
+	return matched, by, back, over
+}
+
+// joinPath turns components back into a path.
+func joinPath(comps []string) string {
+	if comps[0] == "/" {
+		return "/" + strings.Join(comps[1:], "/")
+	}
+	return strings.Join(comps, "/")
+}
+
 // ParseExcludes reads an exclude file the way restic's --exclude-file does: lines are trimmed,
 // empty lines and lines starting with "#" are skipped, and environment variables are expanded with
 // getenv ("$$" is a literal "$"). getenv is usually os.Getenv.

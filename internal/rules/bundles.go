@@ -28,6 +28,12 @@ type BundleRules struct {
 type Put struct {
 	Bundle string
 	Match  ItemMatch
+	Line   int // where it is in bundles.conf; 0 when unknown
+}
+
+// String is the rule as a line of bundles.conf.
+func (p Put) String() string {
+	return "put " + p.Bundle + " " + p.Match.Type + " " + p.Match.Glob.String()
 }
 
 // Drop keeps matching items out of the record.
@@ -73,7 +79,7 @@ func ParseBundleRules(r io.Reader, name string) (rules BundleRules, problems []s
 				problems = append(problems, fmt.Sprintf("%s:%d: %v", name, n, e))
 			}
 		case f[0] == "put" && len(f) == 4:
-			rules.Puts = append(rules.Puts, Put{Bundle: f[1], Match: ItemMatch{Type: f[2], Glob: CompileGlob(f[3])}})
+			rules.Puts = append(rules.Puts, Put{Bundle: f[1], Match: ItemMatch{Type: f[2], Glob: CompileGlob(f[3])}, Line: n})
 		case f[0] == "drop" && len(f) == 3:
 			rules.Drops = append(rules.Drops, Drop{Match: ItemMatch{Type: f[1], Glob: CompileGlob(f[2])}})
 		default:

@@ -165,6 +165,9 @@ func TestMatcherAgreesWithRestic(t *testing.T) {
 				if !m.ExcludedFrom(root, p) {
 					kept = append(kept, p)
 				}
+				if m.Explain(root, p).Excluded != m.ExcludedFrom(root, p) {
+					t.Errorf("Explain and ExcludedFrom disagree on %s", p)
+				}
 			}
 			if strings.Join(kept, "\n") != strings.Join(saved, "\n") {
 				t.Errorf("patterns %q:\nrestic saves:\n  %s\nthe matcher keeps:\n  %s", c.pats,

@@ -256,6 +256,24 @@ func (c *Catalog) Excludes() []string {
 	return out
 }
 
+// ExcludeOwners maps each exclude pattern to the app it comes from, for people: "the Steam entry
+// of the app catalog". The first app listing a pattern wins, as in Excludes.
+func (c *Catalog) ExcludeOwners() map[string]string {
+	out := map[string]string{}
+	for _, a := range c.Apps {
+		name := a.Name
+		if name == "" {
+			name = a.ID
+		}
+		for _, s := range a.allExcludes() {
+			if _, ok := out[s]; !ok {
+				out[s] = "the app catalog's entry for " + name + " (" + a.ID + ".toml)"
+			}
+		}
+	}
+	return out
+}
+
 func (a *App) allExcludes() []string {
 	out := append([]string(nil), a.Excludes...)
 	for _, h := range a.Redownload {

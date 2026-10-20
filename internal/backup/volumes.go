@@ -58,10 +58,10 @@ func isSubvolume(t dest.MountTable, m dest.Mount) bool {
 	return ok && parent.FSType == "btrfs" && parent.Source == m.Source
 }
 
-// withoutSubvolumes is the mount table without nested btrfs subvolumes of the same filesystem, for
+// WithoutSubvolumes is the mount table without nested btrfs subvolumes of the same filesystem, for
 // the exclude list and capture: mounts in home folders are left out, but these are part of the
 // home.
-func withoutSubvolumes(t dest.MountTable) dest.MountTable {
+func WithoutSubvolumes(t dest.MountTable) dest.MountTable {
 	if t == nil {
 		return nil
 	}
@@ -137,6 +137,72 @@ func (s volumeScan) scan(targets []string) (add []string, left []LeftOut) {
 		}
 	}
 	return add, left
+}
+
+// Crossing says how a backup of target treats the filesystems on the way down to p, a system path
+// inside it: Subvolume is the deepest nested btrfs subvolume holding p that is backed up as a
+// folder of its own, and LeftOut, when set, is the filesystem holding p that isn't backed up.
+// It doesn't look at the exclude list.
+type Crossing struct {
+	Subvolume string
+	LeftOut   *LeftOut
+}
+
+// CrossingTo works out the Crossing for p inside target, on the machine sys with its mount table.
+func CrossingTo(sys System, mounts dest.MountTable, target, p string) Crossing {
+	return volumeScan{sys: sys, mounts: mounts, devOf: deviceOf}.crossing(target, p)
+}
+
+// crossing follows the folders from target down to p, the way scan does for the whole target.
+func (s volumeScan) crossing(target, p string) Crossing {
+	var c Crossing
+	target, p = filepath.Clean(target), filepath.Clean(p)
+	if !underAny(p, []string{target}) {
+		return c
+	}
+	mountAt := map[string]dest.Mount{}
+	for _, m := range s.mounts {
+		mountAt[m.MountPoint] = m // a later mount hides an earlier one
+	}
+	rel, _ := filepath.Rel(target, p)
+	cur := target
+	for _, name := range strings.Split(rel, "/") {
+		if name == "." {
+			break
+		}
+		parent := cur
+		cur = filepath.Join(cur, name)
+		if m, ok := mountAt[cur]; ok {
+			switch {
+			case isSubvolume(s.mounts, m) && snapshotDirs[name]:
+				c.LeftOut = &LeftOut{Path: cur, FSType: m.FSType, Why: "it holds snapshots of other subvolumes"}
+				return c
+			case isSubvolume(s.mounts, m):
+				c.Subvolume = cur
+			default:
+				c.LeftOut = &LeftOut{Path: cur, FSType: m.FSType, Source: m.Source, Why: whyNotCrossed}
+				return c
+			}
+			continue
+		}
+		// Subvolumes that aren't mounts only show as a change of device number. Only btrfs has them.
+		if m, ok := s.mounts.Containing(cur); !ok || m.FSType != "btrfs" {
+			continue
+		}
+		dev, err := s.devOf(s.sys.real(cur))
+		if err != nil {
+			break // it doesn't exist (yet)
+		}
+		if parentDev, err := s.devOf(s.sys.real(parent)); err != nil || parentDev == dev {
+			continue
+		}
+		if snapshotDirs[name] {
+			c.LeftOut = &LeftOut{Path: cur, FSType: "btrfs", Why: "it holds snapshots of other subvolumes"}
+			return c
+		}
+		c.Subvolume = cur
+	}
+	return c
 }
 
 // walk finds unmounted subvolumes under the system path t.

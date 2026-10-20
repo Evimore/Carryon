@@ -182,7 +182,7 @@ func prepare(opt CaptureOptions, excludeFile string, out *Captured) (*inputs, er
 	}
 	// Nested btrfs subvolumes are part of the backup, so they aren't excluded as mounts.
 	excludes, ws, err := capture.BuildExcludes(excludeFile, capture.ExcludeSources{
-		Dirs: opt.Dirs, Config: opt.Config, Catalog: in.catalog, Users: in.users, Mounts: withoutSubvolumes(out.Mounts),
+		Dirs: opt.Dirs, Config: opt.Config, Catalog: in.catalog, Users: in.users, Mounts: WithoutSubvolumes(out.Mounts),
 	})
 	if err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func captureWith(ctx context.Context, opt CaptureOptions, in *inputs, out *Captu
 		Users:       in.users,
 		Excludes:    in.excludes,
 		BundleRules: in.rules,
-		Mounts:      withoutSubvolumes(out.Mounts),
+		Mounts:      WithoutSubvolumes(out.Mounts),
 		Nightly:     opt.Nightly,
 		Hints:       hints,
 		IsRoot:      sys.IsRoot,

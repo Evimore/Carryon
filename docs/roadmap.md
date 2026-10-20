@@ -282,7 +282,7 @@ T25 login message ────────────────────�
   applies only that bundle, the unit refuses a plan that changed since the offer, and the hook still
   never fails or blocks pacman.
 
-### T24 `carryon why` ⬜
+### T24 `carryon why` ✅
 - **Packages:** `internal/bundle`, a new `internal/why`, `internal/cli`.
 - **Scope:** `carryon why PATH` says in plain words whether and how a path is backed up:
   - in which backed-up folder (`/etc`, `/root`, `/srv`, `backup.extra_paths`, a user's home);
@@ -302,6 +302,10 @@ T25 login message ────────────────────�
 - **Legacy:** none; it reuses `excluded` and the bundle rules already ported.
 - **Done when:** a table test covers each answer above, including a default exclude taken back by
   `!` and an item moved by a `put` rule.
+- **Done:** every answer above. It also names a
+  folder marked as a cache (`CACHEDIR.TAG`, which `--exclude-caches` leaves out), a nested btrfs
+  subvolume, a user `backup.users` leaves out, and an item that today's `bundles.conf` would group
+  differently (the next capture moves it).
 
 ### T25 Login message ✅
 - **Packages:** `internal/state`, `internal/status`, `internal/config`.

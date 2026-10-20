@@ -75,6 +75,30 @@ func TestNestedSubvolumesAndMounts(t *testing.T) {
 			t.Errorf("message = %q", l)
 		}
 	}
+
+	// One path at a time, as carryon why asks.
+	for _, c := range []struct {
+		target, path, subvolume, leftOut string
+	}{
+		{"/home/alice", "/home/alice/notes.txt", "", ""},
+		{"/home/alice", "/home/alice", "", ""},
+		{"/home/alice", "/home/alice/projects/data/x.csv", "/home/alice/projects/data", ""},
+		{"/home/alice", "/home/alice/vm/disk.img", "/home/alice/vm", ""},
+		{"/home/alice", "/home/alice/.snapshots/1/x", "", "/home/alice/.snapshots"},
+		{"/home/alice", "/home/alice/nas/share/film.mkv", "", "/home/alice/nas"},
+		{"/home/alice", "/home/alice/usb", "", "/home/alice/usb"},
+		{"/home/alice", "/home/alice/not/there/yet", "", ""},
+		{"/srv", "/home/alice/usb", "", ""}, // not inside the target
+	} {
+		got := s.crossing(c.target, c.path)
+		left := ""
+		if got.LeftOut != nil {
+			left = got.LeftOut.Path
+		}
+		if got.Subvolume != c.subvolume || left != c.leftOut {
+			t.Errorf("crossing(%s, %s) = %q, %q; want %q, %q", c.target, c.path, got.Subvolume, left, c.subvolume, c.leftOut)
+		}
+	}
 }
 
 func TestWithoutSubvolumes(t *testing.T) {
@@ -85,7 +109,7 @@ func TestWithoutSubvolumes(t *testing.T) {
 		{ID: 4, MountPoint: "/home/alice/cloud", FSType: "fuse.rclone", Source: "drive:"},
 	}
 	var got []string
-	for _, m := range withoutSubvolumes(mounts) {
+	for _, m := range WithoutSubvolumes(mounts) {
 		got = append(got, m.MountPoint)
 	}
 	if want := []string{"/", "/home/alice/other", "/home/alice/cloud"}; !slices.Equal(got, want) {
@@ -109,6 +133,15 @@ func TestTargets(t *testing.T) {
 	want := []string{"/etc", "/home/alice", "/opt/x", "/root", "/var/lib/bluetooth"}
 	if !slices.Equal(got, want) {
 		t.Errorf("targets = %q, want %q", got, want)
+	}
+	cfg.Backup.ExtraPaths = append(cfg.Backup.ExtraPaths, "/root")
+	var kinds []string
+	for _, tg := range Targets(System{Root: root}, cfg, items, usersOf("alice")) {
+		kinds = append(kinds, tg.Path+" "+tg.Kind+" "+tg.User)
+	}
+	wantKinds := []string{"/etc system ", "/home/alice home alice", "/opt/x extra_paths ", "/root system ", "/var/lib/bluetooth record "}
+	if !slices.Equal(kinds, wantKinds) {
+		t.Errorf("Targets = %q, want %q", kinds, wantKinds)
 	}
 }
 

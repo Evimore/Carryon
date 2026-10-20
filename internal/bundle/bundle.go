@@ -81,6 +81,13 @@ type Input struct {
 // Assign groups the items. It returns the items the user's drop rules keep, each with its bundle
 // set, and the bundles in restore order. in.Items isn't changed.
 func Assign(ctx context.Context, in Input) ([]record.Item, record.Bundles) {
+	items, bundles, _ := Explain(ctx, in)
+	return items, bundles
+}
+
+// Explain groups the items like Assign and also says why each item went to its bundle:
+// reasons[i] is the reason for items[i].
+func Explain(ctx context.Context, in Input) (items []record.Item, bundles record.Bundles, reasons []Reason) {
 	g := &grouper{ctx: ctx, in: in, m: in.Machine, titles: map[string]string{}, whens: map[string]string{}}
 	if g.m == nil {
 		g.m = noMachine{}
@@ -92,6 +99,7 @@ func Assign(ctx context.Context, in Input) ([]record.Item, record.Bundles) {
 		it.Bundle = ""
 		g.items = append(g.items, it)
 	}
+	g.reasons = make([]Reason, len(g.items))
 	g.diskLayout()
 	g.userRules()
 	g.appStems()
@@ -105,16 +113,23 @@ func Assign(ctx context.Context, in Input) ([]record.Item, record.Bundles) {
 	g.unitNeeds()
 	g.appDevices()
 	g.titles["identity"] = fmt.Sprintf("Machine identity: hostname %s, SSH host keys, Tailscale node", in.Host)
-	return g.items, g.bundles()
+	return g.items, g.bundles(), g.reasons
 }
 
 type grouper struct {
-	ctx    context.Context
-	in     Input
-	m      Machine
-	items  []record.Item
-	titles map[string]string // titles found while grouping
-	whens  map[string]string // when-rules found while grouping
+	ctx     context.Context
+	in      Input
+	m       Machine
+	items   []record.Item
+	reasons []Reason          // why each item went to its bundle
+	titles  map[string]string // titles found while grouping
+	whens   map[string]string // when-rules found while grouping
+}
+
+// put puts item i into bundle b, for a reason.
+func (g *grouper) put(i int, b, step, text string) {
+	g.items[i].Bundle = b
+	g.reasons[i] = Reason{Step: step, Text: text}
 }
 
 func dropped(it record.Item, drops []rules.Drop) bool {
@@ -135,7 +150,8 @@ func (g *grouper) free(i int) bool { return g.items[i].Bundle == "" }
 func (g *grouper) diskLayout() {
 	for i, it := range g.items {
 		if it.Type == record.TypeFile && record.ReviewOnly(it.ID) {
-			g.items[i].Bundle = "disk-layout"
+			g.put(i, "disk-layout", StepDiskLayout, "it holds disk IDs, so it always goes with the disk layout, "+
+				"which a restore shows as a diff and never copies")
 		}
 	}
 }
@@ -148,7 +164,11 @@ func (g *grouper) userRules() {
 		}
 		for _, p := range g.in.Rules.Puts {
 			if p.Match.Matches(it) {
-				g.items[i].Bundle = p.Bundle
+				where := "bundles.conf"
+				if p.Line > 0 {
+					where = fmt.Sprintf("line %d of bundles.conf", p.Line)
+				}
+				g.put(i, p.Bundle, StepPut, fmt.Sprintf("%s puts it there (%s)", where, p))
 				break
 			}
 		}
@@ -160,15 +180,28 @@ func (g *grouper) userRules() {
 func (g *grouper) appStems() {
 	anchors := map[string]bool{}
 	stems := map[string]bool{}
+	named := map[string]string{} // stem -> what it's named after, for people
+	name := func(s, what string) {
+		if named[s] == "" || what < named[s] {
+			named[s] = what
+		}
+	}
 	for _, it := range g.items {
+		s := stemOf(it.ID)
 		switch {
 		case it.Type == record.TypeSvc && it.Pkg == "",
 			it.Type == record.TypeRepo,
 			it.Type == record.TypeUunit && !strings.Contains(it.ID, "/"):
-			anchors[stemOf(it.ID)] = true
-			stems[stemOf(it.ID)] = true
+			anchors[s] = true
+			stems[s] = true
+			name(s, anchorName(it))
 		case it.Type == record.TypeAUR:
-			stems[stemOf(it.ID)] = true
+			stems[s] = true
+		}
+	}
+	for _, it := range g.items {
+		if s := stemOf(it.ID); it.Type == record.TypeAUR && !anchors[s] {
+			name(s, "the AUR package "+it.ID)
 		}
 	}
 	for s := range stems {
@@ -186,7 +219,9 @@ func (g *grouper) appStems() {
 				best = s
 			}
 		}
-		g.items[i].Bundle = best
+		if best != "" {
+			g.put(i, best, StepAppName, fmt.Sprintf("its name matches %q, like %s", best, named[best]))
+		}
 	}
 	counts := map[string]int{}
 	for _, it := range g.items {
@@ -194,9 +229,20 @@ func (g *grouper) appStems() {
 	}
 	for i, it := range g.items {
 		if stems[it.Bundle] && !anchors[it.Bundle] && counts[it.Bundle] < 2 {
-			g.items[i].Bundle = ""
+			g.put(i, "", "", "")
 		}
 	}
+}
+
+// anchorName says what an app bundle is named after, for people.
+func anchorName(it record.Item) string {
+	switch it.Type {
+	case record.TypeRepo:
+		return "the extra repository [" + it.ID + "]"
+	case record.TypeUunit:
+		return "the user unit " + it.ID + " you made"
+	}
+	return "the unit " + it.ID + " you made"
 }
 
 // PAM files using the fingerprint reader (sudo, polkit...) go with the reader.
@@ -210,7 +256,7 @@ func (g *grouper) pamFingerprint() {
 		}
 		b, err := os.ReadFile(filepath.Join(g.in.RecordDir, "files", strings.TrimPrefix(it.ID, "/")))
 		if err == nil && strings.Contains(string(b), "pam_fprintd") {
-			g.items[i].Bundle = "fingerprint"
+			g.put(i, "fingerprint", StepFingerprint, "it's a login setting that uses the fingerprint reader")
 		}
 	}
 }
@@ -223,7 +269,7 @@ func (g *grouper) wellKnown() {
 		}
 		for _, r := range wellKnownRules {
 			if r.matches(it) {
-				g.items[i].Bundle = r.bundle
+				g.put(i, r.bundle, StepWellKnown, "it's one of the well-known places that go there")
 				break
 			}
 		}
@@ -278,8 +324,16 @@ func (g *grouper) editedConfigs() {
 			continue
 		}
 		b := "cfg-" + pkg
-		for _, i := range append(its, extra...) {
-			g.items[i].Bundle = b
+		for _, i := range its {
+			g.put(i, b, StepEditedConfigs, "it's an edited setting of the package "+pkg+
+				", and a package's edited settings go together with its service")
+		}
+		for _, i := range extra {
+			text := "it's named after the package " + pkg + ", whose edited settings go together"
+			if g.items[i].Type == record.TypeSvc {
+				text = "it's the service of the package " + pkg + ", whose edited settings go together"
+			}
+			g.put(i, b, StepEditedConfigs, text)
 		}
 		g.titles[b] = pkg + " settings"
 		if service {
@@ -322,13 +376,14 @@ func (g *grouper) explicit() (byKey, byName map[string]int) {
 	return byKey, byName
 }
 
-// joinApp puts item i into the app bundle of package p, making it if needed.
-func (g *grouper) joinApp(i, p int, title string) {
+// joinApp puts item i into the app bundle of package p, making it if needed. step and text say why
+// item i joins; pkgText says why the package does, when it starts the bundle.
+func (g *grouper) joinApp(i, p int, title, step, text, pkgText string) {
 	if g.free(p) {
-		g.items[p].Bundle = "app-" + g.items[p].ID
+		g.put(p, "app-"+g.items[p].ID, step, pkgText)
 		g.titles[g.items[p].Bundle] = title
 	}
-	g.items[i].Bundle = g.items[p].Bundle
+	g.put(i, g.items[p].Bundle, step, text)
 }
 
 // 4b. Apps: a settings folder named like an installed package (~/.config/OpenRGB <-> openrgb) forms
@@ -361,10 +416,14 @@ func (g *grouper) settingsFolders() {
 				continue
 			}
 			title := path.Base(rel) + " (app + settings)"
+			step, text := StepSettingsFolder, "the settings folder is named like the installed package "+g.items[p].ID
+			pkgText := "the settings folder " + it.HomePath() + " is named like it, so they go together"
 			if autostart {
 				title = g.items[p].ID + " (app + autostart)"
+				step, text = StepAutostart, "the autostart entry starts the installed package "+g.items[p].ID
+				pkgText = "the autostart entry " + it.HomePath() + " starts it, so they go together"
 			}
-			g.joinApp(i, p, title)
+			g.joinApp(i, p, title, step, text, pkgText)
 		}
 	}
 }
@@ -377,7 +436,9 @@ func (g *grouper) extraFolders() {
 			continue
 		}
 		if p, ok := byKey[appKey(path.Base(it.ID))]; ok {
-			g.joinApp(i, p, path.Base(it.ID)+" (app + data)")
+			g.joinApp(i, p, path.Base(it.ID)+" (app + data)", StepExtraFolder,
+				"the added folder is named like the installed package "+g.items[p].ID,
+				"the added folder "+it.ID+" is named like it, so they go together")
 		}
 	}
 }
@@ -401,7 +462,7 @@ func (g *grouper) hardware() {
 			}
 			if (k == "pci-stub.ids" || k == "vfio-pci.ids" || k == "vfio_pci.ids") && v != "" {
 				b := "kparam-" + k
-				g.items[i].Bundle = b
+				g.put(i, b, StepHardware, "it hides devices from their drivers, so it goes with those devices")
 				var ids []string
 				for _, x := range strings.Split(v, ",") {
 					ids = append(ids, "pci:"+strings.ToLower(x))
@@ -410,7 +471,7 @@ func (g *grouper) hardware() {
 				g.titles[b] = fmt.Sprintf("Kernel param %s (hides %s)", it.ID, g.m.DeviceName(g.ctx, ids[0]))
 			} else if mod != "" && g.m.ModuleExists(g.ctx, mod) {
 				b := "kparam-" + mod
-				g.items[i].Bundle = b
+				g.put(i, b, StepHardware, "it's a setting of the "+mod+" driver, so it goes where that driver is used")
 				g.whens[b] = "hw:module:" + strings.ReplaceAll(mod, "-", "_")
 				g.titles[b] = "Kernel params for the " + mod + " driver"
 			}
@@ -420,7 +481,7 @@ func (g *grouper) hardware() {
 			if d == "" { // a file right in the firmware folder
 				b = "firmware-files"
 			}
-			g.items[i].Bundle = b
+			g.put(i, b, StepHardware, "it's a firmware file, so it goes with the devices that load it")
 			if fw[b] == nil {
 				fwBundles = append(fwBundles, b)
 			}
@@ -503,23 +564,23 @@ func (g *grouper) fallbacks() {
 		if !g.free(i) || it.ForUnit != "" {
 			continue
 		}
+		b := fallbackOf(it.Type)
 		switch it.Type {
 		case record.TypeFile:
 			// edited package files didn't exist in the prototype; they're tweaks of a package too
 			if it.Kind == record.KindModified || it.Kind == record.KindEdited {
-				g.items[i].Bundle = "configs"
+				b = "configs"
 			} else {
-				g.items[i].Bundle = "other-files"
+				b = "other-files"
 			}
 		case record.TypePath:
 			if it.Home != "" {
-				g.items[i].Bundle = "home-apps"
+				b = "home-apps"
 			} else {
-				g.items[i].Bundle = "other-paths"
+				b = "other-paths"
 			}
-		default:
-			g.items[i].Bundle = fallbackOf(it.Type)
 		}
+		g.put(i, b, StepFallback, "no other rule matched, so it goes with the other items of its kind")
 	}
 }
 
@@ -544,9 +605,11 @@ func (g *grouper) unitNeeds() {
 			b, ok = byID[it.ForUnit]
 		}
 		if !ok {
-			b = fallbackOf(it.Type)
+			g.put(i, fallbackOf(it.Type), StepFallback, "the unit "+it.ForUnit+" needs it, but that unit isn't in the record, "+
+				"so it goes with the other items of its kind")
+			continue
 		}
-		g.items[i].Bundle = b
+		g.put(i, b, StepUnitNeeds, "the unit "+it.ForUnit+" needs it, so it goes wherever that unit goes")
 	}
 }
 

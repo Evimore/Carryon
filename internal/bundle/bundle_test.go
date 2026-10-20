@@ -692,3 +692,48 @@ func TestBuiltinsAreOrdered(t *testing.T) {
 		}
 	}
 }
+
+func TestExplain(t *testing.T) {
+	in := desktopInput(t, nil)
+	wantItems, wantBundles := Assign(context.Background(), in)
+	items, bundles, reasons := Explain(context.Background(), in)
+	if !reflect.DeepEqual(items, wantItems) || !reflect.DeepEqual(bundles, wantBundles) {
+		t.Fatal("Explain groups differently from Assign")
+	}
+	if len(reasons) != len(items) {
+		t.Fatalf("%d reasons for %d items", len(reasons), len(items))
+	}
+	got := map[string]Reason{}
+	for i, it := range items {
+		if reasons[i].Step == "" || reasons[i].Text == "" {
+			t.Errorf("%s in %s has no reason: %+v", it.Key(), it.Bundle, reasons[i])
+		}
+		got[it.Key()+"/"+it.User] = reasons[i]
+	}
+	for _, tc := range []struct {
+		key, step, text string
+	}{
+		{"path:/home/alice/.local/share/Steam/alice", StepPut, "line 4 of bundles.conf puts it there (put games path ~/.local/share/Steam)"},
+		{"pkg:steam/", StepPut, "line 5 of bundles.conf puts it there (put games pkg steam)"},
+		{"file:/etc/fstab/", StepDiskLayout, "it holds disk IDs"},
+		{"aur:brave-bin/", StepAppName, `its name matches "brave", like the AUR package brave`},
+		{"mkdir:/var/log/rclone/", StepUnitNeeds, "the unit rclone-backup.service needs it"},
+		{"file:/etc/pam.d/sudo/", StepFingerprint, "fingerprint reader"},
+		{"file:/etc/locale.conf/", StepWellKnown, "one of the well-known places"},
+		{"file:/etc/ssh/sshd_config/", StepEditedConfigs, "an edited setting of the package openssh"},
+		{"svc:sshd.service/", StepEditedConfigs, "the service of the package openssh"},
+		{"path:/home/alice/.config/htop/alice", StepSettingsFolder, "named like the installed package htop"},
+		{"pkg:chatterbox/", StepAutostart, "~/.config/autostart/org.chatter.Desktop.desktop starts it"},
+		{"file:/usr/lib/firmware/acmebt/bt-fw.bin.xz/", StepHardware, "firmware file"},
+		{"aur:paru-bin/", StepFallback, "no other rule matched"},
+	} {
+		r, ok := got[tc.key]
+		if !ok {
+			t.Errorf("%s isn't in the items", tc.key)
+			continue
+		}
+		if r.Step != tc.step || !strings.Contains(r.Text, tc.text) {
+			t.Errorf("%s: reason %+v, want step %s with %q", tc.key, r, tc.step, tc.text)
+		}
+	}
+}

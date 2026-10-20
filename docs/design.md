@@ -594,6 +594,16 @@ login_message = true                 # a line at console and SSH logins while so
 
 Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-shim`.
 
+- **`carryon why PATH`** (**New**) reads the same settings a backup does and answers from them: the
+  backed-up folder holding the path, the first thing that leaves it out on the way down from that
+  folder (an exclude pattern and where it comes from, a `CACHEDIR.TAG` folder, or another
+  filesystem), a `!` pattern taking it back, the nested subvolume it's on, and how a package file
+  you haven't changed or data that downloads itself comes back, and a folder in `detect.ignore` or
+  waiting in the inbox. As root it also reads the record:
+  the items holding the path, their bundle and when-rule, whether that starts ticked here, and the
+  grouping step that put each item there. The record doesn't store the step: `why` groups the
+  record's items again with today's `bundles.conf`, and says so when that would move an item.
+
 - `--json` on read commands, so scripts, status bars and agents can use them.
 - **Terminal UI** (Bubble Tea) for `init`, the restore checklist and the inbox. Every prompt has a
   flag, so everything also works without a terminal.

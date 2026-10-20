@@ -15,12 +15,39 @@ import (
 // in /etc/carryon, so they travel to a new machine), root's home and /srv.
 var SystemPaths = []string{"/etc", "/root", "/srv"}
 
-// targets lists the system paths a backup covers, in a stable order, without any that lie inside
-// another: SystemPaths, the record's backed-up paths, backup.extra_paths and the users' homes.
-// Paths that don't exist under the system root are left out.
+// Target is a folder a backup covers, and why.
+type Target struct {
+	Path string `json:"path"`           // a system path
+	Kind string `json:"from"`           // one of the Target* constants
+	User string `json:"user,omitempty"` // TargetHome: whose home it is
+}
+
+// Why a folder is in the backup.
+const (
+	TargetSystem = "system"      // one of SystemPaths
+	TargetRecord = "record"      // a path item of the record
+	TargetExtra  = "extra_paths" // backup.extra_paths
+	TargetHome   = "home"        // an included user's home
+)
+
+// targets lists the system paths a backup covers; see Targets.
 func targets(sys System, cfg config.Config, items []record.Item, users []capture.User) []string {
-	var cand []string
-	cand = append(cand, SystemPaths...)
+	var out []string
+	for _, t := range Targets(sys, cfg, items, users) {
+		out = append(out, t.Path)
+	}
+	return out
+}
+
+// Targets lists the folders a backup covers, sorted, without any that lie inside another:
+// SystemPaths, the record's backed-up paths, backup.extra_paths and the users' homes. A folder
+// listed for several reasons keeps the first. Paths that don't exist under the system root are
+// left out.
+func Targets(sys System, cfg config.Config, items []record.Item, users []capture.User) []Target {
+	var cand []Target
+	for _, p := range SystemPaths {
+		cand = append(cand, Target{Path: p, Kind: TargetSystem})
+	}
 	for _, it := range items {
 		if it.Type != record.TypePath || !filepath.IsAbs(it.ID) {
 			continue
@@ -28,44 +55,48 @@ func targets(sys System, cfg config.Config, items []record.Item, users []capture
 		if strings.ContainsAny(it.ID, "*?[") {
 			matches, _ := filepath.Glob(sys.real(it.ID))
 			for _, m := range matches {
-				cand = append(cand, systemPath(sys.root(), m))
+				cand = append(cand, Target{Path: systemPath(sys.root(), m), Kind: TargetRecord})
 			}
 			continue
 		}
-		cand = append(cand, it.ID)
+		cand = append(cand, Target{Path: it.ID, Kind: TargetRecord})
 	}
-	cand = append(cand, cfg.Backup.ExtraPaths...)
+	for _, p := range cfg.Backup.ExtraPaths {
+		cand = append(cand, Target{Path: p, Kind: TargetExtra})
+	}
 	for _, u := range users {
-		cand = append(cand, u.Home)
+		cand = append(cand, Target{Path: u.Home, Kind: TargetHome, User: u.Name})
 	}
 
-	var keep []string
+	var keep []Target
 	seen := map[string]bool{}
-	for _, p := range cand {
-		if !filepath.IsAbs(p) {
+	for _, t := range cand {
+		if !filepath.IsAbs(t.Path) {
 			continue
 		}
-		p = filepath.Clean(p)
-		if seen[p] || p == "/" {
+		t.Path = filepath.Clean(t.Path)
+		if seen[t.Path] || t.Path == "/" {
 			continue
 		}
-		seen[p] = true
-		if _, err := os.Lstat(sys.real(p)); err != nil {
+		seen[t.Path] = true
+		if _, err := os.Lstat(sys.real(t.Path)); err != nil {
 			continue
 		}
-		keep = append(keep, p)
+		keep = append(keep, t)
 	}
 	return outermost(keep)
 }
 
-// outermost drops paths inside another path of the list, and sorts the rest.
-func outermost(ps []string) []string {
-	sorted := append([]string(nil), ps...)
-	sort.Strings(sorted)
-	var out []string
-	for _, p := range sorted {
-		if !underAny(p, out) {
-			out = append(out, p)
+// outermost drops targets inside another target of the list, and sorts the rest.
+func outermost(ts []Target) []Target {
+	sorted := append([]Target(nil), ts...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Path < sorted[j].Path })
+	var out []Target
+	var dirs []string
+	for _, t := range sorted {
+		if !underAny(t.Path, dirs) {
+			out = append(out, t)
+			dirs = append(dirs, t.Path)
 		}
 	}
 	return out

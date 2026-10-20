@@ -150,9 +150,42 @@ func TestExcludedLooksAtFoldersAbove(t *testing.T) {
 		if got := m.ExcludedFrom(c.source, c.path); got != c.want {
 			t.Errorf("ExcludedFrom(%q, %q) = %v, want %v", c.source, c.path, got, c.want)
 		}
+		if got := m.Explain(c.source, c.path).Excluded; got != c.want {
+			t.Errorf("Explain(%q, %q).Excluded = %v, want %v", c.source, c.path, got, c.want)
+		}
 	}
 	if !m.Excluded("/home/alice/Documents/keep") {
 		t.Error("Excluded should look at the folders above")
+	}
+}
+
+func TestExplain(t *testing.T) {
+	cases := []struct {
+		name string
+		pats []string
+		path string
+		want Verdict
+	}{
+		{"not matched", []string{"/tmp"}, "/home/alice/notes.txt", Verdict{}},
+		{"the path itself", []string{"/tmp", "*.iso"}, "/home/alice/disk.iso",
+			Verdict{Excluded: true, Pattern: "*.iso", At: "/home/alice/disk.iso"}},
+		{"a folder above", []string{"/home/*/.cache"}, "/home/alice/.cache/thumbnails/x.png",
+			Verdict{Excluded: true, Pattern: "/home/*/.cache", At: "/home/alice/.cache"}},
+		{"taken back", []string{"/home/*/.cache", "!/home/alice/.cache"}, "/home/alice/.cache/x",
+			Verdict{TakenBack: "!/home/alice/.cache", Over: "/home/*/.cache"}},
+		{"taken back, then out again", []string{"/docs/*", "!/docs/keep", "/docs/keep"}, "/docs/keep",
+			Verdict{Excluded: true, Pattern: "/docs/keep", At: "/docs/keep", TakenBack: "!/docs/keep", Over: "/docs/*"}},
+		{"taken back too late", []string{"/docs", "!/docs/keep"}, "/docs/keep/file",
+			Verdict{Excluded: true, Pattern: "/docs", At: "/docs", TakenBack: "!/docs/keep", Over: "/docs"}},
+	}
+	for _, c := range cases {
+		m, err := NewMatcher(c.pats)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := m.Explain("/", c.path); got != c.want {
+			t.Errorf("%s: Explain(%q) = %+v, want %+v", c.name, c.path, got, c.want)
+		}
 	}
 }
 

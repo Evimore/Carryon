@@ -22,8 +22,9 @@ reinstalling packages, re-enabling services, copying config files and rememberin
 - **Your storage, encrypted:** backups go to a [restic](https://restic.net) repository on a USB disk,
   a NAS, SFTP, S3, B2 or anything rclone can reach. Your data stays readable with plain restic.
 
-> **Status: early development.** Carryon is being rewritten in Go from a working prototype. Nothing is
-> usable yet. See the [roadmap](docs/roadmap.md) for what's done and what's next.
+> **Status: early development.** Carryon is being rewritten in Go from a working prototype. It now
+> does everything the prototype did, and CI backs up and restores whole Arch machines with it, but
+> there is no release yet. See the [roadmap](docs/roadmap.md) for what's done and what's next.
 
 ## What you'll need
 

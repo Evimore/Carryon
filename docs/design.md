@@ -459,6 +459,9 @@ bundle has settings, files or services in the backup:
   `carryon-restore@<bundle>.service` through polkit, which applies only that bundle's non-package
   items, after warning if the app is running.
 
+The offer is also an inbox entry, so `carryon inbox` lists it and the agent learns of it the same
+way as any other suggestion. A bundle that was restored or ignored isn't offered again.
+
 `carryon restore --bundle ID` does the same by hand, with the same plan, confirmation and safety
 rails, packages included. It leaves the restoring flag alone.
 
@@ -741,6 +744,18 @@ the recovery kit counts as saved.
 - The tray library: a small StatusNotifierItem implementation over godbus keeps the binary free of
   cgo; `fyne.io/systray` needs cgo.
 - The exact btrfs snapshot procedure for consistent backups, and what to do on other filesystems.
+- **Restore as you go** (roadmap T23) clashes with three things built for a full restore:
+  - `init --connect` writes the restoring flag, and while it's there the pacman hook does nothing,
+    so nothing can be offered. Proposal: `init --connect` asks whether to restore everything now
+    (backups pause until it's done, as today) or as you go (no flag, backups start at once).
+  - When the new machine keeps the old one's name, its own retention will one day forget the
+    snapshot as you go restores from. Proposal: tag that snapshot and keep the tag out of `forget`
+    (`--keep-tag`) while offers are open. Tagging gives a snapshot a new ID, so the kept record
+    must follow it.
+  - Home files aren't restored while their owner's desktop session runs, because desktops write
+    their settings back at logout. That is about the desktop's settings: one app's own folder is
+    safe while the app isn't running, and restoring it mid-session is the point of as you go.
+    Proposal: for a single app's bundle, check that the app isn't running instead.
 - Whether to import Mackup's app definitions (GPL-3.0) and xdg-ninja's (MIT). **The catalog format is
   settled:** one TOML file per app with an id, a name, how to recognize it (packages, Flatpak ids,
   settings folders), excludes, re-download hints and post-restore notes; see

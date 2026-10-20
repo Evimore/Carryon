@@ -97,10 +97,10 @@ type planned struct {
 }
 
 var plannedCommands = []planned{
-	{use: "inbox", short: "Review suggestions about new things to back up", task: "v0.2"},
-	{use: "ignore", short: "Stop suggesting a path", task: "v0.2"},
-	{use: "why", short: "Explain whether and how a path is backed up", task: "v0.2"},
-	{use: "agent", short: "Run the per-user notification agent", task: "v0.2", hidden: true},
+	{use: "inbox", short: "Review suggestions about new things to back up", task: "T21"},
+	{use: "ignore", short: "Stop suggesting a path", task: "T21"},
+	{use: "why", short: "Explain whether and how a path is backed up", task: "T24"},
+	{use: "agent", short: "Run the per-user notification agent", task: "T27", hidden: true},
 }
 
 func (p planned) command() *cobra.Command {

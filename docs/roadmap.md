@@ -12,12 +12,15 @@ the legacy functions the task names in [legacy/sysbackup.py](../legacy/sysbackup
 |---|---|
 | **v0.0 Foundation** ✅ | Design, legacy reference, Go skeleton with the record model, when-rules, bundle rules and config, CI. |
 | **v0.1 Parity** | Everything the prototype does, generalized: any destination, any Arch-based distro, several users. AUR package. End-to-end restore test in CI. |
-| **v0.2 Awareness** | Detection and inbox, the user agent with notifications, restore as you go, `why`, `history`, edited-file detection. |
-| **v0.3 Comfort** | Tray icon, consistent btrfs backups, battery and metered-network awareness, ntfy and webhook alerts, status-bar JSON. |
+| **v0.2 Awareness** | Detection and inbox, the user agent with notifications and actions, restore as you go, `why`, a login message. |
+| **v0.3 Comfort** | Tray icon, consistent btrfs backups, battery and metered-network awareness. |
 | **v0.4+ Reach** | Debian/Ubuntu and Fedora backends, catalog import from Mackup and xdg-ninja, game saves through Ludusavi, file-manager menus. |
 | **1.0** | Stable record format and docs; requests to Chaotic-AUR and CachyOS. |
 
 ## v0.1 Parity
+
+All tasks are done. What's left is the release itself: a tag, then the upload to the AUR, both
+maintainer steps in [packaging.md](packaging.md).
 
 Tasks in the same row of the dependency list can be done in parallel.
 
@@ -192,12 +195,178 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   repository, `backup`, then a fresh container, `init --connect`, `restore --defaults`, and compare the
   records. A VM job for systemd units and the hook.
 
+## v0.2 Awareness
+
+Carryon notices what it doesn't back up yet, tells the user wherever they are (desktop, terminal or
+login), explains what it does with a path, and gives saved settings back as apps get installed. Most
+of this is **New** in [design.md](design.md), so there is little prototype code to port: read the
+design sections each task names.
+
+Already done in v0.1: `carryon history` (T09), edited-file detection with `pacman -Qkk` (T06, T07)
+and restoring one bundle by hand with `carryon restore --bundle` (T15).
+
+```
+T21 inbox ─┬─► T22 detection scans ────────────────────────────┐
+           ├─► T23 restore as you go ─► T26 polkit and units ───┤
+           └─► T27 user agent ──────────────────────────────────┼─► T28 end-to-end tests
+T24 why ────────────────────────────────────────────────────────┤
+T25 login message ──────────────────────────────────────────────┘
+```
+
+**Names the tasks share**, so they can be built in parallel:
+
+- The inbox is `/var/lib/carryon/inbox.json` (T21).
+- The agent's buttons start `carryon-backup.service` (**Back up now**),
+  `carryon-restore@<bundle>.service` (**Restore**), and `carryon-add@<entry>.service` and
+  `carryon-ignore@<entry>.service` (a suggestion's **Back it up** and **Ignore**). An instance name
+  is a bundle ID or an inbox entry ID, never a path (T23 adds the restore unit, T26 the others).
+
+### T21 Inbox ⬜
+- **Packages:** `internal/state` (the inbox file), `internal/cli` (`inbox`, `ignore`, `add`).
+- **Scope:** the inbox file, world-readable and free of secrets, shaped `{"entries": [...]}` as
+  `carryon status` already counts it. Each entry has a short, stable ID that is safe as a systemd
+  instance name; its kind (`path`: back up this folder? `restore`: restore this app's saved
+  settings?); the path or bundle; its size, probable app and bundle, and whether it's large; when
+  and by what it was found. Entries are added, replaced and removed under a lock, since the hook,
+  the nightly backup and the commands all write the file; a damaged file is set aside, not fatal.
+  Ignored paths go in `detect.ignore` in `config.toml`, so they travel with `/etc/carryon` in the
+  backup. `carryon inbox` lists the entries (`--json`) and, in a terminal, goes through them with
+  the terminal UI: back it up, ignore, or later. `carryon add` and `carryon ignore` also take an
+  entry ID, and remove the entry they settle. Accepting a folder adds it to `backup.extra_paths`
+  and, when its app's bundle wouldn't find it by name, a `put` line to `bundles.conf`.
+- **Legacy:** none; the prototype had no inbox.
+- **Done when:** writers running at the same time don't lose entries, `add` and `ignore` settle an
+  entry by path or ID, `carryon status` counts it, and all of it works without a terminal.
+
+### T22 Detection scans ⬜
+- **Package:** `internal/detect`.
+- **Scope:** [design: noticing new things](design.md#noticing-new-things).
+  - **What:** folders in `/var/lib`, `/var/opt` and `/srv` holding data no package owns. Left out:
+    known system folders (shipped as data, not code, so the list can grow), folders already backed
+    up or left out by the excludes and the catalog, ignored paths, and other filesystems.
+  - **Whose:** the probable app is a package matched by name (`/var/lib/jellyfin` ↔
+    `jellyfin-server`), the package owning the folder itself, or the package of the unit whose
+    `User=`, `StateDirectory=` or `DynamicUser` folder it is.
+  - **How big:** measured without walking into mounts, marked large above `detect.large_path_gb`.
+  - **What then:** `detect.new_paths = "ask"` adds an inbox entry; `auto` adds the folder as if
+    accepted and notes it in the run history; `off` does nothing.
+  - **When:** the nightly backup scans everything. The pacman hook checks only the folders of the
+    packages it was given and stays within its time limit (an app's data usually appears later, when
+    it first runs, and the nightly scan finds it then). New entries print one line in pacman's
+    output. A path unit on `/var/lib/flatpak/app` refreshes the record when system-wide Flatpak apps
+    change.
+- **Legacy:** none. The bundle rule that puts `/var/lib/foo` with package `foo` is already in
+  `internal/bundle` (`extraFolders`).
+- **Done when:** a scan of a fake system tree suggests exactly its unowned data folders, each with
+  the right app, and the hook still never fails or blocks pacman.
+
+### T23 Restore as you go ⬜
+- **Packages:** `internal/restore`, `internal/setup`, `internal/detect` (hook part), `dist/`.
+- **Scope:** [design: as you go](design.md#as-you-go). Keep the source machine's record and its
+  snapshot ID in the state folder (root only, like the record), from `init --connect` and after each
+  restore. When the pacman hook sees a package installed whose bundle in that record has settings,
+  files or services that differ from this machine, it prints `carryon: saved settings for obs-studio
+  (9 Oct) — restore with: carryon restore --bundle app-obs-studio` and adds a `restore` inbox entry,
+  once per bundle: a restored or ignored bundle isn't offered again. `carryon restore --bundle`
+  uses the kept record and snapshot by default, so it needs no choice of machine.
+  `carryon-restore@.service` applies one bundle's items other than packages, without a terminal,
+  and refuses an instance name that isn't a bundle of the kept record.
+  **Restore never applies anything before the user has seen the plan**, so the offer says what
+  would change (places and counts, never file contents, since the inbox is world-readable), and the
+  unit applies only that: if the plan changed since the offer, it refuses and the offer is renewed.
+  Settle the questions [design: open questions](design.md#open-questions) lists for this task
+  (the restoring flag, retention, home files during a session) and write the answers into the
+  design.
+- **Legacy:** none.
+- **Done when:** with a kept record, installing a package offers its bundle once, `restore --bundle`
+  applies only that bundle, the unit refuses a plan that changed since the offer, and the hook still
+  never fails or blocks pacman.
+
+### T24 `carryon why` ⬜
+- **Packages:** `internal/bundle`, a new `internal/why`, `internal/cli`.
+- **Scope:** `carryon why PATH` says in plain words whether and how a path is backed up:
+  - in which backed-up folder (`/etc`, `/root`, `/srv`, `backup.extra_paths`, a user's home);
+  - left out by which exclude pattern, and where that comes from (the defaults, a catalog app,
+    `excludes.txt`, a mount or the repository's own folder), including a `!` pattern taking it back;
+  - left out as another filesystem or mount, and how to take it in;
+  - the record item that holds it, its bundle, **the rule that put it there**, the bundle's
+    when-rule, and whether it would start ticked here;
+  - a package file that is unchanged and comes back with its package, or data that downloads itself
+    again (the not-backed-up hints); once T21 is in, an ignored path or one waiting in the inbox.
+
+  `internal/bundle` learns to say which step put each item in its bundle (a `put` line, an app
+  named after a unit or package, a well-known place, a settings folder named like a package...).
+  The record format doesn't change: `why` groups the record's items again to get the reasons.
+  Without root the record can't be read, so `why` says what the settings tell and suggests `sudo`.
+  `--json`.
+- **Legacy:** none; it reuses `excluded` and the bundle rules already ported.
+- **Done when:** a table test covers each answer above, including a default exclude taken back by
+  `!` and an item moved by a `put` rule.
+
+### T25 Login message ⬜
+- **Packages:** `internal/state`, `internal/status`, `internal/config`.
+- **Scope:** the "no desktop" path in [design: interfaces](design.md#interfaces). When something
+  needs attention, by the same rules as `carryon status`, one line goes in
+  `/run/motd.d/carryon.motd`, which `pam_motd` shows at console and SSH logins: `Carryon: the last
+  backup failed 2 days ago. See: carryon status`. It's written whenever `status.json` is and removed
+  when all is well, so no program runs at login. On by default; `notify.login_message = false`
+  turns it off. The folder can be moved for tests, like the others in `internal/paths`.
+- **Legacy:** none.
+- **Done when:** a test shows status changes writing and removing the line.
+
+### T26 polkit rules and action units ⬜
+- **Packages:** `dist/` (polkit rules and units), `internal/cli`, `packaging/`.
+- **Scope:** the `carryon-add@` and `carryon-ignore@` units (names above), and
+  `/usr/share/polkit-1/rules.d/carryon.rules`, which lets users start every unit behind the agent's
+  buttons with `systemctl start`, without root. Proposed default, to confirm in the pull request:
+  anyone with a local, active session may start a backup; restoring a bundle or settling a
+  suggestion changes what root writes or backs up, so it needs an administrator (`wheel`), and
+  others get polkit's password prompt (`auth_admin_keep`). Each unit checks its instance name
+  against the inbox and refuses anything else, so a user can never pass a path or an option to
+  root. The install layout (`packaging/layout.txt`, the `Makefile`,
+  [design: install layout](design.md#install-layout)) gets the rules and units.
+- **Legacy:** none.
+- **Done when:** `systemd-analyze verify` passes on the new units in CI, an unknown or path-like
+  instance name is refused, and the layout check passes.
+
+### T27 User agent ⬜
+- **Packages:** a new `internal/agent`, `carryon agent`, `dist/` (the user unit).
+- **Scope:** `carryon-agent.service`, a user unit `carryon init` enables for every user, runs
+  `carryon agent`, which refuses to run as root. It watches `status.json` and the inbox and shows
+  desktop notifications over D-Bus (`org.freedesktop.Notifications`) with buttons:
+  - a failed backup or check: **Back up now**, or the fix;
+  - a suggestion: **Back it up** and **Ignore**;
+  - a restore offer: what would change, with **Restore** and **Not now**, warning first if the app
+    is running.
+
+  The buttons start the units T26 adds (`systemctl start`, through polkit); until T26 is in, tests
+  use fakes. The agent follows the user's own notification settings, shows each event once (across
+  restarts too), and writes nothing outside the user's home. While a user's agent runs, `carryon
+  notify` leaves that user's notification to it, so nobody gets two. Adds `godbus/dbus/v5` (pure Go,
+  named in the design).
+- **Legacy:** `cmd_notify`, the plain notification the agent improves on.
+- **Done when:** against a fake notification service on a private bus, each event shows once with
+  the right buttons, and each button starts the right unit.
+
+### T28 End-to-end tests for v0.2 ⬜
+- **Scope:** extend `test/e2e/`:
+  - a data folder in `/var/lib` shows up in the inbox, `carryon add` of its ID makes the next backup
+    hold it, and `carryon why` explains it;
+  - on machine B, restoring as you go: installing a package with saved settings prints the hint
+    once, and `restore --bundle` brings back only that bundle;
+  - a user who isn't root starts `carryon-backup.service` through polkit;
+  - the login message appears when a backup fails and goes away after the next good one.
+
+  Where it's cheap, also close gaps T20 listed: user units, `--user` mapping, a different machine
+  name.
+- **Done when:** the "End-to-end" workflow runs these on every pull request and stays under 15
+  minutes.
+
 ## Later milestones
 
-Broken into tasks when v0.1 is done. In short:
+Broken into tasks when v0.2 is done. In short:
 
-- **v0.2:** detection scans and inbox (`internal/detect`), the user agent with D-Bus notifications and
-  actions, polkit rules, restore as you go, `why`, `history`, edited-file detection with `pacman -Qkk`.
-- **v0.3:** tray icon, btrfs snapshots for consistent backups, battery and metered-network checks,
-  ntfy and webhook alerts, `status --json` for status bars.
+- **v0.3:** tray icon, btrfs snapshots for consistent backups, battery and metered-network checks.
+  ntfy and webhook alerts and `status --json` for status bars were planned here but came with v0.1
+  (T18, T12).
 - **v0.4+:** apt and dnf backends, catalog import, Ludusavi, Dolphin and Nautilus menus.

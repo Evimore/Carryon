@@ -13,19 +13,33 @@ import (
 	"strings"
 
 	"github.com/Evimore/carryon/internal/record"
+	"github.com/Evimore/carryon/internal/sysexec"
 )
 
 // unitProps reads LoadState and FragmentPath of units with one `systemctl show`.
 func (c *capturer) unitProps(ctx context.Context, units []string) map[string]map[string]string {
+	props, err := UnitProps(ctx, c.opt.Runner, units, "LoadState", "FragmentPath")
+	if err != nil {
+		c.warn("can't read the services' unit files: %v", err)
+	}
+	return props
+}
+
+// UnitProps reads the given properties of units with one `systemctl show`: one map per unit, by
+// unit name. Units systemd doesn't answer for are missing.
+func UnitProps(ctx context.Context, run sysexec.Runner, units []string, names ...string) (map[string]map[string]string, error) {
 	props := map[string]map[string]string{}
 	if len(units) == 0 {
-		return props
+		return props, nil
 	}
-	args := append([]string{"show", "-p", "LoadState", "-p", "FragmentPath", "--"}, units...)
-	out, err := c.opt.Runner.Output(ctx, "systemctl", args...)
+	args := []string{"show"}
+	for _, n := range names {
+		args = append(args, "-p", n)
+	}
+	args = append(append(args, "--"), units...)
+	out, err := run.Output(ctx, "systemctl", args...)
 	if err != nil && len(out) == 0 {
-		c.warn("can't read the services' unit files: %v", err)
-		return props
+		return props, err
 	}
 	// systemctl prints one block per unit, in the order asked, separated by blank lines
 	blocks := strings.Split(strings.TrimSpace(string(out)), "\n\n")
@@ -41,7 +55,7 @@ func (c *capturer) unitProps(ctx context.Context, units []string) map[string]map
 		}
 		props[units[i]] = p
 	}
-	return props
+	return props, nil
 }
 
 // captureServices records enabled and masked system units with their owning package, then each

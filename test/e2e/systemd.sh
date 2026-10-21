@@ -24,8 +24,9 @@ chmod 600 "$E2E/secret/password"
 run_logged init carryon init --repo "$REPO" --password-file "$E2E/secret/password" --defaults --kit-saved
 
 step "The units load and parse"
-run_logged analyze systemd-analyze verify /usr/lib/systemd/system/carryon-*.service /usr/lib/systemd/system/carryon-*.timer
-for t in carryon-backup.timer carryon-verify.timer carryon-settle.timer; do
+run_logged analyze systemd-analyze verify /usr/lib/systemd/system/carryon-*.service /usr/lib/systemd/system/carryon-*.timer \
+	/usr/lib/systemd/system/carryon-*.path
+for t in carryon-backup.timer carryon-verify.timer carryon-settle.timer carryon-flatpak.path; do
 	expect_eq "$t enabled" enabled "$(systemctl is-enabled "$t" 2>&1 || true)"
 	expect_eq "$t active" active "$(systemctl is-active "$t" 2>&1 || true)"
 done

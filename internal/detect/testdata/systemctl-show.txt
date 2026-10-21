@@ -1,0 +1,11 @@
+User=bookworm
+DynamicUser=no
+StateDirectory=
+
+User=
+DynamicUser=yes
+StateDirectory=hass hass/logs:hass-logs
+
+User=jellyfin
+DynamicUser=no
+StateDirectory=

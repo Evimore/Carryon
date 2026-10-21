@@ -36,6 +36,9 @@ type group struct {
 	Members []string
 }
 
+// Accounts reads every account in <root>/etc/passwd, in file order.
+func Accounts(root string) ([]User, error) { return readPasswd(root) }
+
 // readPasswd reads <root>/etc/passwd in file order. Malformed lines are skipped.
 func readPasswd(root string) ([]User, error) {
 	data, err := os.ReadFile(filepath.Join(root, "etc/passwd"))

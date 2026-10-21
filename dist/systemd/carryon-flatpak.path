@@ -1,0 +1,12 @@
+# Refreshes Carryon's system record when system-wide Flatpak apps are installed, updated or
+# removed, as the pacman hook does for packages. Enabled by carryon init.
+[Unit]
+Description=Carryon: watch system-wide Flatpak apps
+Documentation=https://github.com/Evimore/carryon
+
+[Path]
+PathChanged=/var/lib/flatpak/app
+Unit=carryon-flatpak.service
+
+[Install]
+WantedBy=paths.target

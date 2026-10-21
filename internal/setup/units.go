@@ -11,8 +11,9 @@ import (
 	"github.com/Evimore/carryon/internal/sysexec"
 )
 
-// Timers are the units init enables (they come with the package, from dist/).
-var Timers = []string{"carryon-backup.timer", "carryon-verify.timer", "carryon-settle.timer"}
+// Timers are the units init enables (they come with the package, from dist/): the timers, and
+// the watcher that refreshes the record when Flatpak apps change.
+var Timers = []string{"carryon-backup.timer", "carryon-verify.timer", "carryon-settle.timer", "carryon-flatpak.path"}
 
 // scheduleDropIn is the drop-in that sets a timer's OnCalendar= from a config setting.
 func scheduleDropIn(setting, schedule, configFile string) []byte {
@@ -88,6 +89,8 @@ func whatStops(missing []string) string {
 			parts = append(parts, "the weekly check won't run")
 		case "carryon-settle.timer":
 			parts = append(parts, "backups after package changes won't run")
+		case "carryon-flatpak.path":
+			parts = append(parts, "Flatpak changes won't refresh the system record")
 		}
 	}
 	return strings.Join(parts, " and ")

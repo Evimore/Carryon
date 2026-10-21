@@ -24,6 +24,10 @@ import (
 // hookTimeout bounds the pacman hook; tests shorten it.
 var hookTimeout = detect.HookTimeout
 
+// hookInboxWait is how long the hook waits for the inbox lock. A busy inbox skips the suggestion,
+// so pacman isn't held up; the nightly backup finds it again.
+const hookInboxWait = 2 * time.Second
+
 // hookStdinTimeout is how long the hook waits for pacman's list of packages.
 const hookStdinTimeout = 5 * time.Second
 
@@ -32,7 +36,8 @@ func newHookCmd(dirs paths.Dirs) *cobra.Command {
 		Use:   "hook",
 		Short: "Called by the pacman hook",
 		Long: `Runs after every package install, upgrade or removal (carryon.hook): refreshes the system
-record, notes that a backup is owed and prints hints. It always exits successfully and gives up
+record, notes that a backup is owed, looks for new data in the folders of the packages it was
+given and prints hints. It always exits successfully and gives up
 after ` + hookTimeout.String() + `, so it never breaks or holds up pacman.`,
 		Hidden:             true,
 		DisableFlagParsing: true,
@@ -78,6 +83,7 @@ func runHook(ctx context.Context, dirs paths.Dirs, stdin io.Reader, out io.Write
 	machine := machineName(cfg)
 	timers := hookTimers(sys)
 	quiet := ui.NewLogger(io.Discard, false, false)
+	var captured *backup.Captured // the refresh's, for the scan
 
 	opt := detect.HookOptions{
 		Packages: packages,
@@ -89,7 +95,19 @@ func runHook(ctx context.Context, dirs paths.Dirs, stdin io.Reader, out io.Write
 			if err != nil {
 				return nil, err
 			}
+			captured = res
 			return res.Publish.Changes(), nil
+		},
+		Scan: func(ctx context.Context, packages []string) (detect.Outcome, error) {
+			if captured == nil || captured.Result == nil {
+				return detect.Outcome{}, nil // no fresh record: the nightly backup looks instead
+			}
+			return backup.Detect(ctx, backup.DetectOptions{
+				Dirs: dirs, Config: cfg, System: sys,
+				Items: captured.Result.Items, Users: captured.Result.Users,
+				Excludes: captured.Excludes, Mounts: captured.Mounts,
+				Only: packages, By: state.ByHook, Wait: hookInboxWait,
+			})
 		},
 		Record: func(r state.Run) {
 			r.Machine, r.Unit = machine, ""

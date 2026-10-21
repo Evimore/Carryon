@@ -124,6 +124,7 @@ func newEnv(t *testing.T) *testEnv {
 		Motd: filepath.Join(tmp, "motd.d"),
 	}
 	write(t, dirs.DefaultExcludes(), "*.tmp\n")
+	write(t, dirs.KnownFolders(), "/var/lib/pacman\n")
 	pw := filepath.Join(tmp, "password")
 	write(t, pw, "correct horse battery staple\n")
 	e := engine.New(config.Repository{URL: filepath.Join(tmp, "repo"), PasswordFile: pw}, dirs, "desktop")

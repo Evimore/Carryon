@@ -9,6 +9,11 @@ This folder also holds `excludes.default`, the default exclude list, installed a
 `/usr/share/carryon/excludes.default`. It only has what every machine has (caches, the trash); what
 belongs to one app goes in that app's file.
 
+`system-folders.txt` is the list of known system folders, installed as
+`/usr/share/carryon/system-folders.txt`: folders in `/var/lib`, `/var/opt` and `/srv` that hold the
+system's own state, which Carryon never suggests backing up when it looks for new data. Add a folder
+there when a fresh install makes it again by itself.
+
 Contributions welcome: one app per pull request is easiest to review.
 
 ## An example

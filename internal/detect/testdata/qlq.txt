@@ -1,0 +1,11 @@
+/usr/
+/usr/bin/
+/usr/bin/foo-tool
+/var/
+/var/lib/
+/var/lib/foo-tool/
+/var/lib/foo-tool/defaults.conf
+/var/lib/postgres/
+/var/lib/pacman/
+/srv/
+/srv/http/

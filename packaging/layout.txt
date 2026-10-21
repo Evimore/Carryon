@@ -5,6 +5,7 @@
 usr/bin/carryon
 usr/share/libalpm/hooks/carryon.hook
 usr/share/carryon/excludes.default
+usr/share/carryon/system-folders.txt
 # makepkg compresses man pages.
 usr/share/man/man1/carryon.1*
 usr/share/bash-completion/completions/carryon

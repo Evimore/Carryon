@@ -71,7 +71,8 @@ func TestInitCreatesARepository(t *testing.T) {
 		t.Errorf("verify drop-in:\n%s", v)
 	}
 	wantCmds := []string{"systemctl daemon-reload", "systemctl enable --now carryon-backup.timer",
-		"systemctl enable --now carryon-verify.timer", "systemctl enable --now carryon-settle.timer"}
+		"systemctl enable --now carryon-verify.timer", "systemctl enable --now carryon-settle.timer",
+		"systemctl enable --now carryon-flatpak.path"}
 	if got := h.fake.Commands(); !reflect.DeepEqual(got, wantCmds) {
 		t.Errorf("commands = %q", got)
 	}
@@ -102,8 +103,8 @@ func TestInitWithoutATerminal(t *testing.T) {
 	}
 	log := h.log.String()
 	for _, s := range []string{
-		"carryon-backup.timer, carryon-verify.timer, carryon-settle.timer are not installed",
-		"sudo systemctl enable --now carryon-backup.timer carryon-verify.timer carryon-settle.timer",
+		"carryon-backup.timer, carryon-verify.timer, carryon-settle.timer, carryon-flatpak.path are not installed",
+		"sudo systemctl enable --now carryon-backup.timer carryon-verify.timer carryon-settle.timer carryon-flatpak.path",
 		`"sudo carryon recovery-kit" shows it again`,
 	} {
 		if !strings.Contains(log, s) {

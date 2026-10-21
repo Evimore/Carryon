@@ -78,7 +78,7 @@ func TestConnectOnAReinstalledMachine(t *testing.T) {
 	if !h.exists(d.RestoringFlag()) {
 		t.Error("backups aren't paused for the restore")
 	}
-	if len(h.fake.Commands()) != 4 {
+	if len(h.fake.Commands()) != 1+len(Timers) { // daemon-reload, then one enable per unit
 		t.Errorf("commands = %q", h.fake.Commands())
 	}
 	out := h.out.String()

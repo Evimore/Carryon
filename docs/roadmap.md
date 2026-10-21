@@ -238,7 +238,7 @@ T25 login message ────────────────────�
 - **Done when:** writers running at the same time don't lose entries, `add` and `ignore` settle an
   entry by path or ID, `carryon status` counts it, and all of it works without a terminal.
 
-### T22 Detection scans ⬜
+### T22 Detection scans ✅
 - **Package:** `internal/detect`.
 - **Scope:** [design: noticing new things](design.md#noticing-new-things).
   - **What:** folders in `/var/lib`, `/var/opt` and `/srv` holding data no package owns. Left out:

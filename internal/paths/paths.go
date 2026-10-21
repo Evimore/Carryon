@@ -83,3 +83,6 @@ func (d Dirs) ResticCache() string { return filepath.Join(d.Cache, "restic") }
 
 // DefaultExcludes is the package's default exclude list.
 func (d Dirs) DefaultExcludes() string { return filepath.Join(d.Share, "excludes.default") }
+
+// KnownFolders is the list of known system folders the scans for new data leave out.
+func (d Dirs) KnownFolders() string { return filepath.Join(d.Share, "system-folders.txt") }

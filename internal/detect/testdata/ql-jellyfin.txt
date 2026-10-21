@@ -1,0 +1,4 @@
+jellyfin-server /usr/
+jellyfin-server /usr/bin/
+jellyfin-server /usr/bin/jellyfin
+jellyfin-server /var/lib/jellyfin/

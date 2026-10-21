@@ -1,5 +1,5 @@
-// Package detect notices changes to the machine. For now it holds what the pacman hook does after
-// every install, upgrade or removal; the scans for new data folders come with v0.2. See
+// Package detect notices changes to the machine: what the pacman hook does after every install,
+// upgrade or removal, and the scans for new data folders to suggest backing up. See
 // docs/design.md, "Running by itself" and "Noticing new things".
 package detect
 
@@ -28,6 +28,9 @@ type HookOptions struct {
 	Pending func() error
 	// Record adds the hook's run to the history. Nil means it isn't recorded.
 	Record func(state.Run)
+	// Scan looks for new data folders in the folders of the given packages and does what
+	// detect.new_paths says with them (see scanStep). Nil skips it.
+	Scan func(ctx context.Context, packages []string) (Outcome, error)
 	// Packages are the packages pacman changed, from its standard input.
 	Packages []string
 	// Delay is backup.after_change_delay, for the hint.
@@ -92,6 +95,7 @@ func hook(ctx context.Context, opt HookOptions, out *hintWriter) {
 			out.hint("Carryon: the system record has %d change(s): %s", len(changes), record.Brief(changes, 3))
 		}
 	}
+	scanStep(ctx, opt, out, &run)
 	switch {
 	case pendingErr != nil:
 		run.Warnings = append(run.Warnings, pendingErr.Error())

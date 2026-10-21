@@ -27,7 +27,7 @@ func (p tinyPM) Present() bool { return true }
 func (p tinyPM) Packages(context.Context) ([]pkgmgr.Package, error) {
 	return []pkgmgr.Package{{Name: "base", Repo: "core"}}, p.fail
 }
-func (tinyPM) Installed(context.Context) ([]string, error)          { return nil, nil }
+func (tinyPM) Installed(context.Context) ([]string, error)          { return []string{"base"}, nil }
 func (tinyPM) Versions(context.Context) ([]byte, error)             { return []byte("base 3-2\n"), nil }
 func (tinyPM) SyncPackages(context.Context) ([]string, error)       { return nil, nil }
 func (tinyPM) SyncRepos(context.Context) (map[string]string, error) { return nil, nil }
@@ -265,5 +265,48 @@ func TestSettleTooSoon(t *testing.T) {
 	}
 	if out, err := run(t, dirs, "settle"); err != nil || !strings.Contains(out, "waits until nothing has changed for 1h") {
 		t.Fatalf("settle: %v %q", err, out)
+	}
+}
+
+// The hook looks for new data in the folders of the packages pacman gives it, and prints a line
+// for each one it puts in the inbox. A busy inbox skips the suggestion, quietly and quickly.
+func TestHookSuggestsNewDataFolders(t *testing.T) {
+	for _, busy := range []bool{false, true} {
+		t.Run(map[bool]string{false: "free", true: "busy"}[busy], func(t *testing.T) {
+			dirs := fakeMachine(t, true, nil)
+			root := filepath.Join(filepath.Dir(dirs.Conf), "root")
+			writeFile(t, filepath.Join(root, "var/lib/base/state.db"), "x\n")
+			writeFile(t, filepath.Join(root, "var/lib/other/state.db"), "x\n") // not base's
+			writeFile(t, dirs.KnownFolders(), "/var/lib/pacman\n")
+			if busy {
+				held, done, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+				go func() {
+					defer close(finished)
+					_, _ = state.UpdateInbox(dirs, time.Second, func(*state.Inbox) error { close(held); <-done; return nil })
+				}()
+				<-held
+				defer func() { close(done); <-finished }()
+			}
+			var out strings.Builder
+			start := time.Now()
+			runHook(context.Background(), dirs, strings.NewReader("base\n"), &out)
+			if took := time.Since(start); took > hookInboxWait+5*time.Second {
+				t.Errorf("took %s", took)
+			}
+			in, _ := state.ReadInbox(dirs)
+			if busy {
+				if strings.Contains(out.String(), "/var/lib/") || strings.Contains(out.String(), "couldn't look") {
+					t.Errorf("hints:\n%s", out.String())
+				}
+				return
+			}
+			e, ok := in.Find("/var/lib/base")
+			if !ok || len(in.Entries) != 1 || e.By != state.ByHook || e.App != "base" || e.Bundle != "app-base" {
+				t.Errorf("inbox %+v", in.Entries)
+			}
+			if !strings.Contains(out.String(), "Carryon: /var/lib/base holds new data (probably base, 2 B). Back it up with: sudo carryon add "+e.ID) {
+				t.Errorf("hints:\n%s", out.String())
+			}
+		})
 	}
 }

@@ -1,0 +1,13 @@
+# Started by carryon-flatpak.path when system-wide Flatpak apps change: refreshes the system record
+# quickly, like the pacman hook, so the next backup has the new list of apps.
+[Unit]
+Description=Carryon: refresh the system record after a Flatpak change
+Documentation=https://github.com/Evimore/carryon
+ConditionPathExists=!/var/lib/carryon/restoring
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon capture --quick
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch

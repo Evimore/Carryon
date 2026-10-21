@@ -63,9 +63,9 @@ docs:
 install:
 	@test -x $(BUILD)/carryon -a -f $(BUILD)/man/carryon.1 || { echo "Nothing to install yet: run make first." >&2; exit 1; }
 	install -Dm755 $(BUILD)/carryon -t $(BINDIR)
-	install -Dm644 dist/systemd/*.service dist/systemd/*.timer -t $(UNITDIR)
+	install -Dm644 dist/systemd/*.service dist/systemd/*.timer dist/systemd/*.path -t $(UNITDIR)
 	install -Dm644 dist/pacman/carryon.hook -t $(HOOKDIR)
-	install -Dm644 catalog/excludes.default -t $(SHAREDIR)
+	install -Dm644 catalog/excludes.default catalog/system-folders.txt -t $(SHAREDIR)
 	install -Dm644 catalog/*.toml -t $(SHAREDIR)/catalog
 	install -Dm644 $(BUILD)/man/carryon.1 -t $(MANDIR)
 	install -Dm644 $(BUILD)/completions/carryon.bash $(BASHDIR)/carryon

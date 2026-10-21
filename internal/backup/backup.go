@@ -26,6 +26,7 @@ import (
 	"github.com/Evimore/carryon/internal/state"
 	report "github.com/Evimore/carryon/internal/status"
 	"github.com/Evimore/carryon/internal/sysexec"
+	"github.com/Evimore/carryon/internal/ui"
 )
 
 // Tag is the tag on every snapshot Carryon makes.
@@ -207,6 +208,7 @@ func (b *run) backup(ctx context.Context) error {
 		b.log.Info("%s", l)
 	}
 	b.res.Targets = append(tg, nested...)
+	b.detect(ctx, items, in.users, capd)
 	return b.restic(ctx, excludeFile)
 }
 
@@ -465,15 +467,4 @@ func shortID(id string) string {
 }
 
 // HumanBytes writes a size the way people read it: "1.5 GiB".
-func HumanBytes(n uint64) string {
-	const unit = 1024
-	if n < unit {
-		return fmt.Sprintf("%d B", n)
-	}
-	div, exp := uint64(unit), 0
-	for m := n / unit; m >= unit; m /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
-}
+func HumanBytes(n uint64) string { return ui.Bytes(n) }

@@ -1,0 +1,1 @@
+/var/lib/jellyfin/ is owned by jellyfin-server 10.9.11-1

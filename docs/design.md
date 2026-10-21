@@ -290,6 +290,7 @@ silently goes wrong:
 | `carryon-verify.timer` / `.service` | Weekly deep check. |
 | `carryon-settle.timer` / `.service` | **Fix** for the lost transient timer: every 10 minutes, but the service only starts when `/var/lib/carryon/pending` exists (`ConditionPathExists=`). It backs up once the last change is older than `after_change_delay` (default 1 hour). Survives reboots. |
 | `carryon-notify@.service` | `OnFailure=` of the others: alerts the user. |
+| `carryon-flatpak.path` / `.service` | **New:** when system-wide Flatpak apps change (`/var/lib/flatpak/app`), refreshes the record with `carryon capture --quick`, as the hook does for packages. |
 | `carryon-agent.service` (user unit) | **New:** the user's notifications, and later the tray icon. |
 | `/usr/share/libalpm/hooks/carryon.hook` | After every install, upgrade or removal: quick capture, write the pending marker, print hints. Never fails or blocks the transaction. |
 
@@ -376,18 +377,39 @@ silently goes wrong:
 
 1. **Triggers:** the pacman hook (with the changed package names), the nightly capture, and a
    Flatpak watcher.
-2. **What it looks for:** folders in `/var/lib`, `/var/opt` and `/srv` that hold data no package
-   owns (for example `/var/lib/jellyfin` filling up after Jellyfin was installed). Known system
-   folders (`pacman`, `systemd`, `dbus`...) are ignored.
-3. **Who owns it:** the package that created the folder, matched by name, file owner or the service
-   user that owns it.
+2. **What it looks for:** folders in `/var/lib`, `/var/opt` and `/srv` (and the subfolders of
+   `/var/lib/private`, where units with `DynamicUser=yes` keep their state) that hold at least one
+   file no package owns (for example `/var/lib/jellyfin` filling up after Jellyfin was installed).
+   Empty folders and folders of package files only are left alone, and so are: known system folders
+   (`pacman`, `systemd`, `dbus`...), folders already backed up or left out by the excludes and the
+   catalog, ignored ones, symlinks, and other filesystems mounted there. The known system folders
+   ship as data, `/usr/share/carryon/system-folders.txt` (`catalog/system-folders.txt` here), so
+   the list can grow without a new binary; without it nothing is scanned, since the system's own
+   state would fill the inbox, and the backup warns.
+3. **Who owns it:** the probable app is, in this order, the package owning the folder itself, the
+   package of an enabled unit whose `StateDirectory=` it is, a package named like it
+   (`/var/lib/jellyfin` ↔ `jellyfin-server`, packages installed on purpose first), or the package of
+   an enabled unit whose `User=` owns it (never root). The suggestion's bundle is the app bundle the
+   record already puts that package in, else `app-<package>`.
 4. **Suggestions:** each finding becomes an inbox entry with its size and probable app. Accepting it
-   adds the folder to `extra_paths` and to that app's bundle. Big folders (over 5 GB by default) are
-   marked so the user can decide.
+   adds the folder to `extra_paths` and to that app's bundle. Big folders (over 5 GiB by default) are
+   marked so the user can decide. Sizes don't count what is mounted inside the folder.
 5. **Telling the user:** a desktop notification with **Back it up** and **Ignore** buttons, a line in
    pacman's output in a terminal, `carryon inbox`, and a count in `carryon status`.
 
-`detect.new_paths = "ask" | "auto" | "off"` in the config controls this (default `ask`).
+`detect.new_paths = "ask" | "auto" | "off"` in the config controls this (default `ask`). With
+`auto`, a found folder is backed up exactly as `carryon add` would (from the next backup on), and
+the run history notes it. With `off`, nothing is scanned.
+
+- **Every backup scans everything** (the nightly one, and settle and manual runs too), after the
+  capture and before restic. A suggestion it doesn't find again (backed up, ignored, owned or gone
+  since) is taken out of the inbox. What it found goes in the run's notes.
+- **The pacman hook** looks only at the folders of the packages pacman gave it that are still
+  installed: the folders they own files in or that are named like them. It asks pacman about at
+  most 200 of a folder's files, waits for the inbox lock for 2 seconds at most and skips the
+  suggestion when it's busy, and stops a little before the hook's time limit, so the hook's run is
+  still recorded. Each new entry prints one line in pacman's output, with the command that backs it
+  up. An app's data usually appears later, when it first runs; the nightly scan finds it then.
 
 **The inbox** is `/var/lib/carryon/inbox.json`, `{"format": 1, "entries": [...]}`, world-readable
 and free of secrets: paths, sizes, app and bundle names, never file contents. Each entry asks one
@@ -708,11 +730,11 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 | Path | What |
 |---|---|
 | `/usr/bin/carryon` | the binary |
-| `/usr/lib/systemd/system/carryon-*.{service,timer}` | system units |
+| `/usr/lib/systemd/system/carryon-*.{service,timer,path}` | system units |
 | `/usr/lib/systemd/user/carryon-agent.service` | user agent |
 | `/usr/share/libalpm/hooks/carryon.hook` | pacman hook |
 | `/usr/share/polkit-1/rules.d/carryon.rules` | who may start backups and bundle restores |
-| `/usr/share/carryon/` | default excludes, catalog |
+| `/usr/share/carryon/` | default excludes, known system folders, catalog |
 | `/usr/share/man/man1/carryon.1` | the man page, generated from the commands |
 | `/usr/share/{bash-completion/completions,zsh/site-functions,fish/vendor_completions.d}/` | shell completions |
 | `/usr/share/doc/carryon/`, `/usr/share/licenses/carryon/` | README, this design, the catalog's README; the licence |

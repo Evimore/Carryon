@@ -1,0 +1,60 @@
+# Known system folders: Carryon never suggests backing these up when it looks for new data in
+# /var/lib, /var/opt and /srv. They hold the system's own state, which a fresh install makes
+# again (package databases, caches, machine-specific runtime state), or data another part of the
+# record already covers (Flatpak apps, Bluetooth pairings).
+#
+# One absolute path per line; shell patterns (*, ?, [...]) match one path component each.
+# A folder inside a listed one isn't suggested either. Contributions welcome: see catalog/README.md.
+
+# Package managers and their databases
+/var/lib/pacman
+/var/lib/pkgfile
+/var/lib/flatpak
+/var/lib/snapd
+/var/lib/PackageKit
+/var/lib/dkms
+
+# systemd, D-Bus, logins and devices
+/var/lib/systemd
+/var/lib/machines
+/var/lib/portables
+/var/lib/dbus
+/var/lib/polkit-1
+/var/lib/AccountsService
+/var/lib/upower
+/var/lib/udisks2
+/var/lib/boltd
+/var/lib/fwupd
+/var/lib/colord
+/var/lib/power-profiles-daemon
+/var/lib/rasdaemon
+/var/lib/tpm2-tss
+/var/lib/plymouth
+/var/lib/geoclue
+/var/lib/alsa
+/var/lib/bluetooth
+/var/lib/os-prober
+/var/lib/misc
+/var/lib/logrotate
+/var/lib/ldconfig
+/var/lib/sudo
+/var/lib/xkb
+/var/lib/texmf
+
+# Display managers
+/var/lib/gdm
+/var/lib/sddm
+/var/lib/lightdm
+/var/lib/lightdm-data
+
+# Network state: leases and timestamps (connections are in /etc)
+/var/lib/NetworkManager
+/var/lib/dhcpcd
+/var/lib/dhclient
+/var/lib/chrony
+/var/lib/ntp
+/var/lib/nfs
+/var/lib/rpcbind
+
+# Carryon's own state
+/var/lib/carryon

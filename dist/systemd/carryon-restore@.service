@@ -1,0 +1,16 @@
+# Restores the saved settings of one app, as you go: the user agent's Restore button starts it
+# (through polkit), or run: sudo systemctl start carryon-restore@app-obs-studio.service
+# The instance is the bundle of a restore offer in Carryon's inbox, never a path; Carryon refuses
+# anything else. It applies only what the offer said would change, no packages, and refuses (and
+# renews the offer) when that changed. Characters a unit name can't hold are escaped as
+# systemd-escape does (\x2b for "+").
+[Unit]
+Description=Carryon: restore the saved settings of %i
+Documentation=https://github.com/Evimore/carryon
+Wants=network-online.target
+After=network-online.target
+OnFailure=carryon-notify@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon restore --offered --bundle=%i

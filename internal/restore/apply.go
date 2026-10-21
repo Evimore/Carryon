@@ -54,6 +54,10 @@ type Applier struct {
 	// TempDir is where data from the backup is put before it's copied into homes. Empty means
 	// /var/tmp, or the system's temp folder.
 	TempDir string
+	// AppPackages are the packages of the app whose bundle alone is restored (restore --bundle of
+	// an app's bundle). Its home files are then held back while the app runs, instead of while the
+	// user is signed in to a desktop. Empty means the desktop check.
+	AppPackages []string
 
 	plan     *Plan
 	pl       *Planner // for the backup's copies of files, adapted, and the boot-risk check

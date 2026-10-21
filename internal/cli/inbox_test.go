@@ -50,6 +50,7 @@ func media() state.Entry {
 func obsOffer() state.Entry {
 	e := state.NewEntry(state.KindRestore, "app-obs-studio")
 	e.App, e.By = "obs-studio", state.ByHook
+	e.Changes = []string{"restores ~/.config/obs-studio (alice)", "enables obs-relay.service"}
 	e.Found = time.Date(2026, 10, 3, 3, 0, 0, 0, time.UTC)
 	return e
 }
@@ -99,6 +100,8 @@ func TestInboxListsWithoutATerminalOrRoot(t *testing.T) {
 		"7.0 GiB (large), probably plex-media-server, found by the nightly backup on 2026-10-02",
 		obsOffer().ID + "  Restore the saved settings of app-obs-studio?",
 		"restore with: sudo carryon restore --bundle app-obs-studio",
+		"  - restores ~/.config/obs-studio (alice)\n",
+		"  - enables obs-relay.service\n",
 		"Settle one with: sudo carryon add ID, or sudo carryon ignore ID",
 	} {
 		if !strings.Contains(out, want) {

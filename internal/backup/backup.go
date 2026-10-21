@@ -23,6 +23,7 @@ import (
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/record"
+	"github.com/Evimore/carryon/internal/restore"
 	"github.com/Evimore/carryon/internal/state"
 	report "github.com/Evimore/carryon/internal/status"
 	"github.com/Evimore/carryon/internal/sysexec"
@@ -319,7 +320,9 @@ func (b *run) retention(ctx context.Context, e *engine.Engine) {
 		return
 	}
 	b.log.Info("Applying retention: %s", strings.Join(keep, " "))
-	args := append([]string{"forget", "--host", opt.Machine, "--group-by", "host"}, keep...)
+	// The snapshot restoring as you go works from, when this machine backs up under its source
+	// machine's name, is kept while offers are open (see restore.TagSource).
+	args := append([]string{"forget", "--host", opt.Machine, "--group-by", "host", "--keep-tag", restore.SourceTag}, keep...)
 	r, err := e.Run(ctx, args...)
 	if err == nil {
 		err = r.Err()

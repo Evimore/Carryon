@@ -109,6 +109,7 @@ func runHook(ctx context.Context, dirs paths.Dirs, stdin io.Reader, out io.Write
 				Only: packages, By: state.ByHook, Wait: hookInboxWait,
 			})
 		},
+		Offer: hookOffer(dirs, sys, packages),
 		Record: func(r state.Run) {
 			r.Machine, r.Unit = machine, ""
 			backup.Record(ctx, dirs, r, machine, timers, quiet)

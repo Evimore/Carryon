@@ -26,6 +26,9 @@ type HookOptions struct {
 	// Pending notes that a backup is owed. Nil means no backup follows changes
 	// (backup.after_change_delay is off).
 	Pending func() error
+	// Offer offers to restore the saved settings of the apps just installed (restore as you go)
+	// and returns a hint for each offer. Nil means nothing is offered.
+	Offer func(ctx context.Context) (hints []string, err error)
 	// Record adds the hook's run to the history. Nil means it isn't recorded.
 	Record func(state.Run)
 	// Scan looks for new data folders in the folders of the given packages and does what
@@ -96,6 +99,7 @@ func hook(ctx context.Context, opt HookOptions, out *hintWriter) {
 		}
 	}
 	scanStep(ctx, opt, out, &run)
+	offer(ctx, opt, out)
 	switch {
 	case pendingErr != nil:
 		run.Warnings = append(run.Warnings, pendingErr.Error())

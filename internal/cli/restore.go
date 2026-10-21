@@ -15,12 +15,14 @@ import (
 
 	"github.com/Evimore/carryon/internal/catalog"
 	"github.com/Evimore/carryon/internal/config"
+	"github.com/Evimore/carryon/internal/dest"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/facts"
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/pkgmgr/pacman"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/restore"
+	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/sysexec"
 	"github.com/Evimore/carryon/internal/ui"
 )
@@ -38,6 +40,10 @@ type restoreSystem struct {
 	TempDir  string // where data is put on its way into homes; "" means /var/tmp
 	Location *time.Location
 	Now      func() time.Time
+	// Guard checks the destination before Carryon writes into the repository (tagging the
+	// snapshot restoring as you go uses) and returns the repository to write to. Nil means
+	// nothing is written.
+	Guard func(ctx context.Context, cfg config.Config) (restore.Repo, error)
 }
 
 var restoreEnv = func(dirs paths.Dirs) restoreSystem {
@@ -53,6 +59,18 @@ var restoreEnv = func(dirs paths.Dirs) restoreSystem {
 			return engine.New(cfg.Repository, dirs, cfg.MachineName)
 		},
 		Now: time.Now,
+		Guard: func(ctx context.Context, cfg config.Config) (restore.Repo, error) {
+			id, err := state.ReadDestination(dirs)
+			if err != nil {
+				return nil, err
+			}
+			e := engine.New(cfg.Repository, dirs, machineName(cfg))
+			r := dest.Checker{Root: "/", Repo: e, Runner: rcloneRunner(cfg, run)}.Check(ctx, cfg.Repository.URL, id)
+			if !r.OK() {
+				return nil, errors.New(r.String())
+			}
+			return e, nil
+		},
 	}
 }
 
@@ -106,7 +124,7 @@ const planFileName = "restore-plan.txt"
 
 func newRestoreCmd(dirs paths.Dirs) *cobra.Command {
 	var from, snapshot, recordDir, bundle string
-	var planOnly, defaults, yes bool
+	var planOnly, defaults, yes, offered, stopOffers bool
 	var userFlags []string
 	cmd := &cobra.Command{
 		Use:   "restore",
@@ -120,9 +138,13 @@ disks by ID (fstab, crypttab, bootloader configs, /etc/kernel/cmdline) are shown
 Files the restore replaces are kept next to them as *.pre-restore. If a step fails, the rest
 still applies, and everything that failed is listed at the end with what to do.
 
-Without a terminal, --yes applies the plan; --defaults alone only shows it. --bundle ID restores
-one bundle, such as an app's settings after installing it. Automatic backups pause during a full
-restore and start again when it finishes.
+Without a terminal, --yes applies the plan; --defaults alone only shows it. Automatic backups
+pause during a full restore and start again when it finishes.
+
+--bundle ID restores one bundle, such as an app's settings after installing it. It restores from
+the record kept for restoring as you go, unless --from, --snapshot or --record say otherwise. An
+app's settings are held back while the app runs, so close it first. Carryon keeps the record of
+every restore from the backup and offers the rest as you install apps; --stop-offers stops that.
 
 --record DIR plans from a record on disk instead of the backup, such as one the sysbackup
 prototype wrote to /var/lib/sysbackup/manifest.`,
@@ -132,6 +154,14 @@ prototype wrote to /var/lib/sysbackup/manifest.`,
 			log := ui.Stderr()
 			env := restoreEnv(dirs)
 			out := cmd.OutOrStdout()
+			switch {
+			case stopOffers:
+				return stopOffering(ctx, out, log, dirs, env)
+			case offered && bundle == "":
+				return errors.New("--offered restores an offered bundle: name it with --bundle")
+			case offered:
+				return restoreOffered(ctx, out, log, dirs, env, bundle)
+			}
 			given, err := restore.ParseUserFlags(userFlags)
 			if err != nil {
 				return err
@@ -150,9 +180,17 @@ prototype wrote to /var/lib/sysbackup/manifest.`,
 
 			var src *restore.Source
 			var repo restore.Repo
-			if recordDir != "" {
+			fromKept := bundle != "" && recordDir == "" && from == "" && !cmd.Flags().Changed("snapshot") && restore.HasKept(dirs.State)
+			switch {
+			case recordDir != "":
 				src, err = restore.OpenRecord(recordDir)
-			} else {
+			case fromKept:
+				var kept restore.KeptInfo
+				if src, kept, err = restore.OpenKept(dirs.State); err == nil {
+					log.Info("restoring from the kept record of %s (backup %s of %s)", kept.Machine,
+						kept.Snapshot.ShortID, kept.Snapshot.Time.In(orLocal(env.Location)).Format("2006-01-02 15:04"))
+				}
+			default:
 				if geteuid() != 0 {
 					return errors.New("carryon restore needs root to read the repository password: run it with sudo, or plan from a record on disk with --record DIR")
 				}
@@ -224,6 +262,7 @@ prototype wrote to /var/lib/sysbackup/manifest.`,
 			full := bundle == ""
 			if plan.Todo() == 0 {
 				fmt.Fprintln(out, "\nNothing to do: this machine already matches what you picked.")
+				keepSource(ctx, log, dirs, env, src, fromKept, picked.Bundles, true)
 				if full {
 					resumeBackups(out, log, dirs)
 				}
@@ -267,8 +306,10 @@ prototype wrote to /var/lib/sysbackup/manifest.`,
 			applier := &restore.Applier{
 				Source: src, Here: planner.Here, Packages: env.Installer, Repo: repo, Ask: ask, Log: log,
 				Out: out, Yes: yes, Catalog: cat, Chown: env.Chown, TempDir: env.TempDir,
+				AppPackages: appPackages(src, bundle),
 			}
 			res := applier.Apply(ctx, plan)
+			keepSource(ctx, log, dirs, env, src, fromKept, picked.Bundles, len(res.Problems) == 0)
 			return reportRestore(out, log, dirs, res, full)
 		},
 	}
@@ -281,6 +322,9 @@ prototype wrote to /var/lib/sysbackup/manifest.`,
 	f.BoolVar(&yes, "yes", false, "apply the plan without asking (needed without a terminal)")
 	f.StringVar(&bundle, "bundle", "", "restore only this bundle, such as app-obs-studio")
 	f.StringArrayVar(&userFlags, "user", nil, "give a backed-up user's files to a user here: OLD=NEW (repeatable)")
+	f.BoolVar(&stopOffers, "stop-offers", false, "stop offering saved settings as apps get installed, and let retention forget the backup they came from")
+	f.BoolVar(&offered, "offered", false, "with --bundle: apply what was offered, without packages and without a terminal (carryon-restore@.service)")
+	_ = f.MarkHidden("offered")
 	return cmd
 }
 

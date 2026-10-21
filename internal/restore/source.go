@@ -93,6 +93,9 @@ type FetchOptions struct {
 	TempDir string
 	// Location is the time zone snapshot times are shown in. Nil means the local one.
 	Location *time.Location
+	// RecordPaths are where the record may be in the snapshot, in order. Empty means Carryon's
+	// RecordPath, then the prototype's.
+	RecordPaths []string
 }
 
 // timeFormat is how snapshot times are shown.
@@ -129,7 +132,11 @@ func Fetch(ctx context.Context, repo Repo, ask ui.Prompter, opt FetchOptions) (*
 		return nil, fmt.Errorf("making a folder for the record: %w", err)
 	}
 	src := &Source{Snapshot: &snap, tmp: tmp}
-	if err := src.fetch(ctx, repo); err != nil {
+	recordPaths := opt.RecordPaths
+	if len(recordPaths) == 0 {
+		recordPaths = []string{RecordPath, PrototypeRecordPath}
+	}
+	if err := src.fetch(ctx, repo, recordPaths); err != nil {
 		src.Close()
 		return nil, err
 	}
@@ -137,13 +144,16 @@ func Fetch(ctx context.Context, repo Repo, ask ui.Prompter, opt FetchOptions) (*
 }
 
 // fetch restores the record, Carryon's or the prototype's, out of the snapshot and loads it.
-func (s *Source) fetch(ctx context.Context, repo Repo) error {
-	res, err := repo.Run(ctx, "restore", s.Snapshot.ID, "--target", s.tmp,
-		"--include", RecordPath, "--include", PrototypeRecordPath)
+func (s *Source) fetch(ctx context.Context, repo Repo, recordPaths []string) error {
+	args := []string{"restore", s.Snapshot.ID, "--target", s.tmp}
+	for _, p := range recordPaths {
+		args = append(args, "--include", p)
+	}
+	res, err := repo.Run(ctx, args...)
 	if err != nil {
 		return err
 	}
-	for _, p := range []string{RecordPath, PrototypeRecordPath} {
+	for _, p := range recordPaths {
 		dir := filepath.Join(s.tmp, p)
 		if _, err := os.Stat(filepath.Join(dir, record.ItemsFile)); err != nil {
 			continue

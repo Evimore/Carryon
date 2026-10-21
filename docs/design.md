@@ -255,7 +255,8 @@ drop  <type> <glob>            never record these
   the record there. **Changes from the prototype:** the tag is `carryon` (the prototype's was
   `auto`), and only the record is taken from `/var/lib/carryon`, not the whole state folder.
 - **Retention** per machine, by default everything from the last 2 days, then 7 daily, 4 weekly and 6
-  monthly (`restic forget --host <machine name> --group-by host`). Pruning runs every
+  monthly (`restic forget --host <machine name> --group-by host`), plus the snapshot restoring as you
+  go works from (`--keep-tag carryon-source`, see [as you go](#as-you-go)). Pruning runs every
   `prune_every_days` (weekly), counted from the first backup. A failed `forget` or `prune` is a
   warning and is tried again next time; the snapshot is already saved.
 - **Password:** generated at `init` (40 random characters) or entered when connecting to an existing
@@ -290,9 +291,10 @@ silently goes wrong:
 | `carryon-verify.timer` / `.service` | Weekly deep check. |
 | `carryon-settle.timer` / `.service` | **Fix** for the lost transient timer: every 10 minutes, but the service only starts when `/var/lib/carryon/pending` exists (`ConditionPathExists=`). It backs up once the last change is older than `after_change_delay` (default 1 hour). Survives reboots. |
 | `carryon-notify@.service` | `OnFailure=` of the others: alerts the user. |
+| `carryon-restore@.service` | **New:** restores one app's offered settings (`carryon restore --offered --bundle %i`), see [as you go](#as-you-go). |
 | `carryon-flatpak.path` / `.service` | **New:** when system-wide Flatpak apps change (`/var/lib/flatpak/app`), refreshes the record with `carryon capture --quick`, as the hook does for packages. |
 | `carryon-agent.service` (user unit) | **New:** the user's notifications, and later the tray icon. |
-| `/usr/share/libalpm/hooks/carryon.hook` | After every install, upgrade or removal: quick capture, write the pending marker, print hints. Never fails or blocks the transaction. |
+| `/usr/share/libalpm/hooks/carryon.hook` | After every install, upgrade or removal: quick capture, write the pending marker, offer saved settings of apps just installed, print hints. Never fails or blocks the transaction. |
 
 - **One backup at a time:** a lock in the state folder. A scheduled or settle run that finds
   another backup running does nothing; `carryon backup` by hand says so.
@@ -357,6 +359,7 @@ silently goes wrong:
 - **Paused while restoring:** a `restoring` flag stops automatic backups on a fresh install, so a
   half-restored system never becomes the newest snapshot. Kept from the prototype. **Change:** the
   pacman hook does nothing at all while it is there; the prototype still refreshed the record.
+  Restoring as you go sets no flag: backups start at once (see [as you go](#as-you-go)).
 - **Sleep:** a running backup holds a logind inhibitor so the machine doesn't suspend mid-upload.
   **New.**
 - **Consistent copies:** on btrfs, a later version backs up from read-only snapshots of the
@@ -464,7 +467,8 @@ Safety rails, all kept:
 - Folders owned by service users are handed back to that user by name when the numeric IDs differ.
 - The rclone config being used for this restore is kept; other remotes from the backup are merged in.
 - Home files aren't restored while the user's desktop session is running, because desktops rewrite
-  their settings at logout. **Generalized** from a Plasma-only check to any graphical session.
+  their settings at logout. **Generalized** from a Plasma-only check to any graphical session. For
+  one app's bundle restored on its own, the app must be closed instead (see [as you go](#as-you-go)).
 - App notes after restore (such as "KDE Wallet opens with the old login password") come from the
   catalog. **Generalized.**
 
@@ -508,20 +512,72 @@ Where applying differs from the prototype on purpose:
 ### As you go
 
 **New.** On a fresh machine connected to an existing repository, nothing has to be restored up front.
-Carryon keeps the source machine's record. Whenever the pacman hook sees a package installed whose
-bundle has settings, files or services in the backup:
+Carryon keeps the source machine's record, and offers each app's saved settings when the app gets
+installed.
 
-- in a terminal, pacman's output says `carryon: saved settings for obs-studio (9 Oct) — restore with:
-  carryon restore --bundle app-obs-studio`;
-- on a desktop, the agent shows **Restore** and **Not now**. **Restore** starts
-  `carryon-restore@<bundle>.service` through polkit, which applies only that bundle's non-package
-  items, after warning if the app is running.
+- **Choosing it.** `carryon init --connect` asks whether to restore everything now (the restoring
+  flag pauses backups until `sudo carryon restore` is done, as before) or as you go: no flag, backups
+  start at once, and the record of the machine whose settings are reused is kept. Without a
+  terminal, `--restore now|as-you-go` chooses, and the default is now, as before. As you go needs a
+  machine to restore from, so with `--settings-from none` it's now. The pacman hook does nothing
+  while the restoring flag is there, so restoring everything now makes no offers until the restore
+  is done; after it, the bundles that weren't picked are offered as their apps get installed.
+- **The kept source.** `/var/lib/carryon/source/` holds a copy of the source machine's record
+  (without its git history) and `source.json`: the machine, the snapshot, whether Carryon tagged it,
+  and the bundles restored from it. It's root-only, like the record. `init --connect` keeps one when
+  restoring as you go, and every `carryon restore` from the backup keeps the one it used, replacing
+  one from another snapshot and its offers. A record on disk (`--record`) isn't kept: there's no
+  snapshot to restore data from.
+- **Retention.** When this machine backs up under the source machine's name, its own retention
+  would one day forget the snapshot offers restore from. Carryon tags that snapshot
+  `carryon-source`, and every `forget` keeps snapshots with that tag (`--keep-tag`). restic gives a
+  snapshot a new ID when its tags change, so the kept record follows it. Tagging writes into the
+  repository, so it happens only after the destination check. Under another name there's nothing to
+  tag: a machine's retention only forgets its own snapshots. `sudo carryon restore --stop-offers`
+  takes the tag off, drops the kept record and closes the offers.
+- **Offering.** Whenever the pacman hook sees a package installed whose app's bundle in the kept
+  record has something to change here, it offers the bundle once:
+  - in a terminal, pacman's output says `carryon: saved settings for obs-studio (9 Oct) — restore
+    with: carryon restore --bundle app-obs-studio`;
+  - the offer is an inbox entry (`restore`) whose `changes` say in short lines what restoring would
+    change: places and counts, never file contents, since the inbox is world-readable ("2 system
+    files in /etc/obs", "restores ~/.config/obs-studio (alice)", "enables obs-relay.service").
+    `carryon inbox` lists it, and on a desktop the agent shows it with **Restore** and **Not now**.
 
-The offer is also an inbox entry, so `carryon inbox` lists it and the agent learns of it the same
-way as any other suggestion. A bundle that was restored or ignored isn't offered again.
+  pacman tells its hooks every package it changed without saying which were installed, and an
+  upgrade is no reason to offer anything, so "installed" means: pacman named it, it's installed now,
+  and the record didn't hold it before the hook refreshed it (without a record yet, every installed
+  package pacman names counts). Only apps' bundles are offered, not the built-in or hardware ones,
+  whose settings belong to the whole machine, and only when their when-rule ticks them here. A
+  bundle that was restored or ignored, or whose offer is waiting, isn't offered again. An offer
+  covers what isn't software: system files, data from the backup, groups and shells, services,
+  folders, user units and kernel parameters. Packages, AUR packages and language tools are the
+  user's to install, and files with disk IDs are never copied, as always. The offer runs after the
+  record refresh, inside the hook's time limit, waits at most two seconds for the inbox lock, and
+  what goes wrong becomes a hint.
+- **Applying an offer.** **Restore** starts `carryon-restore@<bundle>.service` through polkit,
+  which runs `carryon restore --offered --bundle <bundle>` as root, without a terminal. It refuses an
+  instance name that isn't a bundle ID (letters, digits and `@._+-`, never a path or an option;
+  systemd's `\x2b`-style escapes are read back), a bundle the kept record doesn't have, and a bundle
+  that wasn't offered. Restore never applies anything the user hasn't seen, so it applies only the
+  plan that was offered: a fingerprint of that plan (each step, where it goes, and the diff of each
+  file) is kept in `/var/lib/carryon/source/offers.json`, root-only since it's made from file
+  contents. When the plan is different now, nothing is applied: the offer is renewed with the new
+  changes and the unit fails, so the user sees the new plan before choosing again. Users are matched
+  as without a terminal: by name, else the only user here.
+- **One app's home files.** Home files aren't restored while their owner's desktop session runs,
+  because desktops write their settings back at logout. That's about the desktop's settings: one
+  app's own folder is safe while the app isn't running, and restoring it mid-session is the point of
+  restoring as you go. **Change:** for an app's bundle restored on its own (by the unit or with
+  `--bundle`), Carryon checks instead that none of the user's processes runs a program of the app's
+  packages (from `pacman -Ql`, against each process's program and first argument in `/proc`), and
+  asks, or without a terminal skips them and says to close the app. When it can't tell, the desktop
+  check applies.
 
-`carryon restore --bundle ID` does the same by hand, with the same plan, confirmation and safety
-rails, packages included. It leaves the restoring flag alone.
+`carryon restore --bundle ID` does the same by hand, from the kept record unless `--from`,
+`--snapshot` or `--record` say otherwise, with the same plan, confirmation and safety rails,
+packages included. It leaves the restoring flag alone. A bundle restored cleanly isn't offered
+again.
 
 ### Several users
 
@@ -603,7 +659,7 @@ login_message = true                 # a line at console and SSH logins while so
 | `carryon backup` | Capture and back up now. |
 | `carryon capture` | Refresh the record only. |
 | `carryon verify [--deep\|--full]` | Is the backup current, complete and restorable? |
-| `carryon restore` | Pick and apply. `--plan` only shows the plan; `--bundle ID` restores one bundle. |
+| `carryon restore` | Pick and apply. `--plan` only shows the plan; `--bundle ID` restores one bundle; `--stop-offers` stops restoring as you go. |
 | `carryon bundles` | How this machine is grouped, ticked as it would be here. |
 | `carryon inbox` / `add` / `ignore` | Review suggestions; add or ignore paths. |
 | `carryon exclude PATH` | Leave something out. |
@@ -641,11 +697,12 @@ Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-sh
 | Part | Runs as | Reads | Writes |
 |---|---|---|---|
 | Backup, verify, settle, restore | root (systemd or `sudo`) | everything backed up | record, state, repository |
-| pacman hook | root, inside pacman | package lists | pending marker, inbox, hints on stdout |
+| pacman hook | root, inside pacman | package lists, the kept record | pending marker, inbox, offers' fingerprints, hints on stdout |
 | Agent | the user | `status.json`, inbox | nothing outside the user's home |
 | Actions from the agent (Back up now, Restore bundle) | root, via polkit-allowed `systemctl start` of specific units | | |
 
-- `/etc/carryon/repository-password` and `/var/lib/carryon/record/` are root-only.
+- `/etc/carryon/repository-password`, `/var/lib/carryon/record/` and `/var/lib/carryon/source/` (the
+  kept record and the offers' fingerprints) are root-only.
 - `status.json` and the inbox are world-readable and hold no secrets.
 - A user's own settings can only add or remove paths in their own home.
 - The agent never runs as root.
@@ -664,7 +721,8 @@ unencrypted Toolkit copy next to the repository:
   `carryon init --connect URL` lists the machines in the repository and offers to reuse one's
   settings.
 - **On a new machine:** install Carryon from the AUR, run `sudo carryon init --connect URL` and enter
-  the password; backups pause until `sudo carryon restore` finishes.
+  the password. Restoring everything now pauses backups until `sudo carryon restore` finishes;
+  restoring as you go starts them at once (see [as you go](#as-you-go)).
 - **Without Carryon:** the kit explains how to get files back with plain restic.
 - **What `init` checks:** before anything is written, a local folder on a FUSE or network mount gets
   the direct backend offered, and a folder under `/mnt`, `/media` or `/run/media` that is really on the
@@ -814,18 +872,6 @@ the recovery kit counts as saved.
 - The tray library: a small StatusNotifierItem implementation over godbus keeps the binary free of
   cgo; `fyne.io/systray` needs cgo.
 - The exact btrfs snapshot procedure for consistent backups, and what to do on other filesystems.
-- **Restore as you go** (roadmap T23) clashes with three things built for a full restore:
-  - `init --connect` writes the restoring flag, and while it's there the pacman hook does nothing,
-    so nothing can be offered. Proposal: `init --connect` asks whether to restore everything now
-    (backups pause until it's done, as today) or as you go (no flag, backups start at once).
-  - When the new machine keeps the old one's name, its own retention will one day forget the
-    snapshot as you go restores from. Proposal: tag that snapshot and keep the tag out of `forget`
-    (`--keep-tag`) while offers are open. Tagging gives a snapshot a new ID, so the kept record
-    must follow it.
-  - Home files aren't restored while their owner's desktop session runs, because desktops write
-    their settings back at logout. That is about the desktop's settings: one app's own folder is
-    safe while the app isn't running, and restoring it mid-session is the point of as you go.
-    Proposal: for a single app's bundle, check that the app isn't running instead.
 - Whether to import Mackup's app definitions (GPL-3.0) and xdg-ninja's (MIT). **The catalog format is
   settled:** one TOML file per app with an id, a name, how to recognize it (packages, Flatpak ids,
   settings folders), excludes, re-download hints and post-restore notes; see

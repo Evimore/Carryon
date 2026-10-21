@@ -50,17 +50,20 @@ const (
 	ByFlatpak = "flatpak"
 )
 
-// Entry is one suggestion. Its fields are in alphabetical order of their JSON names.
+// Entry is one suggestion. Its fields are in alphabetical order of their JSON names. A restore
+// offer's Changes say in places and counts what restoring would change ("enables
+// obs-studio.service"), never file contents: anyone can read the inbox.
 type Entry struct {
-	App    string    `json:"app,omitempty"`    // the probable app: a package name
-	Bundle string    `json:"bundle,omitempty"` // the bundle it would join, or the one to restore
-	By     string    `json:"by,omitempty"`     // what found it: ByHook, ByBackup...
-	Found  time.Time `json:"found"`            // when it was first found
-	ID     string    `json:"id"`               // see EntryID
-	Kind   string    `json:"kind"`             // KindPath or KindRestore
-	Large  bool      `json:"large,omitempty"`  // bigger than detect.large_path_gb
-	Path   string    `json:"path,omitempty"`   // for KindPath: the folder
-	Size   int64     `json:"size,omitempty"`   // in bytes, when measured
+	App     string    `json:"app,omitempty"`     // the probable app: a package name
+	Bundle  string    `json:"bundle,omitempty"`  // the bundle it would join, or the one to restore
+	By      string    `json:"by,omitempty"`      // what found it: ByHook, ByBackup...
+	Changes []string  `json:"changes,omitempty"` // for KindRestore: what it would change, in short lines
+	Found   time.Time `json:"found"`             // when it was first found
+	ID      string    `json:"id"`                // see EntryID
+	Kind    string    `json:"kind"`              // KindPath or KindRestore
+	Large   bool      `json:"large,omitempty"`   // bigger than detect.large_path_gb
+	Path    string    `json:"path,omitempty"`    // for KindPath: the folder
+	Size    int64     `json:"size,omitempty"`    // in bytes, when measured
 }
 
 // Target is what the entry is about: its path, or for a restore offer its bundle.

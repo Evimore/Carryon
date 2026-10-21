@@ -42,6 +42,9 @@ On a new machine, connect to your existing repository and restore from it:
     sudo carryon init --connect sftp:alice@example.com:/backups
     sudo carryon restore
 
+Or restore as you go: backups start at once, and installing an app offers its saved settings:
+    sudo carryon init --connect sftp:alice@example.com:/backups --restore as-you-go
+
 Moving over from sysbackup, the prototype:
     sudo carryon init --from-sysbackup`,
 		Args: cobra.NoArgs,
@@ -57,6 +60,9 @@ Moving over from sysbackup, the prototype:
 			}
 			if o.SettingsFrom != "" && connect == "" {
 				return errors.New("--settings-from only works with --connect")
+			}
+			if o.Restore != "" && connect == "" {
+				return errors.New("--restore only works with --connect")
 			}
 			if o.PasswordFile != "" && o.PasswordCommand != "" {
 				return errors.New("use --password-file or --password-command, not both")
@@ -89,6 +95,7 @@ Moving over from sysbackup, the prototype:
 	f.StringVar(&o.RcloneUser, "rclone-user", "", "for rclone: repositories, the user whose rclone login to use")
 	f.StringVar(&connect, "connect", "", "connect this machine to the existing repository at this URL, to restore from it")
 	f.StringVar(&o.SettingsFrom, "settings-from", "", `with --connect: reuse this machine's settings, or "none"`)
+	f.StringVar(&o.Restore, "restore", "", `with --connect: restore everything "now" (backups pause until it's done), or "as-you-go" (default "now")`)
 	f.BoolVar(&fromSysbackup, "from-sysbackup", false, "move over from sysbackup, the prototype, keeping its repository and history")
 	f.BoolVar(&defaults, "defaults", false, "take the default answer for every question not given as a flag")
 	f.BoolVar(&o.Yes, "yes", false, "go ahead with a risky destination (system disk, network mount) without asking")

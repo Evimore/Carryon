@@ -77,6 +77,9 @@ func writeInbox(out io.Writer, entries []state.Entry) {
 		if d := details(e); d != "" {
 			fmt.Fprintf(tw, "\t%s\n", d)
 		}
+		for _, c := range e.Changes {
+			fmt.Fprintf(tw, "\t- %s\n", c)
+		}
 	}
 	tw.Flush()
 }
@@ -137,7 +140,11 @@ func foundBy(by string) string {
 // reviewInbox goes through the entries with the terminal UI. Leaving early keeps the rest.
 func reviewInbox(out io.Writer, dirs paths.Dirs, p ui.Prompter, entries []state.Entry) error {
 	for _, e := range entries {
-		m := ui.Menu{Title: question(e), Text: details(e), Default: "later"}
+		text := details(e)
+		for _, c := range e.Changes {
+			text += "\n- " + c
+		}
+		m := ui.Menu{Title: question(e), Text: text, Default: "later"}
 		if e.Kind == state.KindRestore {
 			m.Options = []ui.Option{
 				{Value: "later", Label: "Later", Note: "keep the offer in the inbox"},

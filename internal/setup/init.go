@@ -26,6 +26,7 @@ type Options struct {
 	VerifySchedule  string   // --verify-schedule
 	RcloneUser      string   // --rclone-user
 	SettingsFrom    string   // --settings-from (--connect only): a machine name, or "none"
+	Restore         string   // --restore (--connect only): RestoreNow or RestoreAsYouGo
 	Yes             bool     // --yes: accept the destination's risks without asking
 	KitSaved        bool     // --kit-saved: the recovery kit is saved, don't ask
 }

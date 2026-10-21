@@ -70,6 +70,13 @@ func Rank(id string) int {
 	return rankOf("*apps")
 }
 
+// IsApp reports whether a bundle is an app's: neither built in nor a hardware bundle. Restoring
+// as you go offers only these.
+func IsApp(id string) bool {
+	_, builtin := Builtin[id]
+	return !builtin && Rank(id) == rankOf("*apps")
+}
+
 func rankOf(id string) int {
 	for i, b := range Order {
 		if b == id {

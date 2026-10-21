@@ -260,7 +260,7 @@ T25 login message ────────────────────�
 - **Done when:** a scan of a fake system tree suggests exactly its unowned data folders, each with
   the right app, and the hook still never fails or blocks pacman.
 
-### T23 Restore as you go ⬜
+### T23 Restore as you go ✅
 - **Packages:** `internal/restore`, `internal/setup`, `internal/detect` (hook part), `dist/`.
 - **Scope:** [design: as you go](design.md#as-you-go). Keep the source machine's record and its
   snapshot ID in the state folder (root only, like the record), from `init --connect` and after each
@@ -281,6 +281,13 @@ T25 login message ────────────────────�
 - **Done when:** with a kept record, installing a package offers its bundle once, `restore --bundle`
   applies only that bundle, the unit refuses a plan that changed since the offer, and the hook still
   never fails or blocks pacman.
+- **Done:** everything above, with the design's three proposals: `init --connect` asks "everything
+  now or as you go" (`--restore`, now without a terminal); the snapshot is tagged `carryon-source`
+  and kept out of `forget` when the machine keeps the source's name, and `restore --stop-offers`
+  ends that; an app's bundle waits for the app to close instead of the desktop session. Offers are
+  made for apps' bundles only, and "installed" is a package the record didn't hold before the hook
+  ran, so upgrades offer nothing and no second hook file is needed. `carryon inbox` shows an
+  offer's changes.
 
 ### T24 `carryon why` ✅
 - **Packages:** `internal/bundle`, a new `internal/why`, `internal/cli`.

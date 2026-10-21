@@ -224,9 +224,22 @@ func (a *Applier) moveFingerprints() {
 
 // homeData restores one user's home paths. Nothing is restored while the user has a graphical
 // session running, unless they say so: desktops write their settings back when the user signs
-// out, undoing part of the restore.
+// out, undoing part of the restore. For one app's bundle (AppPackages), what matters is the app:
+// its own folders are safe to restore mid-session while it isn't running.
 func (a *Applier) homeData(ctx context.Context, snap, work string, u LocalUser, steps []Step) []string {
-	if a.graphicalSession(ctx, u.Name) {
+	if prog, known := a.appRunning(ctx, u); known {
+		if prog != "" {
+			a.Log.Warn("%s is running %s: it saves its settings when it closes, which would undo this restore", u.Name, prog)
+			ok, err := a.Ask.Confirm(ui.Confirm{
+				Title: fmt.Sprintf("Restore %s's settings for %s anyway?", u.Name, prog),
+				Text:  fmt.Sprintf("It's best to close %s first.", prog),
+			})
+			if err != nil || !ok {
+				a.problem("%s's settings for %s weren't restored, because %s was running: close it, then restore again", u.Name, prog, prog)
+				return nil
+			}
+		}
+	} else if a.graphicalSession(ctx, u.Name) {
 		a.Log.Warn("%s is signed in to a desktop: desktops save their settings when you sign out, which would undo part of this restore", u.Name)
 		ok, err := a.Ask.Confirm(ui.Confirm{
 			Title: fmt.Sprintf("Restore %s's home files anyway?", u.Name),

@@ -2,12 +2,15 @@ package setup
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/engine"
+	"github.com/Evimore/carryon/internal/restore"
 	"github.com/Evimore/carryon/internal/ui"
 )
 
@@ -15,9 +18,19 @@ import (
 // which starts with a letter or digit.
 const noSettings = "-"
 
+// How a machine joining a repository is restored (init --connect --restore).
+const (
+	// RestoreNow: everything at once with carryon restore. Backups pause until it's done.
+	RestoreNow = "now"
+	// RestoreAsYouGo: each app's settings are offered when it gets installed. Backups start at once.
+	RestoreAsYouGo = "as-you-go"
+)
+
 // Connect joins this machine to an existing repository at url, typically on a fresh install that
-// is about to be restored. It can reuse one machine's settings from its newest backup, and pauses
-// automatic backups until `carryon restore` finishes.
+// is about to be restored. It can reuse one machine's settings from its newest backup. Restoring
+// everything now pauses automatic backups until `carryon restore` finishes; restoring as you go
+// keeps that machine's record, so installing an app offers its saved settings, and backups start
+// at once.
 func (e *Env) Connect(ctx context.Context, url string, o Options) error {
 	if err := e.checkRestic(ctx); err != nil {
 		return err
@@ -68,6 +81,10 @@ func (e *Env) Connect(ctx context.Context, url string, o Options) error {
 	if err != nil {
 		return err
 	}
+	mode, err := e.chooseRestoreMode(o.Restore, from)
+	if err != nil {
+		return err
+	}
 	if o.RcloneUser == "" && cfg.Repository.RcloneUser != "" && strings.HasPrefix(url, "rclone:") {
 		rcloneUser = cfg.Repository.RcloneUser
 	}
@@ -87,13 +104,33 @@ func (e *Env) Connect(ctx context.Context, url string, o Options) error {
 	if err := files.write(e, from.Name); err != nil {
 		return err
 	}
-	// Pause backups before the timers can start one: a half-restored system must never become
-	// the newest backup.
-	if err := e.setRestoring(); err != nil {
-		return err
+	var replaced *restore.KeptInfo
+	if mode == RestoreAsYouGo {
+		if replaced, err = e.keepSource(ctx, eng, from); err != nil {
+			e.Log.Warn("Restoring as you go can't start (%v), so backups pause until you restore everything with sudo carryon restore.", err)
+			mode = RestoreNow
+		}
+	}
+	if mode == RestoreNow {
+		// Pause backups before the timers can start one: a half-restored system must never
+		// become the newest backup.
+		if err := e.setRestoring(); err != nil {
+			return err
+		}
 	}
 	if err := e.finish(ctx, eng, cfg); err != nil {
 		return err
+	}
+	if replaced != nil && replaced.Tagged {
+		if err := restore.Untag(ctx, eng, *replaced); err != nil {
+			e.Log.Warn("%v", err)
+		}
+	}
+	if mode == RestoreAsYouGo && name == from.Name {
+		// This machine's retention would one day forget the snapshot offers restore from.
+		if err := restore.TagSource(ctx, eng, e.Dirs.State); err != nil {
+			e.Log.Warn("%v", err)
+		}
 	}
 	if !KitConfirmed(e.Dirs) && sec.password != "" {
 		// Whoever typed the password in has it saved somewhere.
@@ -101,10 +138,71 @@ func (e *Env) Connect(ctx context.Context, url string, o Options) error {
 			return err
 		}
 	}
+	if mode == RestoreAsYouGo {
+		fmt.Fprintf(e.Out, "\nConnected to %s as %s. Automatic backups start now.\n", url, name)
+		fmt.Fprintf(e.Out, "As you install apps, Carryon offers their saved settings from %s: pacman's output says how\n", from.Name)
+		fmt.Fprintln(e.Out, "to restore them, and carryon inbox lists the offers. To restore everything at once instead:")
+		fmt.Fprintln(e.Out, "    sudo carryon restore")
+		return nil
+	}
 	fmt.Fprintf(e.Out, "\nConnected to %s as %s. Automatic backups are paused until the restore is done.\n", url, name)
 	fmt.Fprintln(e.Out, "Next, ideally from a text console (Ctrl+Alt+F3) while signed out of the desktop:")
 	fmt.Fprintln(e.Out, "    sudo carryon restore")
 	return nil
+}
+
+// chooseRestoreMode asks whether to restore everything now or as you go, or checks --restore.
+// Restoring as you go works from the machine whose settings are reused; without one, or without
+// a terminal, everything is restored now, as before.
+func (e *Env) chooseRestoreMode(given string, from Machine) (string, error) {
+	switch given {
+	case "", RestoreNow, RestoreAsYouGo:
+	default:
+		return "", fmt.Errorf("--restore %s: say %s or %s", given, RestoreNow, RestoreAsYouGo)
+	}
+	if from.Name == "" {
+		if given == RestoreAsYouGo {
+			return "", errors.New("--restore as-you-go restores from the machine whose settings you reuse: name it with --settings-from")
+		}
+		return RestoreNow, nil
+	}
+	if given != "" {
+		return given, nil
+	}
+	return e.Prompt.Menu(ui.Menu{
+		Title: "Restore everything now, or as you go?",
+		Text:  fmt.Sprintf("Carryon can restore everything from %s now, or offer each app's saved settings when you install it.", from.Name),
+		Options: []ui.Option{
+			{Value: RestoreNow, Label: "Everything now", Note: "backups pause until sudo carryon restore is done"},
+			{Value: RestoreAsYouGo, Label: "As you go", Note: "backups start now; installing an app offers its settings"},
+		},
+		Default: RestoreNow,
+		Flag:    "--restore",
+	})
+}
+
+// keepSource fetches the record from the newest backup of the machine whose settings are reused
+// and keeps it, for restoring as you go. A source kept before from another snapshot is replaced,
+// and its offers closed; replaced says what it was, so its tag can come off.
+func (e *Env) keepSource(ctx context.Context, eng *engine.Engine, from Machine) (replaced *restore.KeptInfo, err error) {
+	if err := os.MkdirAll(e.Dirs.State, 0o755); err != nil {
+		return nil, err
+	}
+	var where []string
+	for _, p := range e.recordMetaPaths() {
+		where = append(where, filepath.Dir(p))
+	}
+	src, err := restore.Fetch(ctx, eng, ui.Defaults{}, restore.FetchOptions{
+		From: from.Name, Snapshot: from.Snapshot, TempDir: e.Dirs.State, RecordPaths: where,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+	if replaced, err = restore.Keep(e.Dirs.State, src, nil, e.now()); err != nil || replaced == nil {
+		return nil, err
+	}
+	return replaced, restore.CloseOffers(e.Dirs, nil, true)
 }
 
 // connectPassword gets the password of the repository at url, from the flags or by asking, and

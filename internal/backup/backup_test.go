@@ -21,6 +21,7 @@ import (
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/pkgmgr"
+	"github.com/Evimore/carryon/internal/restore"
 	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/sysexec"
 )
@@ -454,6 +455,30 @@ func TestKeepArgs(t *testing.T) {
 	}
 	if got := keepArgs(config.Retention{}); got != nil {
 		t.Errorf("no retention: %q", got)
+	}
+}
+
+// Retention never forgets the snapshot restoring as you go works from.
+func TestRetentionKeepsTheTaggedSource(t *testing.T) {
+	env := newEnv(t)
+	ctx := context.Background()
+	opt := env.options()
+	opt.Config.Retention = config.Retention{KeepDaily: 1}
+	if _, err := Run(ctx, opt); err != nil {
+		t.Fatal(err)
+	}
+	first := env.snapshots()[0]
+	if r, err := env.e.Run(ctx, "tag", "--add", restore.SourceTag, first.ID); err != nil || r.Err() != nil {
+		t.Fatalf("tagging: %v %v", err, r.Err())
+	}
+	for range 2 {
+		if _, err := Run(ctx, opt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	snaps := env.snapshots()
+	if len(snaps) != 2 || !slices.Contains(snaps[0].Tags, restore.SourceTag) {
+		t.Errorf("snapshots after retention: %+v", snaps)
 	}
 }
 

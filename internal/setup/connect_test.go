@@ -5,10 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/Evimore/carryon/internal/config"
+	"github.com/Evimore/carryon/internal/restore"
 	"github.com/Evimore/carryon/internal/state"
 	"github.com/Evimore/carryon/internal/ui"
 )
@@ -29,12 +31,14 @@ func (h *harness) desktopSettings(fingerprint string) {
 	}
 	d := h.env.Dirs
 	h.backup(e, "desktop", []string{"carryon"}, map[string]string{
-		d.ConfigFile():                            string(text),
-		d.ExcludesFile():                          "# mine\n/home/*/Videos\n",
-		d.BundlesFile():                           "put gaming pkg steam\n",
-		d.PasswordFile():                          "the other machine's password\n",
-		state.DestinationPath(d):                  `{"mount_point":"/mnt/other","repo_id":"other"}`,
-		filepath.Join(d.RecordDir(), "meta.json"): meta(fingerprint),
+		d.ConfigFile():                               string(text),
+		d.ExcludesFile():                             "# mine\n/home/*/Videos\n",
+		d.BundlesFile():                              "put gaming pkg steam\n",
+		d.PasswordFile():                             "the other machine's password\n",
+		state.DestinationPath(d):                     `{"mount_point":"/mnt/other","repo_id":"other"}`,
+		filepath.Join(d.RecordDir(), "meta.json"):    meta(fingerprint),
+		filepath.Join(d.RecordDir(), "items.jsonl"):  `{"bundle": "app-obs-studio", "id": "obs-studio", "type": "pkg"}` + "\n",
+		filepath.Join(d.RecordDir(), "bundles.json"): `{"app-obs-studio": {"title": "OBS Studio", "when": "always"}}`,
 	})
 }
 
@@ -44,6 +48,7 @@ func TestConnectOnAReinstalledMachine(t *testing.T) {
 		testPassword,  // repository password
 		ui.UseDefault, // reuse settings of: this machine
 		ui.UseDefault, // machine name: the one it had
+		ui.UseDefault, // restore: everything now
 	)
 	h.desktopSettings(testFingerprint)
 	h.env.Hostname = func() (string, error) { return "archlinux", nil } // a fresh install's default
@@ -94,7 +99,7 @@ func TestConnectOnAReinstalledMachine(t *testing.T) {
 
 func TestConnectAnotherMachine(t *testing.T) {
 	t.Parallel()
-	h := newHarness(t, testPassword, "desktop", ui.UseDefault)
+	h := newHarness(t, testPassword, "desktop", ui.UseDefault, ui.UseDefault)
 	h.desktopSettings("fedcba9876543210")
 	h.env.Hostname = func() (string, error) { return "laptop", nil }
 	if err := h.env.Connect(context.Background(), h.repo, Options{}); err != nil {
@@ -172,7 +177,7 @@ func TestConnectNeedsARepository(t *testing.T) {
 
 func TestConnectKeepsReplacedFiles(t *testing.T) {
 	t.Parallel()
-	h := newHarness(t, testPassword, ui.UseDefault, ui.UseDefault)
+	h := newHarness(t, testPassword, ui.UseDefault, ui.UseDefault, ui.UseDefault)
 	h.desktopSettings(testFingerprint)
 	h.writeFile(h.env.Dirs.ExcludesFile(), "/home/*/mine\n", 0o644)
 	if err := h.env.Connect(context.Background(), h.repo, Options{}); err != nil {
@@ -180,6 +185,102 @@ func TestConnectKeepsReplacedFiles(t *testing.T) {
 	}
 	if got := h.readFile(h.env.Dirs.ExcludesFile() + ".before-desktop"); got != "/home/*/mine\n" {
 		t.Errorf("kept %q", got)
+	}
+}
+
+func TestConnectAsYouGo(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t,
+		testPassword,   // repository password
+		ui.UseDefault,  // reuse settings of: this machine
+		ui.UseDefault,  // machine name: the one it had, so its snapshot gets tagged
+		RestoreAsYouGo, // restore as you go
+	)
+	h.desktopSettings(testFingerprint)
+	if err := h.env.Connect(context.Background(), h.repo, Options{}); err != nil {
+		t.Fatalf("Connect: %v\n%s", err, h.log)
+	}
+	h.wantNoAnswersLeft()
+	d := h.env.Dirs
+	if h.exists(d.RestoringFlag()) {
+		t.Error("restoring as you go paused backups")
+	}
+	src, kept, err := restore.OpenKept(d.State)
+	if err != nil {
+		t.Fatalf("no kept source: %v\n%s", err, h.log)
+	}
+	if _, ok := src.Record.Bundles.Get("app-obs-studio"); !ok || kept.Machine != "desktop" || !kept.Tagged {
+		t.Errorf("kept %+v with bundles %+v", kept, src.Record.Bundles)
+	}
+	if mode := h.mode(restore.KeptDir(d.State)); mode.Perm() != 0o700 {
+		t.Errorf("the kept record's folder has mode %v", mode)
+	}
+	// The kept snapshot is the tagged one: tagging gave it a new ID.
+	e := h.engineFor(h.repo, testPassword, "desktop")
+	snaps, err := e.Snapshots(context.Background(), "desktop")
+	if err != nil || len(snaps) != 1 || snaps[0].ID != kept.Snapshot.ID || !slices.Contains(snaps[0].Tags, restore.SourceTag) {
+		t.Errorf("snapshots %+v (%v), kept %s", snaps, err, kept.Snapshot.ID)
+	}
+	if out := h.out.String(); !strings.Contains(out, "Automatic backups start now.") || !strings.Contains(out, "offers their saved settings from desktop") {
+		t.Errorf("output:\n%s", out)
+	}
+}
+
+// Under another name, this machine's retention never touches the source's snapshots: no tag.
+func TestConnectAsYouGoFromAnotherMachine(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t, testPassword, "desktop", ui.UseDefault)
+	h.desktopSettings("fedcba9876543210")
+	h.env.Hostname = func() (string, error) { return "laptop", nil }
+	if err := h.env.Connect(context.Background(), h.repo, Options{Restore: RestoreAsYouGo}); err != nil {
+		t.Fatalf("Connect: %v\n%s", err, h.log)
+	}
+	h.wantNoAnswersLeft()
+	if _, kept, err := restore.OpenKept(h.env.Dirs.State); err != nil || kept.Tagged || kept.Machine != "desktop" {
+		t.Errorf("kept %+v: %v", kept, err)
+	}
+	if h.exists(h.env.Dirs.RestoringFlag()) {
+		t.Error("restoring as you go paused backups")
+	}
+}
+
+// Without a terminal, connecting restores everything now, as before.
+func TestConnectWithoutATerminalRestoresNow(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t)
+	h.env.Prompt = ui.Defaults{}
+	h.desktopSettings(testFingerprint)
+	pwFile := filepath.Join(h.tmp, "pw")
+	h.writeFile(pwFile, testPassword+"\n", 0o600)
+	if err := h.env.Connect(context.Background(), h.repo, Options{PasswordFile: pwFile}); err != nil {
+		t.Fatalf("Connect: %v\n%s", err, h.log)
+	}
+	if !h.exists(h.env.Dirs.RestoringFlag()) || restore.HasKept(h.env.Dirs.State) {
+		t.Error("connecting without a terminal didn't pause backups for a full restore")
+	}
+}
+
+func TestConnectAsYouGoNeedsASourceMachine(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t)
+	h.env.Prompt = ui.Defaults{}
+	h.desktopSettings(testFingerprint)
+	pwFile := filepath.Join(h.tmp, "pw")
+	h.writeFile(pwFile, testPassword+"\n", 0o600)
+	for _, c := range []struct {
+		opt  Options
+		want string
+	}{
+		{Options{PasswordFile: pwFile, SettingsFrom: "none", Restore: RestoreAsYouGo}, "--settings-from"},
+		{Options{PasswordFile: pwFile, Restore: "later"}, "say now or as-you-go"},
+	} {
+		err := h.env.Connect(context.Background(), h.repo, c.opt)
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%+v: err = %v", c.opt, err)
+		}
+	}
+	if h.exists(h.env.Dirs.ConfigFile()) {
+		t.Error("a refused connect wrote the settings")
 	}
 }
 

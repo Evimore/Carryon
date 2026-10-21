@@ -84,6 +84,15 @@ func TestHookNeverFailsOrBlocks(t *testing.T) {
 		"output broken": {
 			Refresh: func(context.Context) ([]string, error) { return nil, errors.New("x") },
 		},
+		"offer fails": {
+			Offer: func(context.Context) ([]string, error) { return nil, errors.New("the inbox is busy") },
+		},
+		"offer panics": {
+			Offer: func(context.Context) ([]string, error) { panic("index out of range") },
+		},
+		"offer hangs, ignoring its context": {
+			Offer: func(context.Context) ([]string, error) { <-block; return nil, nil },
+		},
 		"scan hangs, ignoring its context": {
 			Scan:     func(context.Context, []string) (Outcome, error) { <-block; return Outcome{}, nil },
 			Packages: []string{"jellyfin-server"},

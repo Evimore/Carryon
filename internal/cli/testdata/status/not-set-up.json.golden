@@ -5,7 +5,8 @@
   "problems": [
     {
       "text": "Backups aren't set up on this machine yet.",
-      "fix": "Set them up with: sudo carryon init"
+      "fix": "Set them up with: sudo carryon init",
+      "kind": "not_set_up"
     }
   ],
   "updated": null,

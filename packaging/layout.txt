@@ -1,7 +1,8 @@
 # The files a Carryon package installs, relative to /. Matches docs/design.md, "Install layout".
 # packaging/check-layout.sh compares an installed file list with this one. Shell patterns are
-# allowed; the units in dist/systemd/ and the catalog's *.toml files are added from the source tree,
-# one entry each, so a file that isn't installed is caught.
+# allowed; the system units in dist/systemd/, the user units in dist/systemd-user/ and the catalog's
+# *.toml files are added from the source tree, one entry each, so a file that isn't installed is
+# caught.
 usr/bin/carryon
 usr/share/libalpm/hooks/carryon.hook
 usr/share/carryon/excludes.default

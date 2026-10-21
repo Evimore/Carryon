@@ -340,7 +340,7 @@ T25 login message ────────────────────�
 - **Done when:** `systemd-analyze verify` passes on the new units in CI, an unknown or path-like
   instance name is refused, and the layout check passes.
 
-### T27 User agent ⬜
+### T27 User agent ✅
 - **Packages:** a new `internal/agent`, `carryon agent`, `dist/` (the user unit).
 - **Scope:** `carryon-agent.service`, a user unit `carryon init` enables for every user, runs
   `carryon agent`, which refuses to run as root. It watches `status.json` and the inbox and shows
@@ -358,6 +358,12 @@ T25 login message ────────────────────�
 - **Legacy:** `cmd_notify`, the plain notification the agent improves on.
 - **Done when:** against a fake notification service on a private bus, each event shows once with
   the right buttons, and each button starts the right unit.
+- **Done:** all of it, on a private bus in the tests. The agent runs with the desktop session
+  (`graphical-session.target`), polls the files every 5 seconds instead of watching them, and also
+  says when the newest backup is too old. A restore offer lists what it would change (T23's
+  `state.Entry.Changes`), and a renewed offer, whose plan changed, shows again. Problems carry a `kind` in
+  `carryon status --json`, which the agent reads. `carryon notify` leaves a user's desktop
+  notification to their agent only for failures in the run history, which the agent can see.
 
 ### T28 End-to-end tests for v0.2 ⬜
 - **Scope:** extend `test/e2e/`:

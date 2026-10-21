@@ -4,15 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/dest"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
@@ -56,7 +53,9 @@ the one set up with carryon init, and only reads: it never locks or writes the r
   format        1, the layout's version (fields are only ever added)
   state         "ok", "attention" or "not_set_up"
   summary       one line, like "Backed up 3 hours ago" or "Backup failed"
-  problems      what needs attention: {text, fix, details}
+  problems      what needs attention: {text, fix, details, kind}, kind being one of
+                backup_failed, backup_warnings, backup_old, check_failed, no_backup,
+                not_set_up, restoring, snapshots, stale
   machine       the name backups are stored under
   updated       when the status was written (null when there is none)
   stale         true when that is longer ago than verify.max_age_hours
@@ -109,38 +108,10 @@ Exit status with --json: 0 when everything is fine, 2 when something needs atten
 
 // statusInput gathers what carryon status shows. Without root it reads only world-readable files.
 func statusInput(ctx context.Context, dirs paths.Dirs, snapshots bool) (status.Input, error) {
-	in := status.Input{Now: statusNow(), RestoringFlag: dirs.RestoringFlag(), MaxAge: status.DefaultMaxAge}
-	s, err := state.ReadStatus(dirs)
-	switch {
-	case err == nil:
-		in.Status, in.Found = s, true
-	case errors.Is(err, fs.ErrNotExist):
-	default:
-		return in, fmt.Errorf("reading the status (%v): the next backup writes it again", err)
+	in, err := status.ReadInput(dirs, statusNow())
+	if err != nil {
+		return in, err
 	}
-	// The flags and the inbox may be newer than the status, or there may be no status yet: the pacman hook marks
-	// a backup owed without rewriting status.json, and init --connect sets the restoring flag on a
-	// machine that has never backed up.
-	if p, ok, err := state.ReadPending(dirs); err == nil {
-		in.Status.Pending = nil
-		if ok {
-			p.Since = p.Since.UTC()
-			in.Status.Pending = &p
-		}
-	}
-	in.Status.Restoring = state.Restoring(dirs)
-	in.Status.Inbox = state.InboxCount(dirs) // settling a suggestion doesn't rewrite status.json
-	if runs, err := state.ReadRuns(dirs); err == nil {
-		in.Runs = runs
-	}
-	_, err = state.ReadDestination(dirs)
-	in.NotSetUp = errors.Is(err, state.ErrNotSetUp)
-
-	cfg, _, cfgErr := config.Load(dirs.ConfigFile())
-	if cfgErr == nil && cfg.Verify.MaxAgeHours > 0 {
-		in.MaxAge = time.Duration(cfg.Verify.MaxAgeHours) * time.Hour
-	}
-
 	if geteuid() == 0 {
 		commits, err := record.History(ctx, dirs.RecordDir(), historyGit(), statusChanges)
 		switch {

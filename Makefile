@@ -38,6 +38,7 @@ DISTNAME   := carryon-$(VERSION)-linux-$(ARCH)
 
 BINDIR     := $(DESTDIR)$(PREFIX)/bin
 UNITDIR    := $(DESTDIR)$(PREFIX)/lib/systemd/system
+USERUNITDIR := $(DESTDIR)$(PREFIX)/lib/systemd/user
 HOOKDIR    := $(DESTDIR)$(PREFIX)/share/libalpm/hooks
 SHAREDIR   := $(DESTDIR)$(PREFIX)/share/carryon
 MANDIR     := $(DESTDIR)$(PREFIX)/share/man/man1
@@ -64,6 +65,7 @@ install:
 	@test -x $(BUILD)/carryon -a -f $(BUILD)/man/carryon.1 || { echo "Nothing to install yet: run make first." >&2; exit 1; }
 	install -Dm755 $(BUILD)/carryon -t $(BINDIR)
 	install -Dm644 dist/systemd/*.service dist/systemd/*.timer dist/systemd/*.path -t $(UNITDIR)
+	install -Dm644 dist/systemd-user/*.service -t $(USERUNITDIR)
 	install -Dm644 dist/pacman/carryon.hook -t $(HOOKDIR)
 	install -Dm644 catalog/excludes.default catalog/system-folders.txt -t $(SHAREDIR)
 	install -Dm644 catalog/*.toml -t $(SHAREDIR)/catalog
@@ -78,6 +80,7 @@ install:
 uninstall:
 	rm -f $(BINDIR)/carryon $(HOOKDIR)/carryon.hook $(MANDIR)/carryon.1
 	rm -f $(addprefix $(UNITDIR)/,$(notdir $(wildcard dist/systemd/*)))
+	rm -f $(addprefix $(USERUNITDIR)/,$(notdir $(wildcard dist/systemd-user/*)))
 	rm -f $(BASHDIR)/carryon $(ZSHDIR)/_carryon $(FISHDIR)/carryon.fish
 	rm -rf $(SHAREDIR) $(LICENSEDIR) $(DOCDIR)
 

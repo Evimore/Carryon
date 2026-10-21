@@ -74,6 +74,7 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newResticCmd(dirs),
 		newRcloneShimCmd(),
 		newNotifyCmd(dirs),
+		newAgentCmd(dirs),
 	)
 	for _, s := range plannedCommands {
 		root.AddCommand(s.command())
@@ -99,9 +100,7 @@ type planned struct {
 	hidden           bool
 }
 
-var plannedCommands = []planned{
-	{use: "agent", short: "Run the per-user notification agent", task: "T27", hidden: true},
-}
+var plannedCommands = []planned{}
 
 func (p planned) command() *cobra.Command {
 	return &cobra.Command{

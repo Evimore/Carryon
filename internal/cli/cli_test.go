@@ -69,8 +69,9 @@ func TestConfigCheck(t *testing.T) {
 }
 
 func TestPlannedCommandsSayWhenTheyArrive(t *testing.T) {
-	_, err := run(t, paths.Dirs{}, "agent")
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet (roadmap: T27)") {
+	cmd := planned{use: "tray", short: "Show the tray icon", task: "T99", hidden: true}.command()
+	err := cmd.RunE(cmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "carryon tray is not implemented yet (roadmap: T99)") {
 		t.Fatalf("err = %v", err)
 	}
 }

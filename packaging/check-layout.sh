@@ -16,6 +16,9 @@ done <"$src/packaging/layout.txt"
 for f in "$src"/dist/systemd/*; do
   expected+=("usr/lib/systemd/system/${f##*/}")
 done
+for f in "$src"/dist/systemd-user/*; do
+  expected+=("usr/lib/systemd/user/${f##*/}")
+done
 for f in "$src"/catalog/*.toml; do
   expected+=("usr/share/carryon/catalog/${f##*/}")
 done

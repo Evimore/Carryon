@@ -1,0 +1,18 @@
+# The user agent: desktop notifications about backups, with buttons. A user unit: carryon init
+# switches it on for every user (systemctl --global enable), and it runs in each desktop session.
+# Without it, root's carryon-notify@.service still sends a plain notification.
+[Unit]
+Description=Carryon: desktop notifications about your backups
+Documentation=https://github.com/Evimore/carryon
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionUser=!root
+
+[Service]
+ExecStart=/usr/bin/carryon agent
+Restart=on-failure
+RestartSec=30s
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=graphical-session.target

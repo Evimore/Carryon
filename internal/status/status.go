@@ -86,11 +86,26 @@ func ByMachine(snaps []engine.Snapshot) []Machine {
 	return out
 }
 
+// What a problem is about, for Problem.Kind, so the user agent can tell them apart without reading
+// their text.
+const (
+	ProblemNotSetUp       = "not_set_up"      // init hasn't run
+	ProblemRestoring      = "restoring"       // automatic backups are paused for a restore
+	ProblemNoBackup       = "no_backup"       // no backup has run or finished yet
+	ProblemBackupFailed   = "backup_failed"   // the last backup failed: LastBackup
+	ProblemBackupWarnings = "backup_warnings" // the last backup had warnings: LastBackup
+	ProblemBackupOld      = "backup_old"      // the newest backup is too old: LastSuccess
+	ProblemCheckFailed    = "check_failed"    // the last check found problems: LastCheck
+	ProblemSnapshots      = "snapshots"       // the snapshot list couldn't be read
+	ProblemStale          = "stale"           // status.json is old, so the timer may not run
+)
+
 // Problem is something that needs the user's attention.
 type Problem struct {
 	Text    string   `json:"text"`
 	Fix     string   `json:"fix,omitempty"`     // what to do about it
 	Details []string `json:"details,omitempty"` // the warnings, for a backup that had some
+	Kind    string   `json:"kind"`              // what it is about: ProblemBackupFailed...
 }
 
 // Report is the status as `carryon status --json` prints it. The field names are stable.
@@ -155,7 +170,7 @@ func Build(in Input) Report {
 		r.State = StateNotSetUp
 		r.Summary = "Backups aren't set up"
 		r.login = "backups aren't set up on this machine"
-		r.add(Problem{Text: "Backups aren't set up on this machine yet.", Fix: "Set them up with: sudo carryon init"})
+		r.add(Problem{Kind: ProblemNotSetUp, Text: "Backups aren't set up on this machine yet.", Fix: "Set them up with: sudo carryon init"})
 		if !in.Found {
 			return r
 		}
@@ -165,11 +180,12 @@ func Build(in Input) Report {
 		if in.RestoringFlag != "" {
 			fix += " If no restore is running, resume them with: sudo rm " + in.RestoringFlag
 		}
-		r.add(Problem{Text: "Automatic backups are paused while a restore is in progress.", Fix: fix})
+		r.add(Problem{Kind: ProblemRestoring, Text: "Automatic backups are paused while a restore is in progress.", Fix: fix})
 		r.summary("Backups paused for a restore", "automatic backups are paused for a restore")
 	}
 	if !in.Found {
 		r.add(Problem{
+			Kind: ProblemNoBackup,
 			Text: "No backup has run yet, so there is no status to show.",
 			Fix:  "The first one runs at the next scheduled time; to run it now: sudo carryon backup",
 		})
@@ -184,10 +200,11 @@ func Build(in Input) Report {
 			if fix == "" {
 				fix = "Run the backup by hand to see the whole error: sudo carryon backup"
 			}
-			r.add(Problem{Text: "The last backup failed: " + orDefault(b.Error, "no reason was recorded."), Fix: fix})
+			r.add(Problem{Kind: ProblemBackupFailed, Text: "The last backup failed: " + orDefault(b.Error, "no reason was recorded."), Fix: fix})
 			r.summary("Backup failed", "the last backup failed ("+r.when(b.End)+")")
 		case state.ResultWarning:
 			r.add(Problem{
+				Kind:    ProblemBackupWarnings,
 				Text:    fmt.Sprintf("The last backup finished with %s:", plural(len(b.Warnings), "warning")),
 				Details: b.Warnings,
 			})
@@ -196,7 +213,7 @@ func Build(in Input) Report {
 	}
 	switch {
 	case r.LastSuccess == nil:
-		r.add(Problem{Text: "No backup has finished yet.", Fix: "Run one now with: sudo carryon backup"})
+		r.add(Problem{Kind: ProblemNoBackup, Text: "No backup has finished yet.", Fix: "Run one now with: sudo carryon backup"})
 		r.summary("No backup yet", "no backup has finished yet")
 	case in.Now.Sub(r.LastSuccess.End) > in.MaxAge:
 		age := in.Now.Sub(r.LastSuccess.End)
@@ -204,22 +221,24 @@ func Build(in Input) Report {
 		if b := r.LastBackup; b != nil && b.Result == state.ResultWaiting && b.Fix != "" {
 			fix = b.Fix
 		}
-		r.add(Problem{Text: fmt.Sprintf("The newest backup is %s old, more than the %s allowed.", Duration(age), Duration(in.MaxAge)), Fix: fix})
+		r.add(Problem{Kind: ProblemBackupOld, Text: fmt.Sprintf("The newest backup is %s old, more than the %s allowed.", Duration(age), Duration(in.MaxAge)), Fix: fix})
 		r.summary("Backup "+Duration(age)+" old", fmt.Sprintf("the newest backup is from %s, more than %s ago", r.when(r.LastSuccess.End), Duration(in.MaxAge)))
 	}
 	if c := r.LastCheck; c != nil && c.Result == state.ResultFailed {
 		r.add(Problem{
+			Kind: ProblemCheckFailed,
 			Text: "The last check found problems: " + orDefault(c.Error, "no reason was recorded."),
 			Fix:  orDefault(c.Fix, "See them with: sudo carryon verify"),
 		})
 		r.summary("Check failed", "the last check found problems ("+r.when(c.End)+")")
 	}
 	if sn := r.Snapshots; sn != nil && sn.Error != "" {
-		r.add(Problem{Text: "Carryon didn't read the snapshots: " + sn.Error, Fix: sn.Fix})
+		r.add(Problem{Kind: ProblemSnapshots, Text: "Carryon didn't read the snapshots: " + sn.Error, Fix: sn.Fix})
 		r.summary("Snapshots not read", "the snapshots couldn't be read")
 	}
 	if r.Stale {
 		r.add(Problem{
+			Kind: ProblemStale,
 			Text: fmt.Sprintf("The status was last written %s ago, so it may be out of date.", Duration(in.Now.Sub(s.Updated))),
 			Fix:  "Check that the backup timer runs: systemctl status carryon-backup.timer",
 		})

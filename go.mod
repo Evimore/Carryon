@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/charmbracelet/x/term v0.2.1
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/spf13/cobra v1.10.2
 )
 

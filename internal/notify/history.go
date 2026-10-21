@@ -35,6 +35,12 @@ func (h RunHistory) LastError(ctx context.Context, unit string) (string, error) 
 	return h.Fallback.LastError(ctx, unit)
 }
 
+// Recorded reports whether the unit's latest run failed and is in the run history, and so in
+// status.json, where the user agent finds it.
+func (h RunHistory) Recorded(ctx context.Context, unit string) bool {
+	return h.fromHistory(ctx, unit) != ""
+}
+
 func (h RunHistory) fromHistory(ctx context.Context, unit string) string {
 	runs, err := state.ReadRuns(h.Dirs)
 	if err != nil || len(runs) == 0 {

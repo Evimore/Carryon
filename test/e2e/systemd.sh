@@ -31,6 +31,10 @@ for t in carryon-backup.timer carryon-verify.timer carryon-settle.timer carryon-
 	expect_eq "$t active" active "$(systemctl is-active "$t" 2>&1 || true)"
 done
 systemctl list-timers --all --no-pager 'carryon-*' | sed 's/^/    | /'
+# The user agent is a user unit: no user manager runs here, so systemd-analyze gets a runtime folder
+# of its own.
+run_logged analyze-user env XDG_RUNTIME_DIR="$(mktemp -d)" systemd-analyze --user verify /usr/lib/systemd/user/carryon-agent.service
+expect_eq "carryon-agent.service enabled for every user" enabled "$(systemctl --global is-enabled carryon-agent.service 2>&1 || true)"
 
 step "carryon-backup.service backs up and records the run"
 before=$(runs)

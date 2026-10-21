@@ -132,7 +132,8 @@ func (h *harness) mounts(lines ...string) {
 	h.writeFile(filepath.Join(h.root, dest.MountinfoPath), strings.Join(lines, "\n")+"\n", 0o644)
 }
 
-// timers makes the fake systemctl answer daemon-reload and enabling Carryon's timers with code.
+// timers makes the fake systemctl answer daemon-reload and enabling Carryon's timers and the user
+// agent with code.
 func (h *harness) timers(code int) {
 	h.fake.On("systemctl daemon-reload", sysexec.Response{})
 	for _, t := range Timers {
@@ -142,6 +143,11 @@ func (h *harness) timers(code int) {
 		}
 		h.fake.On("systemctl enable --now "+t, r)
 	}
+	r := sysexec.Response{Code: code}
+	if code != 0 {
+		r.Stderr = "Failed to enable unit: Unit file " + AgentUnit + " does not exist."
+	}
+	h.fake.On("systemctl --global enable "+AgentUnit, r)
 }
 
 func (h *harness) mkdir(dir string) {

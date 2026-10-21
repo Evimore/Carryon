@@ -50,8 +50,9 @@ jobs:
     runs-on: ubuntu-24.04
     container: archlinux:latest
     steps:
-      - name: Install Go, git and restic
-        run: pacman -Syu --noconfirm --needed go git restic
+      - name: Install Go, git, restic and dbus
+        # dbus-daemon runs the private bus the user agent's tests use.
+        run: pacman -Syu --noconfirm --needed go git restic dbus
       - uses: actions/checkout@v4
       - name: Test
         run: go test ./...

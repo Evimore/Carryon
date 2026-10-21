@@ -233,7 +233,7 @@ func TestParseSessionsWithoutBlankLines(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v", got)
 	}
-	if covered([]string{"*"}, "bob", -1) {
+	if Covered([]string{"*"}, "bob", -1) {
 		t.Error("a session without a user ID is covered")
 	}
 }
@@ -261,4 +261,48 @@ func TestUserSettings(t *testing.T) {
 	if n, err := UserSettings(u); err == nil || !n.Desktop {
 		t.Errorf("a broken file must not silence alerts: %+v, %v", n, err)
 	}
+}
+
+// A user whose agent runs gets the agent's notification, not a second one from root.
+func TestDesktopLeavesItToTheAgent(t *testing.T) {
+	m := Message{Title: "Backup failed", Body: "boom", Urgency: Critical}
+	isActive := func(name string, uid int) string {
+		return asUser(name, uid, "systemctl", "--user", "is-active", "--quiet", AgentUnit)
+	}
+	f := sessionsFake().
+		On(isActive("alice", 1000), sysexec.Response{}).
+		On(isActive("bob", 1001), sysexec.Response{Code: 3, Stdout: "inactive"}).
+		On(notifySend("bob", 1001, m), sysexec.Response{})
+	d := Desktop{
+		Runner: f, Users: []string{"alice", "bob"}, Euid: 0, Path: "/usr/bin", LookupUser: homes, Settings: settingsOff(),
+		AgentRuns: AgentActive(f, 0, "/usr/bin"),
+	}
+	to, err := d.Send(context.Background(), m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if to != "alice (left to the agent), bob" {
+		t.Errorf("to = %q", to)
+	}
+	for _, c := range f.Commands() {
+		if strings.Contains(c, "notify-send") && strings.Contains(c, "alice") {
+			t.Errorf("root notified alice too: %q", c)
+		}
+	}
+
+	t.Run("only agents", func(t *testing.T) {
+		d.Users = []string{"alice"}
+		if to, err := d.Send(context.Background(), m); err != nil || to != "alice (left to the agent)" {
+			t.Errorf("to = %q, err = %v", to, err)
+		}
+	})
+	t.Run("not root: only your own agent", func(t *testing.T) {
+		f := &sysexec.Fake{}
+		if AgentActive(f, 1001, "")(context.Background(), sysexec.User{Name: "alice", UID: 1000, Home: "/home/alice"}) {
+			t.Error("another user's agent counted")
+		}
+		if len(f.Calls()) != 0 {
+			t.Errorf("ran %q", f.Commands())
+		}
+	})
 }

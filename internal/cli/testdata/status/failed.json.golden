@@ -5,11 +5,13 @@
   "problems": [
     {
       "text": "The last backup failed: Fatal: unable to open the repository at sftp:alice@example.com:/backups: ssh: connection refused",
-      "fix": "Check that example.com is reachable, then run: sudo carryon backup"
+      "fix": "Check that example.com is reachable, then run: sudo carryon backup",
+      "kind": "backup_failed"
     },
     {
       "text": "The last check found problems: 2 packages can't be reinstalled from any repository.",
-      "fix": "See them with: sudo carryon verify"
+      "fix": "See them with: sudo carryon verify",
+      "kind": "check_failed"
     }
   ],
   "machine": "desktop",

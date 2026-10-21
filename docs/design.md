@@ -293,7 +293,7 @@ silently goes wrong:
 | `carryon-notify@.service` | `OnFailure=` of the others: alerts the user. |
 | `carryon-restore@.service` | **New:** restores one app's offered settings (`carryon restore --offered --bundle %i`), see [as you go](#as-you-go). |
 | `carryon-flatpak.path` / `.service` | **New:** when system-wide Flatpak apps change (`/var/lib/flatpak/app`), refreshes the record with `carryon capture --quick`, as the hook does for packages. |
-| `carryon-agent.service` (user unit) | **New:** the user's notifications, and later the tray icon. |
+| `carryon-agent.service` (user unit) | **New:** the user's notifications with buttons, and later the tray icon. Runs in each desktop session (`graphical-session.target`). |
 | `/usr/share/libalpm/hooks/carryon.hook` | After every install, upgrade or removal: quick capture, write the pending marker, offer saved settings of apps just installed, print hints. Never fails or blocks the transaction. |
 
 - **One backup at a time:** a lock in the state folder. A scheduled or settle run that finds
@@ -339,7 +339,8 @@ silently goes wrong:
   error lines through every channel in `[notify]`. **Generalized:** the prototype alerted one user;
   Carryon alerts every user with an open graphical session who is in `backup.users` and hasn't
   switched desktop notifications off in their own settings, running `notify-send` (or `busctl` without
-  libnotify) as that user. **Generalized:** the prototype's "iCloud signed you out" check works for any
+  libnotify) as that user. A user whose agent runs gets the agent's notification instead, with
+  buttons (see [interfaces](#interfaces)). **Generalized:** the prototype's "iCloud signed you out" check works for any
   `rclone:` remote and names it with the reconnect command, without probing a fixed website first.
   **New:** ntfy and webhook alerts, with passwords, keys and `user:password@` hidden before anything
   leaves the machine, and `carryon notify --test` to try every channel. With a missing or broken
@@ -686,7 +687,58 @@ Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-sh
 - **Terminal UI** (Bubble Tea) for `init`, the restore checklist and the inbox. Every prompt has a
   flag, so everything also works without a terminal.
 - **Notifications** come from the user agent over D-Bus, with action buttons. When no agent runs, the
-  root service falls back to a plain notification in the user's session.
+  root service falls back to a plain notification in the user's session. **New**, and below.
+
+**The user agent** is `carryon agent`, run by `carryon-agent.service`, a user unit `carryon init`
+switches on for every user (`systemctl --global enable`). It starts with the desktop session
+(`graphical-session.target`), so a console or SSH login doesn't start it, and a window manager that
+doesn't reach that target simply keeps root's plain notifications. It refuses to run as root.
+
+- **What it shows,** each once, through `org.freedesktop.Notifications`:
+
+  | Event | Buttons | Starts |
+  |---|---|---|
+  | The last backup failed | **Back up now** | `carryon-backup.service` |
+  | The newest backup is older than `verify.max_age_hours` (not while a failure says it already) | **Back up now** | `carryon-backup.service` |
+  | The last check found problems | none: the body says what to do | |
+  | A suggested folder (inbox `path`) | **Back it up**, **Ignore** | `carryon-add@<entry>.service`, `carryon-ignore@<entry>.service` |
+  | Saved settings to restore (inbox `restore`) | **Restore**, **Not now** | `carryon-restore@<bundle>.service` |
+
+  Problems come from the same rules as `carryon status` (`internal/status`), so the two never
+  disagree. Backups with warnings, an old summary and a paused backup show in `carryon status` and
+  the login message only: they don't need a decision now. An instance name is an inbox entry ID or a
+  bundle ID, checked before it is used, never a path; a bundle ID's `+` or `@` is escaped as
+  `systemd-escape` does (`carryon-restore@app-gtk\x2b.service`). A service without buttons gets the command to
+  run instead (`sudo carryon add path-3fa9c2d1e0`), and a body that may hold markup is escaped.
+- **Buttons** run `systemctl start --no-block` as the user, which polkit allows or asks a password
+  for (T26). When that fails, a notification says why and what to run by hand. **Not now** only
+  closes the offer: it stays in `carryon inbox`, and isn't shown again.
+- **What a restore changes:** the offer lists its `changes` lines from the inbox (places and
+  counts, never file contents). When the plan changed and the offer was renewed with new lines,
+  it is a new event and shows again, so the user sees the plan **Restore** will apply.
+- **Restoring an app that runs:** the agent runs as the user, so it sees their processes: the
+  programs the app's package installs (`pacman -Qlq`) or one named like it. The offer says to close
+  the app first, and **Restore** checks again: while the app runs, it shows a warning with
+  **Restore** and **Not now** instead of starting anything.
+- **Once, across restarts:** what was shown is kept in `~/.local/state/carryon/agent.json`
+  (`$XDG_STATE_HOME/carryon` when that is inside the home), readable by the user only. An event is
+  a run's end time or an entry's ID (with its changes, for a restore offer), so the next night's
+  failure shows again; events that are over
+  are forgotten, but only when both files could be read. Nothing counts as shown until the
+  notification service took it, so a desktop that isn't ready yet gets it a minute later.
+- **Settings:** the user's own `notify.desktop = false` (`~/.config/carryon/config.toml`) shows
+  nothing and remembers nothing, so switching it back on shows what still needs attention; users
+  `backup.users` leaves out get nothing, as from root. Both are read again whenever they change.
+- **Watching:** it looks at `status.json` (both copies), the inbox, the flags and both settings
+  files every 5 seconds, and decides again at least every 10 minutes, since a backup grows too old
+  without any file changing. A few `stat` calls every 5 seconds cost nothing, need no inotify, and
+  find files that don't exist yet, like `/run/carryon` after a reboot.
+- **Not twice:** `carryon notify` asks each user's own service manager, as that user, whether their
+  agent runs (`systemctl --user is-active carryon-agent.service`), and leaves those users' desktop
+  notification to it, but only for a failure in the run history, since that is in `status.json`,
+  where the agent finds it. A run that crashed before recording itself still gets root's plain
+  notification. ntfy and webhooks are unchanged. The answer only decides who shows a user their
+  own notification: faking it can only silence root's notification to that same user.
 - **Tray icon** (v0.3), a StatusNotifierItem over D-Bus. KDE and most bars show it; GNOME needs the
   AppIndicator extension.
 - **No desktop:** hints in pacman's output, `carryon status`, a one-line login message when
@@ -698,8 +750,8 @@ Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-sh
 |---|---|---|---|
 | Backup, verify, settle, restore | root (systemd or `sudo`) | everything backed up | record, state, repository |
 | pacman hook | root, inside pacman | package lists, the kept record | pending marker, inbox, offers' fingerprints, hints on stdout |
-| Agent | the user | `status.json`, inbox | nothing outside the user's home |
-| Actions from the agent (Back up now, Restore bundle) | root, via polkit-allowed `systemctl start` of specific units | | |
+| Agent | the user | `status.json`, inbox, flags, `config.toml`, the user's own settings, the user's own processes | `~/.local/state/carryon/agent.json`, nothing outside the user's home |
+| Actions from the agent (Back up now, Back it up, Ignore, Restore) | root, via polkit-allowed `systemctl start` of specific units, named by an entry or bundle ID | the inbox, to check the ID | |
 
 - `/etc/carryon/repository-password`, `/var/lib/carryon/record/` and `/var/lib/carryon/source/` (the
   kept record and the offers' fingerprints) are root-only.
@@ -767,7 +819,7 @@ internal/notify/      desktop and push notifications
 internal/agent/       the per-user agent
 catalog/              app definitions (TOML)
 internal/tools/gendocs/  man page and shell completions, generated at build time
-dist/                 systemd units, pacman hook, polkit rules
+dist/                 systemd units (system, and the user agent's), pacman hook, polkit rules
 packaging/            PKGBUILDs (aur/), the install layout check
 ```
 
@@ -802,7 +854,8 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 
 `make install` lays out the `/usr` part; packages install nothing under `/etc` or `/var` and enable
 no units, `carryon init` does. `packaging/layout.txt` pins the list and CI checks it, on the release
-tarballs and on the installed pacman package too. The user agent and the polkit rules come with v0.2.
+tarballs and on the installed pacman package too. The user agent's unit lives in `dist/systemd-user/`,
+apart from the system units in `dist/systemd/`; the polkit rules come with T26.
 The binary is static and not a PIE, against the Arch Go guidelines: without cgo, a Go PIE needs the
 system's loader, and the same binary must run from the recovery kit anywhere. See
 [packaging.md](packaging.md).
@@ -811,6 +864,12 @@ system's loader, and the same binary must run from the recovery kit anywhere. Se
 
 - **Unit tests** use fakes: a fake package manager, a fake program runner, and temporary folders via
   `CARRYON_CONF_DIR`, `CARRYON_STATE_DIR` and `CARRYON_ROOT` (a fake filesystem root for capture).
+- **The user agent** is tested against a fake notification service on a private `dbus-daemon`
+  (skipped where `dbus-daemon` isn't installed): each event shows once, with the right buttons, also
+  after a restart, and each button starts the right unit through a fake `systemctl`. Its rules
+  (settings, retries, the app check on a fake `/proc`) are tested with a notification service in
+  memory. A real desktop session, polkit and the units behind the buttons are left for T28 and
+  real machines.
 - **Golden tests** pin the record format and prove prototype records (format 1) still load.
 - **End to end in CI** (`test/e2e/`, the "End-to-end" workflow): machine A, an Arch container, gets a
   few packages, changed and added system files, a service, two users with home files and an extra

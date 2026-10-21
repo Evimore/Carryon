@@ -15,6 +15,10 @@ import (
 // the watcher that refreshes the record when Flatpak apps change.
 var Timers = []string{"carryon-backup.timer", "carryon-verify.timer", "carryon-settle.timer", "carryon-flatpak.path"}
 
+// AgentUnit is the user unit init switches on for every user: carryon agent, the desktop
+// notifications with buttons. It starts with each user's desktop session.
+const AgentUnit = "carryon-agent.service"
+
 // scheduleDropIn is the drop-in that sets a timer's OnCalendar= from a config setting.
 func scheduleDropIn(setting, schedule, configFile string) []byte {
 	return fmt.Appendf(nil, `# Written by carryon init from %s in %s.
@@ -75,6 +79,23 @@ func (e *Env) installUnits(ctx context.Context, cfg config.Config) {
 	if len(missing) > 0 {
 		e.Log.Warn("%s %s not installed, so %s. Install Carryon from its package (it brings the units), then run: sudo systemctl enable --now %s",
 			strings.Join(missing, ", "), plural(len(missing), "is", "are"), whatStops(missing), strings.Join(missing, " "))
+	}
+	e.enableAgent(ctx, run)
+}
+
+// enableAgent switches the user agent on for every user (systemctl --global), so it starts with
+// each desktop session from the next login on. Without it, failures still arrive as plain
+// notifications from root.
+func (e *Env) enableAgent(ctx context.Context, run sysexec.Runner) {
+	enable := "sudo systemctl --global enable " + AgentUnit
+	_, err := run.Output(ctx, "systemctl", "--global", "enable", AgentUnit)
+	switch {
+	case err == nil:
+		e.Log.Info("Switched on %s for every user: desktop notifications with buttons start at their next login.", AgentUnit)
+	case strings.Contains(lastLine(err), "does not exist") || strings.Contains(lastLine(err), "not found"):
+		e.Log.Warn("%s isn't installed, so desktop notifications come without buttons. Install Carryon from its package (it brings the unit), then run: %s", AgentUnit, enable)
+	default:
+		e.Log.Warn("Couldn't switch on %s: %s\nFix that, then run: %s", AgentUnit, lastLine(err), enable)
 	}
 }
 

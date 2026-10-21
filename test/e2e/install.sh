@@ -6,6 +6,7 @@
 step "Installing Carryon"
 install -Dm755 /src/test/e2e/bin/carryon /usr/bin/carryon
 install -Dm644 -t /usr/lib/systemd/system /src/dist/systemd/*
+install -Dm644 -t /usr/lib/systemd/user /src/dist/systemd-user/*
 install -Dm644 /src/dist/pacman/carryon.hook /usr/share/libalpm/hooks/carryon.hook
 install -Dm644 -t /usr/share/carryon /src/catalog/excludes.default /src/catalog/system-folders.txt
 install -d /usr/share/carryon/catalog

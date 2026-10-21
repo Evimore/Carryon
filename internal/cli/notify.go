@@ -42,7 +42,8 @@ func newNotifyCmd(dirs paths.Dirs) *cobra.Command {
 		Short: "Tell the user a run failed",
 		Long: `Tells the user that a systemd unit failed, through every channel in the [notify] settings:
 a desktop notification for each signed-in user whose home is backed up, ntfy and a webhook.
-carryon-notify@.service runs it for OnFailure=.
+carryon-notify@.service runs it for OnFailure=. A user whose agent runs (carryon-agent.service)
+gets the agent's notification instead, with buttons, when the failure is in the run history.
 
 With --test, sends a test message through every channel and reports how each went, so you
 can check your setup: sudo carryon notify --test`,
@@ -64,13 +65,18 @@ can check your setup: sudo carryon notify --test`,
 			sys := notifySystem()
 			sys.Warn = log.Warn
 			sys.Secrets = append(sys.Secrets, repositorySecrets(cfg.Repository, dirs)...)
+			ctx, cancel := context.WithTimeout(cmd.Context(), notifyTimeout)
+			defer cancel()
+			// A failure in the run history is in status.json too, where each user's agent finds it
+			// and shows it with buttons; those users don't need root's plain notification as well.
+			if !test && (notify.RunHistory{Dirs: dirs, Runner: sys.Runner}).Recorded(ctx, args[0]) {
+				sys.AgentRuns = notify.AgentActive(sys.Runner, sys.Euid, sys.Path)
+			}
 			senders := notify.Channels(cfg, sys)
 			if len(senders) == 0 {
 				return notify.ErrNoChannel
 			}
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), notifyTimeout)
-			defer cancel()
 			host := machineName(cfg)
 			var msg notify.Message
 			if test {

@@ -2,8 +2,8 @@
 // signed-in user's session, a push through ntfy, or a webhook. It ports the prototype's cmd_notify
 // and last_error (legacy/sysbackup.py).
 //
-// The root service sends the desktop fallback; the v0.2 user agent will show richer notifications
-// with buttons over D-Bus. Every sender has short timeouts, so a notification never hangs the
+// The root service sends the desktop fallback; the user agent (internal/agent) shows richer
+// notifications with buttons over D-Bus, and carryon notify leaves a user's to it while it runs. Every sender has short timeouts, so a notification never hangs the
 // systemd unit that sends it, and text that leaves the machine is redacted first (see Redact).
 package notify
 

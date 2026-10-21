@@ -54,7 +54,7 @@ because that's the backend it was built and tested against.
 | `REDOWNLOAD_HINTS`, `steam_games`, `redownload_list`, `disk_usage`, `human` | `internal/catalog` |
 | `cmd_backup` | `internal/backup` |
 | `cmd_pacman_hook` | `internal/detect` |
-| `cmd_notify` | `internal/notify` |
+| `cmd_notify` | `internal/notify`; `internal/agent` shows it with buttons |
 | `cmd_status`, stamps | `internal/state` |
 | `Report`, `aur_info`, `repo_reachable`, `covered`, `cmd_verify`, `verify_cloud`, `finish` | `internal/verify` |
 | `checklist`, `item_picker`, `menu`, `confirm` | `internal/ui` (terminal UI) |

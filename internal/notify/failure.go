@@ -232,7 +232,7 @@ func Channels(cfg config.Config, sys System) []Sender {
 	if cfg.Notify.Desktop {
 		senders = append(senders, Desktop{
 			Runner: sys.Runner, Users: cfg.Backup.Users, Euid: sys.Euid, Path: sys.Path,
-			LookupUser: sys.LookupUser, Settings: sys.Settings, Warn: sys.Warn,
+			LookupUser: sys.LookupUser, Settings: sys.Settings, AgentRuns: sys.AgentRuns, Warn: sys.Warn,
 		})
 	}
 	red := Redactor{Secrets: sys.Secrets}

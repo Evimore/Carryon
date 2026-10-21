@@ -34,6 +34,9 @@ type Desktop struct {
 	LookupUser func(name string) (sysexec.User, error)
 	// Settings reads a user's own notification settings. Nil means UserSettings.
 	Settings func(u sysexec.User) (config.UserNotify, error)
+	// AgentRuns reports whether u's agent runs and will show this message itself, so it isn't
+	// shown twice. Nil means nobody's agent will.
+	AgentRuns func(ctx context.Context, u sysexec.User) bool
 	// Warn reports a problem that didn't stop the notification (a user it couldn't reach while
 	// others got it, a broken settings file). May be nil.
 	Warn func(format string, a ...any)
@@ -58,13 +61,14 @@ func (s Session) Graphical() bool {
 	return s.Class == "user" && s.Remote != "yes" && (s.State == "active" || s.State == "online")
 }
 
-// Send shows m to every user who should see it. It succeeds when at least one user got it.
+// Send shows m to every user who should see it. It succeeds when at least one user got it, from
+// root or from their agent.
 func (d Desktop) Send(ctx context.Context, m Message) (string, error) {
-	users, err := d.Recipients(ctx)
+	users, agents, err := d.recipients(ctx)
 	if err != nil {
 		return "", err
 	}
-	if len(users) == 0 {
+	if len(users) == 0 && len(agents) == 0 {
 		return "", errors.New("nobody whose home is backed up has a desktop session open")
 	}
 	var sent []string
@@ -76,6 +80,10 @@ func (d Desktop) Send(ctx context.Context, m Message) (string, error) {
 		}
 		sent = append(sent, u.Name)
 	}
+	for _, u := range agents {
+		sent = append(sent, u.Name+" (left to the agent)")
+	}
+	sort.Strings(sent)
 	if len(sent) == 0 {
 		return "", errors.Join(errs...)
 	}
@@ -85,11 +93,18 @@ func (d Desktop) Send(ctx context.Context, m Message) (string, error) {
 	return strings.Join(sent, ", "), nil
 }
 
-// Recipients returns the users who should get a desktop notification now, sorted by name.
+// Recipients returns the users who should get a desktop notification from root now, sorted by
+// name. Users whose agent shows it instead aren't among them.
 func (d Desktop) Recipients(ctx context.Context) ([]sysexec.User, error) {
+	users, _, err := d.recipients(ctx)
+	return users, err
+}
+
+// recipients returns the users root notifies and the users whose agent does, each sorted by name.
+func (d Desktop) recipients(ctx context.Context) (users, agents []sysexec.User, err error) {
 	sessions, err := Sessions(ctx, d.Runner)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	lookup, settings := d.LookupUser, d.Settings
 	if lookup == nil {
@@ -99,9 +114,8 @@ func (d Desktop) Recipients(ctx context.Context) ([]sysexec.User, error) {
 		settings = UserSettings
 	}
 	seen := map[string]bool{}
-	var users []sysexec.User
 	for _, s := range sessions {
-		if !s.Graphical() || seen[s.Name] || !covered(d.Users, s.Name, s.UID) {
+		if !s.Graphical() || seen[s.Name] || !Covered(d.Users, s.Name, s.UID) {
 			continue
 		}
 		if d.Euid != 0 && s.UID != d.Euid {
@@ -121,10 +135,15 @@ func (d Desktop) Recipients(ctx context.Context) ([]sysexec.User, error) {
 		if !n.Desktop {
 			continue
 		}
+		if d.AgentRuns != nil && d.AgentRuns(ctx, u) {
+			agents = append(agents, u)
+			continue
+		}
 		users = append(users, u)
 	}
 	sort.Slice(users, func(i, j int) bool { return users[i].Name < users[j].Name })
-	return users, nil
+	sort.Slice(agents, func(i, j int) bool { return agents[i].Name < agents[j].Name })
+	return users, agents, nil
 }
 
 // sendTo shows m in u's session with notify-send, or with busctl when notify-send isn't installed.
@@ -153,6 +172,23 @@ func (d Desktop) sendTo(ctx context.Context, u sysexec.User, m Message) error {
 func (d Desktop) warn(format string, a ...any) {
 	if d.Warn != nil {
 		d.Warn(format, a...)
+	}
+}
+
+// AgentUnit is the user unit that runs carryon agent.
+const AgentUnit = "carryon-agent.service"
+
+// AgentActive reports whether u's agent runs, asking u's own service manager as u (systemctl
+// --user is-active), so root never connects to a user's bus as root. The answer only ever decides
+// whether u's own desktop notification comes from the agent or from root: a user can't make root
+// read or do anything more by faking it.
+func AgentActive(r sysexec.Runner, euid int, path string) func(ctx context.Context, u sysexec.User) bool {
+	return func(ctx context.Context, u sysexec.User) bool {
+		if euid != 0 && u.UID != euid {
+			return false
+		}
+		_, err := sysexec.AsUser(r, u, euid == 0, path).Output(ctx, "systemctl", "--user", "is-active", "--quiet", AgentUnit)
+		return err == nil
 	}
 }
 
@@ -229,9 +265,9 @@ func parseSessions(out string) []Session {
 	return sessions
 }
 
-// covered reports whether backup.users includes the user: by name, or through "*" for every human
+// Covered reports whether backup.users includes the user: by name, or through "*" for every human
 // user (user ID 1000 and up, except nobody).
-func covered(users []string, name string, uid int) bool {
+func Covered(users []string, name string, uid int) bool {
 	for _, u := range users {
 		if u == name || (u == "*" && uid >= 1000 && uid != 65534) {
 			return true

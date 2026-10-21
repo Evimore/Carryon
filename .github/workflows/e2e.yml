@@ -1,7 +1,9 @@
 name: End-to-end
 
-# Backs up an Arch Linux machine, restores it onto a fresh one and compares them, and runs Carryon's
-# units and pacman hook under a real systemd. Both run test/e2e/run.sh, which works the same locally.
+# Backs up an Arch Linux machine, restores it onto a fresh one and compares them, restores it as you
+# go onto another, and runs Carryon's units, pacman hook and polkit rules under a real systemd. The
+# jobs run test/e2e/run.sh, which works the same locally, in parallel; each must stay under 15
+# minutes.
 
 on:
   push:
@@ -16,7 +18,7 @@ jobs:
   restore:
     name: Backup and restore (Arch Linux)
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -25,8 +27,20 @@ jobs:
       - name: Back up machine A, restore onto machine B, compare
         run: test/e2e/run.sh restore
 
+  asyougo:
+    name: Restore as you go (Arch Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Back up machine A, restore it app by app onto machine C
+        run: test/e2e/run.sh asyougo
+
   systemd:
-    name: systemd units and pacman hook (Arch Linux)
+    name: systemd units, pacman hook and polkit (Arch Linux)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

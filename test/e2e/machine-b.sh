@@ -42,6 +42,13 @@ grep -q '/etc/fstab' /var/lib/carryon/restore-plan.txt ||
 ok "the plan mentions /etc/fstab"
 
 step "carryon restore --defaults --yes"
+# The restore enables user units through the user's own systemd, which runs only while they're
+# signed in or lingering. Lingering is in the backup too, but it starts the user manager without
+# waiting for it, so start it first, as signing in would.
+loginctl enable-linger "$UNIT_USER"
+bus=/run/user/$(id -u "$UNIT_USER")/bus
+for _ in $(seq 30); do [ -S "$bus" ] && break; sleep 1; done
+[ -S "$bus" ] || fail "$UNIT_USER's user manager starts" "$bus" "no such socket after 30 seconds"
 run_logged restore carryon restore --defaults --yes
 
 step "Comparing machine B with machine A"
@@ -49,7 +56,9 @@ step "Comparing machine B with machine A"
 if ! diff -u "$E2E/facts-a" "$E2E/facts-b"; then
 	fail "B matches A after the restore" "the same facts as A" "the differences above (- is A, + is B)"
 fi
-ok "packages, the service, system files, users, groups, shells and home files match A"
+ok "packages, the service, system files, users, groups, shells, lingering, the user unit and home files match A"
+expect_eq "$UNIT_USER's systemd has $USER_UNIT enabled" enabled \
+	"$(systemctl --user -M "$UNIT_USER@" is-enabled "$USER_UNIT" 2>&1 || true)"
 
 step "Safety rails"
 expect_eq "/etc/fstab untouched" "$fstab_before" "$(sha256sum </etc/fstab)"

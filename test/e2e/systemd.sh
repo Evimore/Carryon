@@ -2,7 +2,8 @@
 # Runs in a machine where systemd is PID 1: Carryon's units load and parse, the backup service
 # records a run, the pacman hook refreshes the record and marks a backup owed without ever failing
 # pacman, the settle service only starts while a backup is owed, the units behind the agent's
-# buttons settle an inbox entry and refuse any other instance name, and polkit loads the rules.
+# buttons settle an inbox entry and refuse any other instance name, and polkit lets a signed-in
+# user start a backup but asks one outside wheel for a password to settle a suggestion.
 . /src/test/e2e/lib.sh
 
 # unit_result UNIT: how the unit's last start went: "success", "failed", or "skipped" when its
@@ -121,7 +122,7 @@ expect_no_file /run/motd.d/carryon.motd
 step "polkit loads Carryon's rules and runs them without errors"
 # polkitd compiles every rules file when it starts and logs any that fail. Asking it about
 # starting a unit runs the rules; nobody here has a session, so Carryon's leave the answer to
-# the defaults. T28 checks the answers for a signed-in user.
+# the defaults. The end of this script checks the answers for a signed-in user.
 systemctl restart polkit.service
 pkcheck --action-id org.freedesktop.systemd1.manage-units --process $$ \
 	--detail unit carryon-backup.service --detail verb start >/dev/null 2>&1 || true
@@ -166,3 +167,109 @@ grep -q "\"$scratch\"" /etc/carryon/config.toml || fail "detect.ignore has $scra
 ok "detect.ignore has $scratch"
 expect_eq "inbox entries left" 0 "$(jq '.entries | length' /var/lib/carryon/inbox.json)"
 expect_eq "carryon-add@ of a settled entry" failed "$(started "carryon-add@$add_id.service")"
+
+# polkit counts a session as local only when it is on a seat, and active only while it is the one
+# in front: on seat0, the session of the console in the foreground. on_console opens such a
+# session, as a console login does: pam_systemd through PAM's "login" service, on a spare virtual
+# console (VT) switched to the foreground. It switches the console of the machine running the
+# container, so it runs on CI only (CI=true, as GitHub Actions sets it).
+VT=${E2E_VT:-63}
+# on_console USER CMD...: runs CMD as USER in a session on seat0 at the foreground console, without
+# a password agent, and returns its exit status. The output goes to $E2E/log/HOST-console.log.
+on_console() {
+	local u=$1 log="$E2E/log/$(uname -n)-console.log" back rc
+	shift
+	: >"$log"
+	back=$(fgconsole 2>/dev/null || echo 1)
+	chvt "$VT" || echo "    (chvt $VT failed: the session may not be in front)"
+	systemd-run --quiet --wait --collect --uid="$u" -p PAMName=login -p TTYPath="/dev/tty$VT" \
+		-p StandardInput=tty -p StandardOutput="append:$log" -p StandardError="append:$log" \
+		-- sh -c '"$@"; echo "exit status $?"' sh "$@" || true
+	chvt "$back"
+	sed 's/^/    | /' "$log"
+	rc=$(sed -n 's/^exit status \([0-9]*\)$/\1/p' "$log" | tail -n1)
+	return "${rc:-255}"
+}
+# no_seat USER CMD...: the same in a session without a seat, as a service with PAMName= gets.
+no_seat() {
+	local u=$1
+	shift
+	systemd-run --quiet --wait --pipe --collect --uid="$u" -p PAMName=login -- "$@"
+}
+# without_session USER CMD...: the same with no session at all, as a cron job runs.
+without_session() {
+	local u=$1
+	shift
+	runuser -u "$u" -- "$@"
+}
+# refused RC: says "refused" for a non-zero exit status.
+refused() { if [ "$1" -ne 0 ]; then echo refused; else echo "allowed (exit status 0)"; fi; }
+# polkit_log: the last requests the logging rule below saw.
+polkit_log() { journalctl --no-pager -b -o cat | grep 'carryon-e2e:' | tail -n 3 | sed 's/^/    | /' || true; }
+
+step "polkit: without a seat or a session, a user who isn't root can't start a backup"
+useradd -m -G wheel alice
+useradd -m bob
+# A rule that only logs what polkit sees of each request, read before Carryon's (00 < carryon).
+install -Dm644 /dev/stdin /etc/polkit-1/rules.d/00-carryon-e2e.rules <<'RULES'
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units") {
+        polkit.log("carryon-e2e: " + action.lookup("verb") + " " + action.lookup("unit") + " by " + subject);
+    }
+    return polkit.Result.NOT_HANDLED;
+});
+RULES
+systemctl restart polkit.service
+before=$(runs)
+rc=0
+without_session bob systemctl start --no-ask-password carryon-backup.service || rc=$?
+expect_eq "bob without a session" refused "$(refused "$rc")"
+rc=0
+no_seat bob systemctl start --no-ask-password carryon-backup.service || rc=$?
+expect_eq "bob in a session without a seat (not local to polkit)" refused "$(refused "$rc")"
+expect_eq "runs recorded" "$before" "$(runs)"
+polkit_log
+
+if [ "${CI:-}" != true ]; then
+	step "polkit at the console: skipped, since it switches this computer's console (CI=true runs it)"
+	exit 0
+fi
+
+step "polkit lets a user at the console start a backup"
+# shellcheck disable=SC2016 # $XDG_SESSION_ID is bob's, set in his session
+on_console bob sh -c 'loginctl show-session "$XDG_SESSION_ID" -p Seat -p VTNr -p Remote -p Active -p Class -p Type' || true
+log="$E2E/log/$(uname -n)-console.log"
+for want in Seat=seat0 Remote=no Active=yes; do
+	grep -qx "$want" "$log" || fail "bob's console session is on seat0, local and active" "$want" "the properties above"
+done
+ok "bob's console session is on seat0, local and active"
+before=$(runs)
+rc=0
+on_console bob systemctl start --no-ask-password carryon-backup.service || rc=$?
+polkit_log
+expect_eq "bob at the console starts carryon-backup.service" 0 "$rc"
+expect_eq "carryon-backup.service result" success "$(unit_result carryon-backup.service)"
+expect_eq "runs recorded" "$((before + 1))" "$(runs)"
+
+step "polkit asks bob, who isn't in wheel, for a password to settle a suggestion; alice may"
+data=/var/lib/e2e-polkit add_id=$(entry_id path "$data")
+jq -n --arg a "$add_id" --arg ap "$data" '{format: 1, entries: [
+	{found: "2026-10-01T03:00:00Z", id: $a, kind: "path", path: $ap}]}' >/var/lib/carryon/inbox.json
+chmod 644 /var/lib/carryon/inbox.json
+config=$(sha256sum </etc/carryon/config.toml)
+rc=0
+on_console bob systemctl start --no-ask-password "carryon-add@$add_id.service" || rc=$?
+polkit_log
+expect_eq "bob's carryon-add@" refused "$(refused "$rc")"
+grep -qi 'interactive authentication' "$log" ||
+	fail "polkit wants a password from bob" "systemctl saying it needs interactive authentication" "the output above"
+ok "polkit wants an administrator's password from bob"
+expect_eq "bob's refusal left the config alone" "$config" "$(sha256sum </etc/carryon/config.toml)"
+expect_eq "bob's refusal left the inbox alone" 1 "$(jq '.entries | length' /var/lib/carryon/inbox.json)"
+rc=0
+on_console alice systemctl start --no-ask-password "carryon-add@$add_id.service" || rc=$?
+expect_eq "alice, in wheel, at the console starts carryon-add@" 0 "$rc"
+grep -q "\"$data\"" /etc/carryon/config.toml || fail "backup.extra_paths has $data" "$data in config.toml" "$(grep -n extra_paths /etc/carryon/config.toml)"
+ok "backup.extra_paths has $data"
+expect_eq "inbox entries left" 0 "$(jq '.entries | length' /var/lib/carryon/inbox.json)"
+rm /etc/polkit-1/rules.d/00-carryon-e2e.rules

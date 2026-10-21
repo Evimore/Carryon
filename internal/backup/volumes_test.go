@@ -127,8 +127,9 @@ func TestTargets(t *testing.T) {
 	write(t, filepath.Join(root, "etc/ssh/ssh_host_ed25519_key"), "x")
 	cfg := config.Default()
 	cfg.Backup.ExtraPaths = []string{"/opt/x", "relative", "/missing"}
+	// A real capture also records each of backup.extra_paths as a path item marked extra.
 	items := itemsOf(`{"type":"path","id":"/var/lib/bluetooth"}`, `{"type":"path","id":"/etc/ssh/ssh_host_*"}`,
-		`{"type":"path","id":"/home/alice/.config","user":"alice","home":".config"}`)
+		`{"type":"path","id":"/home/alice/.config","user":"alice","home":".config"}`, `{"extra":true,"id":"/opt/x","type":"path"}`)
 	got := targets(System{Root: root}, cfg, items, usersOf("alice"))
 	want := []string{"/etc", "/home/alice", "/opt/x", "/root", "/var/lib/bluetooth"}
 	if !slices.Equal(got, want) {

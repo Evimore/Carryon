@@ -197,6 +197,9 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 
 ## v0.2 Awareness
 
+All tasks are done. What's left is the release itself, as for v0.1: a tag, then the upload to the
+AUR, both maintainer steps in [packaging.md](packaging.md).
+
 Carryon notices what it doesn't back up yet, tells the user wherever they are (desktop, terminal or
 login), explains what it does with a path, and gives saved settings back as apps get installed. Most
 of this is **New** in [design.md](design.md), so there is little prototype code to port: read the
@@ -365,7 +368,7 @@ T25 login message ────────────────────�
   `carryon status --json`, which the agent reads. `carryon notify` leaves a user's desktop
   notification to their agent only for failures in the run history, which the agent can see.
 
-### T28 End-to-end tests for v0.2 ⬜
+### T28 End-to-end tests for v0.2 ✅
 - **Scope:** extend `test/e2e/`:
   - a data folder in `/var/lib` shows up in the inbox, `carryon add` of its ID makes the next backup
     hold it, and `carryon why` explains it;
@@ -378,6 +381,11 @@ T25 login message ────────────────────�
   name.
 - **Done when:** the "End-to-end" workflow runs these on every pull request and stays under 15
   minutes.
+- **Done:** all four, in three parallel jobs. Restoring as you go got a job of its own, on machine C;
+  the login message was already covered by T25's checks in `systemd.sh`. polkit is checked in a logind
+  session on a virtual console in the foreground, on CI only (see `test/e2e/README.md`). Of T20's gaps: user
+  units (with lingering), `--user OLD=NEW` and a different machine name. It found that `carryon why`
+  named the record instead of `backup.extra_paths` for an added folder, fixed here.
 
 ## Later milestones
 

@@ -59,7 +59,11 @@ func Targets(sys System, cfg config.Config, items []record.Item, users []capture
 			}
 			continue
 		}
-		cand = append(cand, Target{Path: it.ID, Kind: TargetRecord})
+		kind := TargetRecord
+		if it.Extra { // capture records backup.extra_paths too: name the setting, not the record
+			kind = TargetExtra
+		}
+		cand = append(cand, Target{Path: it.ID, Kind: kind})
 	}
 	for _, p := range cfg.Backup.ExtraPaths {
 		cand = append(cand, Target{Path: p, Kind: TargetExtra})

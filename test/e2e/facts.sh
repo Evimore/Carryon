@@ -21,7 +21,13 @@ out="$E2E/facts-$1"
 			echo "file $f missing"
 		fi
 	done
+	# Enabled is the symlink systemctl --user enable makes, so no user manager is needed to tell.
+	if home=$(getent passwd "$UNIT_USER" | cut -d: -f6); then
+		wants="$home/.config/systemd/user/default.target.wants/$USER_UNIT"
+		if [ -L "$wants" ]; then echo "user $UNIT_USER unit $USER_UNIT enabled"; else echo "user $UNIT_USER unit $USER_UNIT not enabled"; fi
+	fi
 	for u in $USERS; do
+		if [ -e "/var/lib/systemd/linger/$u" ]; then echo "user $u lingers"; else echo "user $u doesn't linger"; fi
 		home=$(getent passwd "$u" | cut -d: -f6)
 		echo "user $u shell $(getent passwd "$u" | cut -d: -f7)"
 		echo "user $u groups $(id -nG "$u" | tr ' ' '\n' | grep -vx "$u" | sort | paste -sd, -)"

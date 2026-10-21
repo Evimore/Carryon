@@ -2,8 +2,9 @@
 # Runs Carryon's end-to-end tests in Arch Linux containers booted with systemd.
 #
 #   test/e2e/run.sh restore   back up machine A, restore onto a fresh machine B, compare
-#   test/e2e/run.sh systemd   the units, the timers' services and the pacman hook
-#   test/e2e/run.sh all       both (the default)
+#   test/e2e/run.sh asyougo   back up machine A, restore it as you go onto a fresh machine C
+#   test/e2e/run.sh systemd   the units, the timers' services, the pacman hook and polkit
+#   test/e2e/run.sh all       all three (the default)
 #
 # Needs Docker (or Podman: ENGINE=podman) able to run privileged containers, and Go to build
 # Carryon. KEEP=1 leaves the containers and volumes behind to look at; run.sh clean removes them.
@@ -18,7 +19,7 @@ root=$(cd "$here/../.." && pwd)
 say() { printf '\n\033[1m### %s\033[0m\n' "$*"; }
 
 clean() {
-	$ENGINE rm -f "$PREFIX-a" "$PREFIX-b" "$PREFIX-systemd" >/dev/null 2>&1 || true
+	$ENGINE rm -f "$PREFIX-a" "$PREFIX-b" "$PREFIX-c" "$PREFIX-systemd" >/dev/null 2>&1 || true
 	$ENGINE volume rm -f "$PREFIX-backup" "$PREFIX-shared" >/dev/null 2>&1 || true
 }
 
@@ -62,7 +63,7 @@ boot() {
 # on NAME SCRIPT: runs one of the scripts here inside machine NAME.
 on() {
 	say "Machine $1: $2"
-	$ENGINE exec "$PREFIX-$1" bash "/src/test/e2e/$2"
+	$ENGINE exec -e CI="${CI:-}" "$PREFIX-$1" bash "/src/test/e2e/$2"
 }
 
 restore_test() {
@@ -72,6 +73,15 @@ restore_test() {
 	$ENGINE rm -f "$PREFIX-a" >/dev/null
 	boot b laptop
 	on b machine-b.sh
+}
+
+asyougo_test() {
+	clean
+	boot a desktop
+	on a machine-a.sh
+	$ENGINE rm -f "$PREFIX-a" >/dev/null
+	boot c laptop
+	on c machine-c.sh
 }
 
 systemd_test() {
@@ -91,10 +101,11 @@ build
 $ENGINE pull -q "$IMAGE" >/dev/null
 case $what in
 restore) restore_test ;;
+asyougo) asyougo_test ;;
 systemd) systemd_test ;;
-all) restore_test && systemd_test ;;
+all) restore_test && asyougo_test && systemd_test ;;
 *)
-	echo "usage: $0 [restore|systemd|all|clean]" >&2
+	echo "usage: $0 [restore|asyougo|systemd|all|clean]" >&2
 	exit 2
 	;;
 esac

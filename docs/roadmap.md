@@ -325,11 +325,11 @@ T25 login message ────────────────────�
 - **Legacy:** none.
 - **Done when:** a test shows status changes writing and removing the line.
 
-### T26 polkit rules and action units ⬜
+### T26 polkit rules and action units ✅
 - **Packages:** `dist/` (polkit rules and units), `internal/cli`, `packaging/`.
 - **Scope:** the `carryon-add@` and `carryon-ignore@` units (names above), and
   `/usr/share/polkit-1/rules.d/carryon.rules`, which lets users start every unit behind the agent's
-  buttons with `systemctl start`, without root. Proposed default, to confirm in the pull request:
+  buttons with `systemctl start`, without root. The default, decided in the pull request:
   anyone with a local, active session may start a backup; restoring a bundle or settling a
   suggestion changes what root writes or backs up, so it needs an administrator (`wheel`), and
   others get polkit's password prompt (`auth_admin_keep`). Each unit checks its instance name

@@ -1,0 +1,36 @@
+# Backs up the folder an inbox suggestion found, as "carryon add ID" does. The user agent's
+# "Back it up" button starts it (through polkit), as does:
+#   sudo systemctl start carryon-add@path-3fa9c2d1e0.service
+# The instance is the ID of an entry in Carryon's inbox, never a path: --entry refuses anything
+# else. It is passed as written (%i): unescaping it would turn "-" into "/".
+[Unit]
+Description=Carryon: back up the folder suggested by %i
+Documentation=https://github.com/Evimore/carryon
+OnFailure=carryon-notify@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carryon add --entry=%i
+# It only changes Carryon's settings and inbox.
+ProtectSystem=strict
+ReadWritePaths=-/etc/carryon -/var/lib/carryon
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_FOWNER
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service

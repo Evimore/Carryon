@@ -1,0 +1,38 @@
+// Who may start the units behind Carryon's buttons with "systemctl start", without sudo. See
+// docs/design.md, "Who runs what". Installed as /usr/share/polkit-1/rules.d/carryon.rules.
+//
+// - Anyone signed in at this machine, in the session in front of them (local and active), may
+//   start a backup: carryon-backup.service.
+// - Restoring a bundle (carryon-restore@BUNDLE.service) or settling a suggestion
+//   (carryon-add@ID.service, carryon-ignore@ID.service) changes what root writes or backs up.
+//   Members of wheel may; others are asked for an administrator's password, which polkit then
+//   remembers for a few minutes.
+//
+// Only "start" of these units is matched, and only with an instance name shaped like an inbox
+// entry ID or a bundle ID. Anything else (another verb, another unit, a name like a path, a
+// remote or inactive session) falls through to polkit's other rules and systemd's defaults. The
+// units check their instance name again, so this is a second line of defense, not the only one.
+//
+// Plain ES5: polkit runs this with Duktape.
+polkit.addRule(function (action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units" || action.lookup("verb") != "start") {
+        return polkit.Result.NOT_HANDLED;
+    }
+    if (!subject.local || !subject.active) {
+        return polkit.Result.NOT_HANDLED;
+    }
+    var unit = action.lookup("unit");
+    if (unit == "carryon-backup.service") {
+        return polkit.Result.YES;
+    }
+    // An inbox entry ID, as state.ValidEntryID: "path-3fa9c2d1e0".
+    var settle = /^carryon-(add|ignore)@(path|restore)-[0-9a-f]{10}\.service$/;
+    // A bundle ID, as carryon restore --offered takes it: a letter or digit, then letters, digits
+    // and "@._+-". The agent escapes "+" and "@" as systemd-escape does ("\x2b", "\x40"), and
+    // systemd-escape escapes "-" too ("\x2d"). No other escape: "\x2f" would be "/".
+    var restore = /^carryon-restore@[A-Za-z0-9](?:[A-Za-z0-9@._-]|\\x(?:2b|2d|40)){0,199}\.service$/;
+    if (settle.test(unit) || restore.test(unit)) {
+        return subject.isInGroup("wheel") ? polkit.Result.YES : polkit.Result.AUTH_ADMIN_KEEP;
+    }
+    return polkit.Result.NOT_HANDLED;
+});

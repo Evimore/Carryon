@@ -291,6 +291,7 @@ silently goes wrong:
 | `carryon-verify.timer` / `.service` | Weekly deep check. |
 | `carryon-settle.timer` / `.service` | **Fix** for the lost transient timer: every 10 minutes, but the service only starts when `/var/lib/carryon/pending` exists (`ConditionPathExists=`). It backs up once the last change is older than `after_change_delay` (default 1 hour). Survives reboots. |
 | `carryon-notify@.service` | `OnFailure=` of the others: alerts the user. |
+| `carryon-add@.service` / `carryon-ignore@.service` | **New:** the agent's **Back it up** and **Ignore** buttons: settle one inbox entry, as `carryon add ID` and `carryon ignore ID` do. See [who runs what](#who-runs-what). |
 | `carryon-restore@.service` | **New:** restores one app's offered settings (`carryon restore --offered --bundle %i`), see [as you go](#as-you-go). |
 | `carryon-flatpak.path` / `.service` | **New:** when system-wide Flatpak apps change (`/var/lib/flatpak/app`), refreshes the record with `carryon capture --quick`, as the hook does for packages. |
 | `carryon-agent.service` (user unit) | **New:** the user's notifications with buttons, and later the tray icon. Runs in each desktop session (`graphical-session.target`). |
@@ -751,13 +752,41 @@ doesn't reach that target simply keeps root's plain notifications. It refuses to
 | Backup, verify, settle, restore | root (systemd or `sudo`) | everything backed up | record, state, repository |
 | pacman hook | root, inside pacman | package lists, the kept record | pending marker, inbox, offers' fingerprints, hints on stdout |
 | Agent | the user | `status.json`, inbox, flags, `config.toml`, the user's own settings, the user's own processes | `~/.local/state/carryon/agent.json`, nothing outside the user's home |
-| Actions from the agent (Back up now, Back it up, Ignore, Restore) | root, via polkit-allowed `systemctl start` of specific units, named by an entry or bundle ID | the inbox, to check the ID | |
+| Actions from the agent (Back up now, Back it up, Ignore, Restore) | root, via polkit-allowed `systemctl start` of specific units, named by an entry or bundle ID | the inbox, to check the ID | settings, inbox; a restore writes what it restores |
 
 - `/etc/carryon/repository-password`, `/var/lib/carryon/record/` and `/var/lib/carryon/source/` (the
   kept record and the offers' fingerprints) are root-only.
 - `status.json` and the inbox are world-readable and hold no secrets.
 - A user's own settings can only add or remove paths in their own home.
 - The agent never runs as root.
+
+**The agent's buttons** start root's units with `systemctl start`, and
+`/usr/share/polkit-1/rules.d/carryon.rules` says who may, without sudo:
+
+| Unit | Button | Who may start it |
+|---|---|---|
+| `carryon-backup.service` | Back up now | anyone in a local, active session |
+| `carryon-restore@BUNDLE.service` | Restore | members of `wheel`; others type an administrator's password (`auth_admin_keep`) |
+| `carryon-add@ID.service`, `carryon-ignore@ID.service` | Back it up, Ignore | the same as Restore |
+
+A backup only does what the timer does anyway, so anyone at the machine may start one. Restoring a
+bundle or settling a suggestion changes what root writes or backs up, so it needs an administrator.
+The rules match only the `start` verb of these units in a local, active session (polkit counts a
+user service, like the agent, as part of the user's graphical session), and only instance names
+shaped like an inbox entry ID (`path-3fa9c2d1e0`) or a bundle ID (a letter or digit, then letters,
+digits and `@._+-`, with `+` and `@` written `\x2b` and `\x40` as the agent and `systemd-escape`
+write them, and `-` also as `\x2d`; no other escape, so never `\x2f` for `/`). Anything else
+(another verb or unit, a remote or inactive session, a name like a path) falls through to polkit's
+other rules and systemd's defaults, which ask for an administrator's password.
+
+Each unit checks its instance name again, since polkit's rules can be changed and root can start
+any unit: the instance is passed as written (`%i`; `%I` would turn `-` into `/`), glued to a hidden
+flag (`carryon add --entry=%i`, `carryon restore --offered --bundle=%i`) so it can't become an
+option, and refused unless it is the ID of an entry in the inbox right now, or for a restore the
+bundle of an offer. `--entry` takes no path, unlike `carryon add PATH|ID`, so a user can never pass
+a path or an option to root. A refused or failed unit alerts the user like the others
+(`carryon-notify@`). The add and ignore units are sandboxed: they can write only `/etc/carryon` and
+`/var/lib/carryon`, with no network.
 
 InputLine uses the same split: a root service plus a helper for each signed-in user.
 
@@ -843,7 +872,7 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 | `/usr/lib/systemd/system/carryon-*.{service,timer,path}` | system units |
 | `/usr/lib/systemd/user/carryon-agent.service` | user agent |
 | `/usr/share/libalpm/hooks/carryon.hook` | pacman hook |
-| `/usr/share/polkit-1/rules.d/carryon.rules` | who may start backups and bundle restores |
+| `/usr/share/polkit-1/rules.d/carryon.rules` | who may start the agent's units: backups, bundle restores, settling suggestions |
 | `/usr/share/carryon/` | default excludes, known system folders, catalog |
 | `/usr/share/man/man1/carryon.1` | the man page, generated from the commands |
 | `/usr/share/{bash-completion/completions,zsh/site-functions,fish/vendor_completions.d}/` | shell completions |
@@ -855,7 +884,9 @@ failure matters: `pacman -Qkk` exiting non-zero because it found changed files i
 `make install` lays out the `/usr` part; packages install nothing under `/etc` or `/var` and enable
 no units, `carryon init` does. `packaging/layout.txt` pins the list and CI checks it, on the release
 tarballs and on the installed pacman package too. The user agent's unit lives in `dist/systemd-user/`,
-apart from the system units in `dist/systemd/`; the polkit rules come with T26.
+apart from the system units in `dist/systemd/`. The polkit rules folder is 755 root:root, as the
+polkit package has it since polkit 124; `polkit` is an optional dependency, since without it only
+root starts the units.
 The binary is static and not a PIE, against the Arch Go guidelines: without cgo, a Go PIE needs the
 system's loader, and the same binary must run from the recovery kit anywhere. See
 [packaging.md](packaging.md).

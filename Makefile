@@ -40,6 +40,8 @@ BINDIR     := $(DESTDIR)$(PREFIX)/bin
 UNITDIR    := $(DESTDIR)$(PREFIX)/lib/systemd/system
 USERUNITDIR := $(DESTDIR)$(PREFIX)/lib/systemd/user
 HOOKDIR    := $(DESTDIR)$(PREFIX)/share/libalpm/hooks
+# 755 root:root, as Arch's polkit package has it since polkit 124 (it was 750 root:polkitd before).
+POLKITDIR  := $(DESTDIR)$(PREFIX)/share/polkit-1/rules.d
 SHAREDIR   := $(DESTDIR)$(PREFIX)/share/carryon
 MANDIR     := $(DESTDIR)$(PREFIX)/share/man/man1
 BASHDIR    := $(DESTDIR)$(PREFIX)/share/bash-completion/completions
@@ -67,6 +69,7 @@ install:
 	install -Dm644 dist/systemd/*.service dist/systemd/*.timer dist/systemd/*.path -t $(UNITDIR)
 	install -Dm644 dist/systemd-user/*.service -t $(USERUNITDIR)
 	install -Dm644 dist/pacman/carryon.hook -t $(HOOKDIR)
+	install -Dm644 dist/polkit/carryon.rules -t $(POLKITDIR)
 	install -Dm644 catalog/excludes.default catalog/system-folders.txt -t $(SHAREDIR)
 	install -Dm644 catalog/*.toml -t $(SHAREDIR)/catalog
 	install -Dm644 $(BUILD)/man/carryon.1 -t $(MANDIR)
@@ -78,7 +81,7 @@ install:
 	install -Dm644 catalog/README.md $(DOCDIR)/catalog.md
 
 uninstall:
-	rm -f $(BINDIR)/carryon $(HOOKDIR)/carryon.hook $(MANDIR)/carryon.1
+	rm -f $(BINDIR)/carryon $(HOOKDIR)/carryon.hook $(POLKITDIR)/carryon.rules $(MANDIR)/carryon.1
 	rm -f $(addprefix $(UNITDIR)/,$(notdir $(wildcard dist/systemd/*)))
 	rm -f $(addprefix $(USERUNITDIR)/,$(notdir $(wildcard dist/systemd-user/*)))
 	rm -f $(BASHDIR)/carryon $(ZSHDIR)/_carryon $(FISHDIR)/carryon.fish

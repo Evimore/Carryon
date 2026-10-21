@@ -15,7 +15,8 @@ import (
 )
 
 func newAddCmd(dirs paths.Dirs) *cobra.Command {
-	return &cobra.Command{
+	var entry string
+	cmd := &cobra.Command{
 		Use:   "add PATH|ID",
 		Short: "Back up a folder outside the home folders",
 		Long: `Back up a system folder besides the built-in ones, such as /var/lib/jellyfin. The folder
@@ -25,13 +26,21 @@ backup.users and don't need this.
 ID is a suggestion's ID from carryon inbox. Adding a suggested folder also puts it in its app's
 bundle (a put line in bundles.conf, when the bundle wouldn't find it by name), and settles the
 suggestion.`,
-		Args: cobra.ExactArgs(1),
+		Args: pathOrEntry(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := needRoot("carryon add"); err != nil {
 				return err
 			}
 			out := cmd.OutOrStdout()
-			e, found, err := inboxEntry(dirs, args[0])
+			var e state.Entry
+			var found bool
+			var err error
+			if cmd.Flags().Changed("entry") {
+				e, err = unitEntry(dirs, entry, "carryon-add@.service")
+				found = true
+			} else {
+				e, found, err = inboxEntry(dirs, args[0])
+			}
 			if err != nil {
 				return err
 			}
@@ -47,6 +56,50 @@ suggestion.`,
 			return acceptPath(out, dirs, p, e)
 		},
 	}
+	addEntryFlag(cmd, &entry, "carryon-add@.service")
+	return cmd
+}
+
+// The units behind the agent's buttons (carryon-add@.service, carryon-ignore@.service) run as root
+// with an instance name any user who may start them chose. They pass it with --entry, which takes
+// only the ID of an entry in the inbox: never a path, and never an option, since the unit glues
+// it to the flag (--entry=%i).
+
+// addEntryFlag adds the hidden --entry flag to cmd, for unit.
+func addEntryFlag(cmd *cobra.Command, entry *string, unit string) {
+	cmd.Flags().StringVar(entry, "entry", "", "settle the inbox entry with this ID, and nothing else ("+unit+")")
+	_ = cmd.Flags().MarkHidden("entry")
+}
+
+// pathOrEntry checks a command takes one PATH|ID, or else --entry alone.
+func pathOrEntry() cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("entry") {
+			if len(args) > 0 {
+				return fmt.Errorf("--entry takes the ID of a suggestion and nothing else, but %q was given too", args[0])
+			}
+			return nil
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	}
+}
+
+// unitEntry returns the inbox entry with ID id, for --entry: anything that isn't the ID of an
+// entry in the inbox right now is refused. unit names what passed it, for the message.
+func unitEntry(dirs paths.Dirs, id, unit string) (state.Entry, error) {
+	if !state.ValidEntryID(id) {
+		return state.Entry{}, fmt.Errorf("%q isn't the ID of a suggestion: %s takes an ID from carryon inbox, such as path-3fa9c2d1e0, never a path", id, unit)
+	}
+	in, err := state.ReadInbox(dirs)
+	if err != nil && !errors.Is(err, state.ErrInboxDamaged) {
+		return state.Entry{}, err
+	}
+	for _, e := range in.Entries {
+		if e.ID == id {
+			return e, nil
+		}
+	}
+	return state.Entry{}, fmt.Errorf("there is no suggestion %s in the inbox, so nothing was changed: it may be settled already. See the list with \"carryon inbox\"", id)
 }
 
 // inboxEntry finds the inbox entry arg names, by ID or by path. found is false when there is none;

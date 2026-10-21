@@ -311,3 +311,65 @@ func TestStatusCountsTheInbox(t *testing.T) {
 		t.Errorf("after ignore:\n%s", out)
 	}
 }
+
+// carryon-add@.service and carryon-ignore@.service pass their instance name with --entry, which
+// settles an entry in the inbox and refuses anything else: a path, an option, an ID the inbox
+// doesn't hold, even with a folder of that name where the command runs.
+func TestEntryFlagTakesOnlyAnIDInTheInbox(t *testing.T) {
+	asUser(t, 0)
+	t.Chdir(t.TempDir())
+	if err := os.Mkdir("path-0123456789", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, cmd := range []string{"add", "ignore"} {
+		for _, args := range [][]string{
+			{"--entry=-etc-shadow"},
+			{"--entry=/etc/shadow"},
+			{"--entry=/var/lib/jellyfin"},
+			{"--entry=--yes"},
+			{"--entry=path-3fa9c2d1e0/.."},
+			{"--entry="},
+			{"--entry=path-0123456789"}, // shaped like an ID, a folder here, not in the inbox
+			{"--entry=" + jellyfin().ID, "/etc/shadow"},
+			{"--entry=" + jellyfin().ID, "--entry=/etc"},
+		} {
+			dirs := inboxDirs(t, jellyfin())
+			before, _ := os.ReadFile(dirs.ConfigFile())
+			if out, err := run(t, dirs, append([]string{cmd}, args...)...); err == nil {
+				t.Errorf("carryon %s %q worked:\n%s", cmd, args, out)
+			}
+			if after, _ := os.ReadFile(dirs.ConfigFile()); string(after) != string(before) {
+				t.Errorf("carryon %s %q changed the config:\n%s", cmd, args, after)
+			}
+			if ids := inboxIDs(t, dirs); len(ids) != 1 {
+				t.Errorf("carryon %s %q changed the inbox: %q", cmd, args, ids)
+			}
+		}
+	}
+
+	dirs := inboxDirs(t, jellyfin(), media(), obsOffer())
+	out, err := run(t, dirs, "add", "--entry="+jellyfin().ID)
+	if err != nil || !strings.Contains(out, "Added /var/lib/jellyfin to backup.extra_paths") {
+		t.Errorf("add --entry: %q, %v", out, err)
+	}
+	if _, err := run(t, dirs, "add", "--entry="+jellyfin().ID); err == nil || !strings.Contains(err.Error(), "no suggestion "+jellyfin().ID) {
+		t.Errorf("add --entry of a settled ID: %v", err)
+	}
+	if _, err := run(t, dirs, "add", "--entry="+obsOffer().ID); err == nil || !strings.Contains(err.Error(), "not a folder to back up") {
+		t.Errorf("add --entry of a restore offer: %v", err)
+	}
+	out, err = run(t, dirs, "ignore", "--entry="+media().ID)
+	if err != nil || !strings.Contains(out, "Added /srv/media-cache to detect.ignore") {
+		t.Errorf("ignore --entry: %q, %v", out, err)
+	}
+	out, err = run(t, dirs, "ignore", "--entry="+obsOffer().ID)
+	if err != nil || !strings.Contains(out, "won't offer to restore app-obs-studio again") {
+		t.Errorf("ignore --entry of a restore offer: %q, %v", out, err)
+	}
+	if ids := inboxIDs(t, dirs); len(ids) != 0 {
+		t.Errorf("inbox = %q", ids)
+	}
+	if _, err := run(t, dirs, "add"); err == nil {
+		t.Error("add with neither PATH|ID nor --entry worked")
+	}
+}

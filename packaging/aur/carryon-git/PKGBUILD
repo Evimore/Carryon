@@ -16,7 +16,8 @@ optdepends=('git: keep the history of the system record'
             'rclone: back up to cloud storage through rclone'
             'paru: reinstall AUR packages on restore'
             'yay: reinstall AUR packages on restore'
-            'libnotify: desktop notifications when a backup fails')
+            'libnotify: desktop notifications when a backup fails'
+            'polkit: back up, restore and settle suggestions from the desktop without sudo')
 provides=('carryon')
 conflicts=('carryon')
 # Empty on purpose: the package installs nothing under /etc, `carryon init` writes /etc/carryon.

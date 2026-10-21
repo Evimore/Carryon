@@ -5,6 +5,7 @@
 # caught.
 usr/bin/carryon
 usr/share/libalpm/hooks/carryon.hook
+usr/share/polkit-1/rules.d/carryon.rules
 usr/share/carryon/excludes.default
 usr/share/carryon/system-folders.txt
 # makepkg compresses man pages.

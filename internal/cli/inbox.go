@@ -179,7 +179,8 @@ func reviewInbox(out io.Writer, dirs paths.Dirs, p ui.Prompter, entries []state.
 }
 
 func newIgnoreCmd(dirs paths.Dirs) *cobra.Command {
-	return &cobra.Command{
+	var entry string
+	cmd := &cobra.Command{
 		Use:   "ignore PATH|ID",
 		Short: "Stop suggesting a path",
 		Long: `Stop suggesting a folder, or anything inside it. The folder is added to detect.ignore in
@@ -188,10 +189,17 @@ carryon exclude for that.
 
 ID is a suggestion's ID from carryon inbox. Ignoring an offer to restore an app's saved settings
 stops the offer.`,
-		Args: cobra.ExactArgs(1),
+		Args: pathOrEntry(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := needRoot("carryon ignore"); err != nil {
 				return err
+			}
+			if cmd.Flags().Changed("entry") {
+				e, err := unitEntry(dirs, entry, "carryon-ignore@.service")
+				if err != nil {
+					return err
+				}
+				return ignoreEntry(cmd.OutOrStdout(), dirs, e)
 			}
 			e, found, err := inboxEntry(dirs, args[0])
 			if err != nil {
@@ -207,6 +215,8 @@ stops the offer.`,
 			return ignoreEntry(cmd.OutOrStdout(), dirs, e)
 		},
 	}
+	addEntryFlag(cmd, &entry, "carryon-ignore@.service")
+	return cmd
 }
 
 // ignoreEntry stops suggesting what e is about: a path goes in detect.ignore, a restore offer's

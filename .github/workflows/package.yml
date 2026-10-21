@@ -31,7 +31,8 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install the build tools
-        run: pacman -Syu --noconfirm --needed base-devel git go restic namcap
+        # polkit too, so installing the package shows whether its rules.d folder matches polkit's.
+        run: pacman -Syu --noconfirm --needed base-devel git go restic namcap polkit
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # pkgver() counts the commits
@@ -74,7 +75,13 @@ jobs:
           { for f in "$GITHUB_WORKSPACE"/packaging/aur/*/PKGBUILD; do namcap "$f"; done; namcap "$pkg"; } 2>&1 | tee namcap.txt
           if grep -q ' E: ' namcap.txt; then echo "namcap found errors"; exit 1; fi
       - name: Install with pacman
-        run: pacman -U --noconfirm /home/builder/pkg/carryon-git-[0-9]*.pkg.tar.zst
+        # pacman warns when a folder's owner or mode differs from another package's, as
+        # /usr/share/polkit-1/rules.d would from polkit's.
+        shell: bash
+        run: |
+          set -o pipefail
+          pacman -U --noconfirm /home/builder/pkg/carryon-git-[0-9]*.pkg.tar.zst 2>&1 | tee pacman.txt
+          if grep -i 'permissions differ\|ownership differs' pacman.txt; then exit 1; fi
       - name: Check the installed package
         run: |
           carryon version

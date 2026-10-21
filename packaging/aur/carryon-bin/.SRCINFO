@@ -13,6 +13,7 @@ pkgbase = carryon-bin
 	optdepends = paru: reinstall AUR packages on restore
 	optdepends = yay: reinstall AUR packages on restore
 	optdepends = libnotify: desktop notifications when a backup fails
+	optdepends = polkit: back up, restore and settle suggestions from the desktop without sudo
 	provides = carryon=0.1.0
 	conflicts = carryon
 	options = !strip

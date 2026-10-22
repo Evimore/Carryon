@@ -103,6 +103,8 @@ func newHarness(t *testing.T, answers ...any) *harness {
 		t.Fatal(err)
 	}
 	h.mkdir(h.drive)
+	// restic uses the real folder; the destination check looks for it in the fake root.
+	h.mkdir(filepath.Join(h.root, h.repo))
 	home := filepath.Join(tmp, "roothome")
 	h.env = &Env{
 		Dirs:        dirs,

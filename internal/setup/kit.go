@@ -94,6 +94,9 @@ func (k Kit) Write(w io.Writer) {
 	io.WriteString(w, b.String())
 }
 
+// saveKitSoon is the reminder for a kit the user hasn't confirmed as saved.
+const saveKitSoon = "Save the recovery kit soon: \"sudo carryon recovery-kit\" shows it again, and \"carryon verify\" reminds you until you confirm."
+
 // showKit prints the kit and asks the user to confirm they saved it, unless they already did.
 // saved answers the question without asking (--kit-saved).
 func (e *Env) showKit(k Kit, saved bool) error {
@@ -114,7 +117,7 @@ func (e *Env) showKit(k Kit, saved bool) error {
 		}
 	}
 	if !saved {
-		e.Log.Warn("Save the recovery kit soon: \"sudo carryon recovery-kit\" shows it again, and \"carryon verify\" reminds you until you confirm.")
+		e.Log.Warn("%s", saveKitSoon)
 		return nil
 	}
 	if err := e.markKitConfirmed(); err != nil {

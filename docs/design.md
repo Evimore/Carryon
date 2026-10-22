@@ -675,6 +675,7 @@ login_message = true                 # a line at console and SSH logins while so
 | `carryon history` | Changes to the system over time, from the record's history. |
 | `carryon config ...` | Show, check and change settings. |
 | `carryon recovery-kit` | Show what's needed to get back in on a new machine. |
+| `carryon password` | Change the repository password, for example after it leaked, and show the new recovery kit. |
 | `carryon restic ARGS...` | Any restic command on the repository, with password and backend handled. |
 | `carryon version` | Version and build info. |
 
@@ -818,6 +819,26 @@ unencrypted Toolkit copy next to the repository:
   destination in `/var/lib/carryon/destination.json` for every backup to check, and asks before
   recording a different repository at the place backups went before. The password is saved before
   `restic init` runs, so it can't be lost in between; a replaced password file is kept as `.old`.
+- **Changing the password** (**New**): `sudo carryon password` gives the repository a generated
+  password, or the one in `--password-file`. It checks the destination as a backup does, and
+  refuses while a backup of this machine runs. The new password is written root-only next to the
+  password file (`repository-password.new`) before `restic key passwd` replaces the key, then saved
+  in the password file, the old one kept as `.old` as `init` does. The kit counts as unsaved again:
+  the new one is shown and asked about (`--kit-saved`), and `verify` warns until it's confirmed.
+  When restic fails, Carryon checks which password opens the repository: the old one means nothing
+  changed, and the new file goes; the new one means the change went through, and it is saved;
+  neither keeps the new file, and running the command again finishes the change. With
+  `password_command`, the key changes and the new password stays in `repository-password.new`
+  until the user has changed what the command reads.
+- **Other machines** connected with `init --connect` open the repository with the same password,
+  so the same key, which `restic key passwd` replaces: their backups fail until the new password is
+  saved there. Before asking (`--yes` without a terminal), `carryon password` names the other
+  machines with backups in the repository and says to run `sudo carryon init` on each, which asks
+  for the password when the saved one no longer opens the repository and keeps the machine's
+  settings. Not `init --connect`: that is for a fresh install, and pauses backups until a restore.
+- A new password replaces the key, not the encryption: whoever also kept a copy of the repository's
+  files from before the change can still open it with the old password. It helps when only the
+  password leaked; otherwise start a new repository.
 - **Changed from the prototype:** `install.sh` asked "is this a fresh install?" and had the user type
   `saved` for the password. Carryon uses `--connect` for a fresh install, and a yes/no question (or
   `--kit-saved`) for the kit. `--connect` counts typing the password in as having the kit. It never

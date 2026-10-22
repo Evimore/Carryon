@@ -283,8 +283,9 @@ silently goes wrong:
 | Carryon or its config sits on such a mount | The packaged install lives in `/usr` and `/etc`. A tarball install copies itself to `/usr/local/bin` first, because the root service starts at boot before any user mount exists. |
 | Mounts inside a home folder | Cloud folders and network shares are left out of the backup by default, and so is the repository's own folder. |
 | Offline, or the destination is unreachable | The run is recorded as pending and retried by the settle timer; the user is alerted only when the newest backup is older than `max_age`. |
+| The destination answers but its repository can't be opened: a wrong password, no repository there, or its folder gone from the drive | Waiting wouldn't fix it, so the run fails with restic's cause and the fix, which the alert, the login message and `carryon status` show. |
 | Full destination | Free space is checked before writing where the backend allows it. |
-| A login expired | The error is recognised and the alert carries the exact fix command. |
+| A login expired | The error is recognised: the run fails, and the alert carries the exact fix command. |
 
 ## Running by itself
 

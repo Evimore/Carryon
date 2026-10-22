@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/Evimore/carryon/internal/engine"
 )
 
 // fakeRunner returns canned output and records the commands it was asked to run.
@@ -44,6 +46,7 @@ func TestCheckLocal(t *testing.T) {
 		{"different repository", "testdata/usb", usbDest, usbIdentity, &fakeRepo{id: "fff999"}, RepoMismatch, usbMount},
 		{"folder gone", "testdata/usb", usbMount + "/renamed", usbIdentity, &fakeRepo{id: "abc123"}, Missing, usbMount},
 		{"repository unreadable", "testdata/usb", usbDest, usbIdentity, &fakeRepo{err: errors.New("Fatal: unable to open config file")}, Unreachable, usbMount},
+		{"wrong password", "testdata/usb", usbDest, usbIdentity, &fakeRepo{err: &engine.Error{Problem: engine.Problem{Cause: "wrong password or no key found"}, Code: engine.ExitBadPassword, Refused: true}}, CantOpen, usbMount},
 		{"no mount table", "testdata/nothing-here", usbDest, usbIdentity, &fakeRepo{id: "abc123"}, Unreachable, ""},
 		{"no recorded mount", "testdata/usb", usbDest, Identity{RepoID: "abc123"}, &fakeRepo{id: "abc123"}, Unreachable, ""},
 		{"no recorded repository", "testdata/usb", usbDest, Identity{FSUUID: usbUUID, MountPoint: usbMount}, &fakeRepo{id: "abc123"}, Unreachable, ""},
@@ -151,21 +154,31 @@ func TestCheckRclone(t *testing.T) {
 		t.Errorf("ran %q, want %q", run.calls, wantCall)
 	}
 
-	// The login expired: rclone's own last line and the reconnect command.
-	run = &fakeRunner{err: &exec.ExitError{Stderr: []byte("2026/10/15 NOTICE: something\n2026/10/15 ERROR : couldn't list: token expired\n")}}
-	repo := &fakeRepo{id: "abc123"}
-	r = Checker{Repo: repo, Runner: run}.Check(ctx, "rclone:iCloud:Backups/carryon", want)
-	if r.Status != Unreachable {
-		t.Fatalf("status %v, want %v", r.Status, Unreachable)
-	}
-	if !strings.Contains(r.Message, "token expired") || strings.Contains(r.Message, "NOTICE") {
-		t.Errorf("message %q doesn't end with rclone's error", r.Message)
-	}
-	if !strings.Contains(r.Fix, "rclone reconnect iCloud:") {
-		t.Errorf("fix %q lacks the reconnect command", r.Fix)
-	}
-	if repo.calls != 0 {
-		t.Error("asked restic after rclone failed")
+	// The login expired: waiting won't help. rclone's own last line and the reconnect command.
+	// Offline, the remote doesn't answer: that waits.
+	for _, tc := range []struct {
+		stderr string
+		status Status
+		says   string
+	}{
+		{"2026/10/15 NOTICE: something\n2026/10/15 ERROR : couldn't list: token expired\n", CantOpen, "token expired"},
+		{"2026/10/15 ERROR : couldn't list: Get \"https://example.com/\": dial tcp: lookup example.com: no such host\n", Unreachable, "no such host"},
+	} {
+		run = &fakeRunner{err: &exec.ExitError{Stderr: []byte(tc.stderr)}}
+		repo := &fakeRepo{id: "abc123"}
+		r = Checker{Repo: repo, Runner: run}.Check(ctx, "rclone:iCloud:Backups/carryon", want)
+		if r.Status != tc.status {
+			t.Fatalf("%s: status %v, want %v", tc.says, r.Status, tc.status)
+		}
+		if !strings.Contains(r.Message, tc.says) || strings.Contains(r.Message, "NOTICE") {
+			t.Errorf("message %q doesn't end with rclone's error", r.Message)
+		}
+		if !strings.Contains(r.Fix, "rclone reconnect iCloud:") {
+			t.Errorf("fix %q lacks the reconnect command", r.Fix)
+		}
+		if repo.calls != 0 {
+			t.Error("asked restic after rclone failed")
+		}
 	}
 
 	// rclone answers but the repository is another one.

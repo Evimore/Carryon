@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Evimore/carryon/internal/engine"
 )
 
 // Status is the outcome of checking a destination. Only OK allows writing.
@@ -23,11 +25,14 @@ const (
 	DifferentDisk
 	// RepoMismatch: the repository there isn't the one recorded at init.
 	RepoMismatch
-	// Missing: the destination folder isn't there.
+	// Missing: the destination folder isn't there, on the drive that should hold it.
 	Missing
-	// Unreachable: the destination can't be reached or read right now (offline, login expired,
-	// permission denied, no recorded identity to compare with).
+	// Unreachable: the destination can't be reached or read right now (offline, permission denied,
+	// no recorded identity to compare with).
 	Unreachable
+	// CantOpen: the destination answered, but the repository there can't be opened: a wrong
+	// password, no repository, an expired login. Waiting won't fix it.
+	CantOpen
 )
 
 func (s Status) String() string {
@@ -44,6 +49,8 @@ func (s Status) String() string {
 		return "missing"
 	case Unreachable:
 		return "unreachable"
+	case CantOpen:
+		return "can't open"
 	}
 	return fmt.Sprintf("Status(%d)", int(s))
 }
@@ -220,6 +227,13 @@ func (c Checker) checkRclone(ctx context.Context, url string) (r Result, bad boo
 		return Result{Status: Unreachable, Message: "Carryon has no way to run rclone for " + remote + "."}, true
 	}
 	if _, err := c.Runner.Output(ctx, "rclone", "lsf", "--max-depth", "1", remote); err != nil {
+		if engine.IsExpiredLogin(stderrOf(err)) {
+			return Result{
+				Status:  CantOpen,
+				Message: fmt.Sprintf("The login to the rclone remote %s has expired or was refused: %s", remote, lastLine(err)),
+				Fix:     fmt.Sprintf("Log in again with (as yourself, not root): rclone reconnect %s", remote),
+			}, true
+		}
 		return Result{
 			Status:  Unreachable,
 			Message: fmt.Sprintf("The rclone remote %s didn't answer: %s", remote, lastLine(err)),
@@ -234,6 +248,14 @@ func (c Checker) checkRepoID(ctx context.Context, where, want string) Result {
 		return Result{Status: Unreachable, Message: "Carryon has no way to read the repository at " + where + "."}
 	}
 	got, err := c.Repo.RepositoryID(ctx)
+	var re *engine.Error
+	if errors.As(err, &re) && re.Refused {
+		return Result{
+			Status:  CantOpen,
+			Message: "Carryon couldn't open the backup repository at " + where + ": " + re.Cause,
+			Fix:     re.Fix,
+		}
+	}
 	if err != nil {
 		return Result{
 			Status:  Unreachable,
@@ -272,13 +294,17 @@ func RcloneRemote(url string) (string, error) {
 
 // lastLine returns the last non-empty line of a program's error output, or of the error itself.
 func lastLine(err error) string {
-	text := err.Error()
+	lines := strings.Split(strings.TrimSpace(stderrOf(err)), "\n")
+	return strings.TrimSpace(lines[len(lines)-1])
+}
+
+// stderrOf returns a failed program's error output, or the error's own text.
+func stderrOf(err error) string {
 	var ee *exec.ExitError
 	if errors.As(err, &ee) && len(strings.TrimSpace(string(ee.Stderr))) > 0 {
-		text = string(ee.Stderr)
+		return string(ee.Stderr)
 	}
-	lines := strings.Split(strings.TrimSpace(text), "\n")
-	return strings.TrimSpace(lines[len(lines)-1])
+	return err.Error()
 }
 
 func describe(m Mount) string {

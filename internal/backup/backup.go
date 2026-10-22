@@ -221,8 +221,10 @@ func (b *run) checkDestination(ctx context.Context, id dest.Identity) error {
 	if r.OK() {
 		return nil
 	}
+	// Only a destination that is away waits: one that answers but can't be used fails, so the
+	// user hears what to do instead of the backups quietly stopping.
 	switch r.Status {
-	case dest.NotMounted, dest.Missing, dest.Unreachable:
+	case dest.NotMounted, dest.Unreachable:
 		b.res.Run.Result = state.ResultWaiting
 		b.res.Run.Error, b.res.Run.Fix = r.Message, r.Fix
 		if err := state.MarkPending(b.opt.Dirs, state.ReasonWaiting, b.opt.Now()); err != nil {

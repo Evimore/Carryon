@@ -114,7 +114,7 @@ release, the "Release" workflow:
    compiled, so the aarch64 package is made on x86_64 by setting `CARCH` in a makepkg config;
 2. signs the packages and a fresh database with `packaging/repo/publish.sh`, in a job that runs in
    the `pacman-repo` environment, the only one that sees the key. It first checks that the key is
-   the one `PACMAN_REPO_FINGERPRINT` names;
+   the one the repository variable `PACMAN_REPO_FINGERPRINT` names;
 3. publishes the release, whose notes then open with the repository;
 4. deploys the site to GitHub Pages, in the `github-pages` environment.
 
@@ -143,17 +143,17 @@ Do this once, on any Linux machine with `gpg`, and on GitHub's website.
 
    Keep a copy of `carryon-packages.asc` somewhere safe and offline, such as a password manager.
    Anyone who has it can sign packages that every Carryon user's pacman accepts.
-2. **Create the `pacman-repo` environment.** On GitHub, open **Settings → Environments → New
-   environment** and name it `pacman-repo`. In it:
-   - under **Environment secrets**, add `PACMAN_REPO_KEY` and paste the whole of
-     `carryon-packages.asc`, from `-----BEGIN PGP PRIVATE KEY BLOCK-----` to the `END` line;
-   - under **Environment variables**, add `PACMAN_REPO_FINGERPRINT` with the fingerprint;
-   - under **Deployment branches and tags**, choose **Selected branches and tags** and add the
-     branch `main` and the tag `v*`, so no other branch can use the key.
-
-   Then delete `carryon-packages.asc` from the machine (`shred -u carryon-packages.asc`), keeping
-   only the safe copy.
-3. **Let GitHub Actions publish the site.** Open **Settings → Pages** and set **Source** to
+2. **Create the `pacman-repo` environment with the key.** On GitHub, open **Settings →
+   Environments → New environment** and name it `pacman-repo`. Leave its deployment branches and
+   tags unrestricted. Under **Environment secrets**, add `PACMAN_REPO_KEY` and paste the whole of
+   `carryon-packages.asc`, from `-----BEGIN PGP PRIVATE KEY BLOCK-----` to the `END` line. Then
+   delete `carryon-packages.asc` from the machine (`shred -u carryon-packages.asc`), keeping only
+   the safe copy.
+3. **Add the fingerprint.** Open **Settings → Secrets and variables → Actions → Variables → New
+   repository variable**, name it `PACMAN_REPO_FINGERPRINT` and paste the fingerprint. It is a
+   repository variable, not one of the environment's, and it isn't secret: users check the key
+   against it.
+4. **Let GitHub Actions publish the site.** Open **Settings → Pages** and set **Source** to
    **GitHub Actions**. That creates the `github-pages` environment, which lets only `main` deploy.
    A release published by hand runs on its tag, so to have those deploy too, open **Settings →
    Environments → github-pages** and add the tag `v*` under **Deployment branches and tags**.
@@ -172,8 +172,8 @@ an older version rebuilds nothing, since the repository only holds the latest re
 If the key is lost or someone else may have it:
 
 1. Make a new key as in step 1 above.
-2. In the `pacman-repo` environment, replace the secret `PACMAN_REPO_KEY` and the variable
-   `PACMAN_REPO_FINGERPRINT`.
+2. Replace the secret `PACMAN_REPO_KEY` in the `pacman-repo` environment, and the repository
+   variable `PACMAN_REPO_FINGERPRINT`.
 3. Republish, as above.
 
 pacman refuses the repository until users trust the new key, so tell them in the next release's

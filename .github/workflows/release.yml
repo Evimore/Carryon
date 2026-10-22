@@ -211,7 +211,7 @@ jobs:
           if [[ $HAS_KEY == true && -n $FINGERPRINT ]]; then
             echo "ready=true" >>"$GITHUB_OUTPUT"
           else
-            echo "::notice::The pacman repository wasn't updated, because it isn't set up yet. The pacman-repo environment needs the secret PACMAN_REPO_KEY and the variable PACMAN_REPO_FINGERPRINT: see docs/packaging.md, \"Setting up the pacman repository\"."
+            echo "::notice::The pacman repository wasn't updated, because it isn't set up yet. It needs the secret PACMAN_REPO_KEY in the pacman-repo environment and the repository variable PACMAN_REPO_FINGERPRINT: see docs/packaging.md, \"Setting up the pacman repository\"."
           fi
       - uses: actions/checkout@v7
         if: steps.key.outputs.ready
@@ -234,7 +234,7 @@ jobs:
             awk -F: '$1 == "sec" { sec = 1; next } sec && $1 == "fpr" { print $10; sec = 0 }')
           expected=${FINGERPRINT//[[:space:]]/}
           if (( ${#keys[@]} != 1 )) || [[ ${keys[0]} != "${expected^^}" ]]; then
-            echo "::error::PACMAN_REPO_KEY must hold one secret key, the one PACMAN_REPO_FINGERPRINT names, but it holds ${keys[*]:-no key}. Replace the secret or the variable in the pacman-repo environment (docs/packaging.md, \"Replacing the key\")."
+            echo "::error::PACMAN_REPO_KEY must hold one secret key, the one PACMAN_REPO_FINGERPRINT names, but it holds ${keys[*]:-no key}. Replace the secret in the pacman-repo environment, or the repository variable (docs/packaging.md, \"Replacing the key\")."
             exit 1
           fi
       - id: repository

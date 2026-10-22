@@ -162,7 +162,7 @@ jobs:
         run: sha256sum -- *.tar.gz | tee sha256sums
       - name: Write the release notes
         if: needs.prepare.outputs.mode == 'new'
-        run: .github/release-notes.sh "$TAG" "$REF" "$MILESTONE" | tee notes.md
+        run: .github/release-notes.sh "$TAG" "$MILESTONE" | tee notes.md
       - name: Publish
         run: |
           # 0.3.0-rc1 and the like are pre-releases.

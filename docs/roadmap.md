@@ -14,6 +14,8 @@ big picture and a record of what each finished version built. The work itself is
 - Problems are issues labeled `bug`, from the bug template. The
   [open bugs](https://github.com/Evimore/Carryon/issues?q=is%3Aissue+is%3Aopen+label%3Abug) are
   the list of what's wrong.
+- Issues about how Carryon is built, tested or released, rather than what it does, also get the
+  `internal` label. The release notes leave them out.
 - The board picks up new issues by itself and shows where each one stands. An issue goes in the
   milestone of the version it's for, a bug in the one it should be fixed by.
 - A pull request closes its issue, and the board moves it to Done: the description says

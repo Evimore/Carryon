@@ -34,7 +34,7 @@ services, users, language tools and backed-up paths) in ` + dirs.RecordDir() + `
 keeping its history. The next backup takes it along.
 
 With --out DIR, the record goes into DIR instead, which must be empty, so you can look at it or
-compare it with the record the sysbackup prototype wrote.
+compare it with an older one.
 
 Run it with sudo: without root, only --out works, files only root can read are skipped and the
 record is marked incomplete.`,

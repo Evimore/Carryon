@@ -24,15 +24,19 @@ type Record struct {
 	Bundles Bundles
 }
 
-// Load reads the record in dir. It reads records written by the prototype (format 1) too.
+// Load reads the record in dir.
 func Load(dir string) (*Record, error) {
 	var r Record
 	if err := readJSON(filepath.Join(dir, MetaFile), &r.Meta); err != nil {
 		return nil, err
 	}
-	if r.Meta.Format < FormatPrototype || r.Meta.Format > FormatCurrent {
-		return nil, fmt.Errorf("%s: record format %d isn't supported (this Carryon reads formats %d to %d)",
-			dir, r.Meta.Format, FormatPrototype, FormatCurrent)
+	if r.Meta.Format == FormatPrototype {
+		return nil, fmt.Errorf("%s: this backup was made by sysbackup, the prototype Carryon grew from, "+
+			"and Carryon no longer restores from it. Its files can still be restored with carryon restic restore", dir)
+	}
+	if r.Meta.Format != FormatCurrent {
+		return nil, fmt.Errorf("%s: record format %d isn't supported (this Carryon reads format %d)",
+			dir, r.Meta.Format, FormatCurrent)
 	}
 	f, err := os.Open(filepath.Join(dir, ItemsFile))
 	if err != nil {

@@ -90,7 +90,7 @@ type Plan struct {
 	Picked      int      // items picked
 	NotBackedUp []string // what the source's not-backed-up list says to re-download, in short
 
-	mainUser string // the record's main user, whose items name no user in format 1
+	mainUser string // the record's main user
 }
 
 // Todo is how many steps the plan has.
@@ -293,32 +293,22 @@ func setOf(names []string) map[string]bool {
 	return m
 }
 
-// userOf returns the user here who gets a per-user item: the match of the item's user, or in
-// format 1 records, of the record's only user.
+// userOf returns the user here who gets a per-user item: the match of the item's user. Lingering
+// names its user in its id, and a folder or path in a home that names no user is the record's main
+// user's.
 func (pl *Planner) userOf(it record.Item) *LocalUser {
 	if it.Type == record.TypeFlatpak && it.Scope != "user" {
 		return nil // installed for everyone
 	}
 	name := it.User
-	if name == "" {
-		switch it.Type {
-		case record.TypeGroup, record.TypeShell, record.TypeLinger, record.TypeUsvc, record.TypeUunit,
-			record.TypeUmask, record.TypeCargo, record.TypePipx, record.TypeFlatpak:
-		case record.TypeMkdir:
-			if it.Rel == "" {
-				return nil
-			}
-		case record.TypePath:
-			if it.Home == "" {
-				return nil
-			}
-		default:
-			return nil
-		}
-		if pl.Source.Record.Meta.Format >= record.FormatCurrent && it.Type != record.TypeMkdir && it.Type != record.TypePath {
-			return nil // format 2 names the user of every per-user item
-		}
+	switch {
+	case name != "":
+	case it.Type == record.TypeLinger:
+		name = it.ID
+	case (it.Type == record.TypeMkdir && it.Rel != "") || (it.Type == record.TypePath && it.Home != ""):
 		name = pl.Source.Record.Meta.User
+	default:
+		return nil // the record names the user of every other per-user item
 	}
 	for i := range pl.Users {
 		if pl.Users[i].From.Name == name {
@@ -433,12 +423,8 @@ func (pl *Planner) userUnitStep(it record.Item, u *LocalUser) (Step, bool) {
 		t, ok := here.readlink(st.Target)
 		return st, !(ok && t == "/dev/null")
 	}
-	// uunit: format 1 keeps unit files in user-units/, format 2 in user-units/<user>/.
-	srcPath := filepath.Join(pl.Source.Dir, UserUnitsDir, it.ID)
-	if it.User != "" {
-		srcPath = filepath.Join(pl.Source.Dir, UserUnitsDir, it.User, it.ID)
-	}
-	raw, err := os.ReadFile(srcPath)
+	// uunit: the record keeps unit files in user-units/<user>/.
+	raw, err := os.ReadFile(filepath.Join(pl.Source.Dir, UserUnitsDir, it.User, it.ID))
 	if err != nil {
 		st.State = StateReplace
 		st.Diff = fmt.Sprintf("(the backup's copy can't be read: %v)\n", err)

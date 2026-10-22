@@ -64,11 +64,12 @@ func TestUnitPrograms(t *testing.T) {
 	}
 }
 
-func TestPrototypeUserUnits(t *testing.T) {
+func TestUserUnitFiles(t *testing.T) {
 	env := newEnv(t)
-	write(t, filepath.Join(env.dirs.RecordDir(), capture.UserUnitsDir, "tool.service"), "[Service]\nExecStart=/usr/local/bin/tool\n")
+	write(t, filepath.Join(env.dirs.RecordDir(), capture.UserUnitsDir, "alice", "tool.service"), "[Service]\nExecStart=/usr/local/bin/tool\n")
 	v := env.verifier(env.options())
-	v.rec = &record.Record{Meta: record.Meta{Format: record.FormatPrototype, User: "alice", Home: "/home/alice"}}
+	v.rec = &record.Record{Meta: record.Meta{Format: record.FormatCurrent, User: "alice", Home: "/home/alice",
+		Users: []record.User{{Name: "alice", Home: "/home/alice"}}}}
 	got := v.userUnitFiles()
 	if len(got) != 1 || got[0].user != "alice" || filepath.Base(got[0].file) != "tool.service" {
 		t.Fatalf("user unit files = %+v", got)

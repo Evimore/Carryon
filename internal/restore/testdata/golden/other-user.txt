@@ -52,21 +52,21 @@ Restore plan: desktop -> laptop  (12/17 bundles)
 [System files] file       /usr/local/bin/notes  (replace)
     paths inside are adapted: /home/alice -> /srv/home/bob
 [System files] file       /etc/locale.conf  (new)
-[From backup] backup     ~/.config/kitty
+[From backup] backup     ~/.config/kitty  (alice)
     for bob
     goes to /srv/home/bob/.config/kitty
-[From backup] backup     ~/.local/share/fonts
+[From backup] backup     ~/.local/share/fonts  (alice)
     for bob
     goes to /srv/home/bob/.local/share/fonts
-[Account] group      video
+[Account] group      video  (alice)
     for bob
 [Account] linger     alice
     for bob
 [Folders] folder     /var/log/myapp
-[User units] user unit  enable rclone-mount.service
+[User units] user unit  enable rclone-mount.service  (alice)
     for bob
     goes to /srv/home/bob/.config/systemd/user/rclone-mount.service
-[User units] user unit  rclone-mount.service  (replace)
+[User units] user unit  rclone-mount.service  (alice)  (replace)
     for bob
     goes to /srv/home/bob/.config/systemd/user/rclone-mount.service
     paths inside are adapted: /home/alice -> /srv/home/bob
@@ -83,7 +83,7 @@ Restore plan: desktop -> laptop  (12/17 bundles)
  WantedBy=default.target
 
 [Language tools] flatpak    org.example.App
-[Language tools] cargo      ripgrep
+[Language tools] cargo      ripgrep  (alice)
     for bob
 [Language tools] npm -g     typescript
 [skipped] package    oldtool  [community]: not in any repository

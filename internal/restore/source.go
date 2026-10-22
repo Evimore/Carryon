@@ -30,14 +30,12 @@ import (
 const (
 	// RecordPath is where Carryon keeps the record, and so where it is inside its snapshots.
 	RecordPath = "/var/lib/carryon/record"
-	// PrototypeRecordPath is where the sysbackup prototype kept its record (format 1).
-	PrototypeRecordPath = "/var/lib/sysbackup/manifest"
 )
 
 // Files in a record besides meta.json, items.jsonl and bundles.json.
 const (
 	FilesDir      = "files"            // copies of edited and added system files
-	UserUnitsDir  = "user-units"       // format 1: user-units/<unit>; format 2: user-units/<user>/<unit>
+	UserUnitsDir  = "user-units"       // user-units/<user>/<unit>
 	NotBackedUpMD = "not-backed-up.md" // what was left out on purpose and how it comes back
 )
 
@@ -62,8 +60,7 @@ func (s *Source) Close() error {
 	return err
 }
 
-// OpenRecord uses a record on disk (restore --record DIR), such as one the prototype wrote to
-// /var/lib/sysbackup/manifest.
+// OpenRecord uses a record on disk (restore --record DIR).
 func OpenRecord(dir string) (*Source, error) {
 	r, err := record.Load(dir)
 	if err != nil {
@@ -93,8 +90,7 @@ type FetchOptions struct {
 	TempDir string
 	// Location is the time zone snapshot times are shown in. Nil means the local one.
 	Location *time.Location
-	// RecordPaths are where the record may be in the snapshot, in order. Empty means Carryon's
-	// RecordPath, then the prototype's.
+	// RecordPaths are where the record may be in the snapshot, in order. Empty means RecordPath.
 	RecordPaths []string
 }
 
@@ -134,7 +130,7 @@ func Fetch(ctx context.Context, repo Repo, ask ui.Prompter, opt FetchOptions) (*
 	src := &Source{Snapshot: &snap, tmp: tmp}
 	recordPaths := opt.RecordPaths
 	if len(recordPaths) == 0 {
-		recordPaths = []string{RecordPath, PrototypeRecordPath}
+		recordPaths = []string{RecordPath}
 	}
 	if err := src.fetch(ctx, repo, recordPaths); err != nil {
 		src.Close()
@@ -143,7 +139,7 @@ func Fetch(ctx context.Context, repo Repo, ask ui.Prompter, opt FetchOptions) (*
 	return src, nil
 }
 
-// fetch restores the record, Carryon's or the prototype's, out of the snapshot and loads it.
+// fetch restores the record out of the snapshot and loads it.
 func (s *Source) fetch(ctx context.Context, repo Repo, recordPaths []string) error {
 	args := []string{"restore", s.Snapshot.ID, "--target", s.tmp}
 	for _, p := range recordPaths {
@@ -169,7 +165,7 @@ func (s *Source) fetch(ctx context.Context, repo Repo, recordPaths []string) err
 	if e := res.Err(); e != nil {
 		return fmt.Errorf("%s: %w", msg, e)
 	}
-	return errors.New(msg + ": it wasn't made by Carryon or the sysbackup prototype")
+	return errors.New(msg + ": it wasn't made by Carryon")
 }
 
 func defaultTempDir() string {

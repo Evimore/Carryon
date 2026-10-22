@@ -36,10 +36,10 @@ func TestMapUsers(t *testing.T) {
 		{Name: "carol", UID: 1002, Home: "/home/carol", Shell: "/usr/bin/bash"},
 		{Name: "jellyfin", UID: 970, Home: "/var/lib/jellyfin", Shell: "/usr/bin/nologin"},
 	}
-	one := record.Meta{Format: 1, User: "alice", Home: "/home/alice"}
-	two := record.Meta{Format: 2, User: "alice", Home: "/home/alice",
+	one := record.Meta{Format: record.FormatCurrent, User: "alice", Home: "/home/alice", Users: []record.User{{Name: "alice", Home: "/home/alice"}}}
+	two := record.Meta{Format: record.FormatCurrent, User: "alice", Home: "/home/alice",
 		Users: []record.User{{Name: "alice", Home: "/home/alice"}, {Name: "bob", Home: "/home/bob"}}}
-	onlyBob := record.Meta{Format: 1, User: "bob", Home: "/home/bob"}
+	onlyBob := record.Meta{Format: record.FormatCurrent, User: "bob", Home: "/home/bob", Users: []record.User{{Name: "bob", Home: "/home/bob"}}}
 	tests := []struct {
 		name    string
 		meta    record.Meta
@@ -93,7 +93,7 @@ func TestMapUsers(t *testing.T) {
 func TestMapUsersMenu(t *testing.T) {
 	here := []LocalUser{{Name: "carol", UID: 1002, Home: "/home/carol", Shell: "/bin/bash"}}
 	ask := &recordingPrompter{answer: "carol"}
-	if _, err := MapUsers(record.Meta{Format: 1, User: "alice", Home: "/home/alice"}, here, ask, MapOptions{}); err != nil {
+	if _, err := MapUsers(record.Meta{Format: record.FormatCurrent, User: "alice", Home: "/home/alice", Users: []record.User{{Name: "alice", Home: "/home/alice"}}}, here, ask, MapOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	m := ask.menu
@@ -106,7 +106,7 @@ func TestMapUsersMenu(t *testing.T) {
 func TestMapUsersCancelled(t *testing.T) {
 	here := []LocalUser{{Name: "carol", UID: 1002, Home: "/home/carol", Shell: "/bin/bash"}}
 	ask := &ui.Script{Answers: []any{ui.ErrCancelled}}
-	_, err := MapUsers(record.Meta{Format: 1, User: "alice", Home: "/home/alice"}, here, ask, MapOptions{})
+	_, err := MapUsers(record.Meta{Format: record.FormatCurrent, User: "alice", Home: "/home/alice", Users: []record.User{{Name: "alice", Home: "/home/alice"}}}, here, ask, MapOptions{})
 	if !errors.Is(err, ui.ErrCancelled) {
 		t.Errorf("err = %v", err)
 	}

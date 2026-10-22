@@ -1,7 +1,7 @@
 // Package record is Carryon's description of a machine: its items, its bundles and the facts about
 // it. See docs/design.md, "The system record".
 //
-// The JSON field names are the prototype's, so records it wrote (format 1) can still be read.
+// The JSON field names are the prototype's. Never rename one: Carryon's own records use them.
 package record
 
 import (
@@ -70,7 +70,7 @@ type Item struct {
 	Type     string   `json:"type"`                // one of the Type* constants
 	UID      *int     `json:"uid,omitempty"`       // path: numeric owner at capture time
 	UnitFile string   `json:"unit_file,omitempty"` // svc: unit file path
-	User     string   `json:"user,omitempty"`      // per-user items (format 2)
+	User     string   `json:"user,omitempty"`      // per-user items
 }
 
 // Key identifies an item within a record.

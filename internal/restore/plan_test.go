@@ -281,11 +281,11 @@ func TestPlanGolden(t *testing.T) {
 	}
 }
 
-// The record the prototype wrote for the record package's tests: its files aren't in the fixture,
-// so files that exist here count as replaced, with a note instead of a diff.
-func TestPlanPrototypeFixture(t *testing.T) {
-	plan, ticks := planFor(t, "../record/testdata/format1", scenarios["different-machine"])
-	checkGolden(t, "format1-different-machine", render(plan, ticks))
+// The record package's fixture: its files aren't in the fixture, so files that exist here count
+// as replaced, with a note instead of a diff.
+func TestPlanRecordFixture(t *testing.T) {
+	plan, ticks := planFor(t, "../record/testdata/format2", scenarios["different-machine"])
+	checkGolden(t, "format2-different-machine", render(plan, ticks))
 }
 
 func TestPlanReadsNothingItDoesntNeed(t *testing.T) {

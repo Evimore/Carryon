@@ -15,7 +15,8 @@ import (
 
 func testRecord() *record.Record {
 	return &record.Record{
-		Meta: record.Meta{Format: 1, Host: "desktop", Machine: "0123456789abcdef", User: "alice", Home: "/home/alice"},
+		Meta: record.Meta{Format: record.FormatCurrent, Host: "desktop", Machine: "0123456789abcdef", User: "alice", Home: "/home/alice",
+			Users: []record.User{{Name: "alice", Home: "/home/alice"}}},
 		Bundles: record.Bundles{
 			{ID: "packages", Title: "Packages", When: "always"},
 			{ID: "identity", Title: "Machine identity", When: "samehost"},

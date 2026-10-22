@@ -10,12 +10,12 @@ import (
 	"testing"
 )
 
-func TestLoadPrototypeRecord(t *testing.T) {
-	r, err := Load("testdata/format1")
+func TestLoadRecord(t *testing.T) {
+	r, err := Load("testdata/format2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Meta.Format != FormatPrototype || r.Meta.Name() != "desktop" {
+	if r.Meta.Format != FormatCurrent || r.Meta.Name() != "desktop" || r.Meta.Distro != "arch" {
 		t.Errorf("meta = %+v", r.Meta)
 	}
 	if users := r.Meta.AllUsers(); len(users) != 1 || users[0] != (User{Name: "alice", Home: "/home/alice"}) {
@@ -45,7 +45,7 @@ func TestLoadPrototypeRecord(t *testing.T) {
 }
 
 func TestSaveAndLoadRoundTrip(t *testing.T) {
-	r, err := Load("testdata/format1")
+	r, err := Load("testdata/format2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +91,19 @@ func TestReadItemsRejectsBrokenLines(t *testing.T) {
 	_, err := ReadItems(strings.NewReader("{\"type\":\"pkg\",\"id\":\"a\"}\n\n{\"type\":\"pkg\"}\n"))
 	if err == nil || !strings.Contains(err.Error(), "line 3") {
 		t.Fatalf("err = %v, want an error about line 3", err)
+	}
+}
+
+func TestLoadRejectsPrototypeRecords(t *testing.T) {
+	dir := t.TempDir()
+	meta, _ := json.Marshal(Meta{Format: FormatPrototype, Host: "desktop", User: "alice", Home: "/home/alice"})
+	if err := os.WriteFile(filepath.Join(dir, MetaFile), meta, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(dir)
+	if err == nil || !strings.Contains(err.Error(), "made by sysbackup, the prototype") ||
+		!strings.Contains(err.Error(), "carryon restic restore") {
+		t.Fatalf("err = %v", err)
 	}
 }
 

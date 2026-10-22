@@ -119,11 +119,7 @@ func (v *verifier) userUnitFiles() []unitFile {
 	base := filepath.Join(v.opt.Dirs.RecordDir(), capture.UserUnitsDir)
 	var out []unitFile
 	for _, u := range v.rec.Meta.AllUsers() {
-		dir := filepath.Join(base, u.Name)
-		if v.rec.Meta.Format == record.FormatPrototype {
-			dir = base // the prototype kept one user's units right in user-units/
-		}
-		_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(base, u.Name), func(p string, d fs.DirEntry, err error) error {
 			if err == nil && d.Type().IsRegular() {
 				out = append(out, unitFile{u.Name, u.Home, p})
 			}

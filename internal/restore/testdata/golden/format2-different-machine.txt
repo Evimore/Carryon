@@ -37,20 +37,20 @@ Restore plan: desktop -> laptop  (14/14 bundles)
 [Packages] package    fuse3  [extra]  (as dependency)
 [AUR] AUR        paru-bin
 [System files] file       /etc/ssh/sshd_config  (edited package file)  (replace)
-(the backup's copy can't be read: open ../record/testdata/format1/files/etc/ssh/sshd_config: no such file or directory)
+(the backup's copy can't be read: open ../record/testdata/format2/files/etc/ssh/sshd_config: no such file or directory)
 
 [System files] file       /etc/locale.conf  (new)
 [System files] file       /usr/local/bin/hello  (new)
 [From backup] backup     /etc/ssh/ssh_host_*
 [From backup] backup     /root
-[From backup] backup     ~/.config/kitty
-[Account] shell      /usr/bin/zsh
+[From backup] backup     ~/.config/kitty  (alice)
+[Account] shell      /usr/bin/zsh  (alice)
 [Services] enable     sshd.service
-[Folders] folder     ~/Cloud
-[User units] user unit  enable rclone-mount.service
+[Folders] folder     ~/Cloud  (alice)
+[User units] user unit  enable rclone-mount.service  (alice)
     goes to /home/alice/.config/systemd/user/rclone-mount.service
-[User units] user unit  rclone-mount.service  (replace)
+[User units] user unit  rclone-mount.service  (alice)  (replace)
     goes to /home/alice/.config/systemd/user/rclone-mount.service
-(the backup's copy can't be read: open ../record/testdata/format1/user-units/rclone-mount.service: no such file or directory)
+(the backup's copy can't be read: open ../record/testdata/format2/user-units/alice/rclone-mount.service: no such file or directory)
 
 [Language tools] flatpak    org.example.App

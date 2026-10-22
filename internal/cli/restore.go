@@ -33,7 +33,7 @@ type restoreSystem struct {
 	Run       sysexec.Runner
 	Packages  restore.Packages
 	Installer restore.Installer
-	Ask       func(defaults bool) ui.Prompter
+	Ask       func(ctx context.Context, defaults bool) ui.Prompter
 	Repo      func(cfg config.Config) restore.Repo
 	// Chown changes owners while applying. Nil means os.Lchown.
 	Chown    func(path string, uid, gid int) error
@@ -54,7 +54,9 @@ var restoreEnv = func(dirs paths.Dirs) restoreSystem {
 		Run:       run,
 		Packages:  pm,
 		Installer: pm,
-		Ask:       func(defaults bool) ui.Prompter { return ui.New(ui.Options{Defaults: defaults}) },
+		Ask: func(ctx context.Context, defaults bool) ui.Prompter {
+			return ui.New(ui.Options{Defaults: defaults, Context: ctx})
+		},
 		Repo: func(cfg config.Config) restore.Repo {
 			return engine.New(cfg.Repository, dirs, cfg.MachineName)
 		},
@@ -166,7 +168,7 @@ carryon capture --out DIR.`,
 			if err != nil {
 				return err
 			}
-			ask := env.Ask(defaults)
+			ask := env.Ask(ctx, defaults)
 			_, noTerminal := ask.(ui.Defaults)
 
 			hostname, _ := os.Hostname()

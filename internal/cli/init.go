@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -11,8 +12,11 @@ import (
 	"github.com/Evimore/carryon/internal/ui"
 )
 
-// newPrompter returns how commands ask the user things; tests replace it with a ui.Script.
-var newPrompter = func(defaults bool) ui.Prompter { return ui.New(ui.Options{Defaults: defaults}) }
+// newPrompter returns how commands ask the user things; tests replace it with a ui.Script. The
+// questions end with ctx, so Ctrl+C ends them.
+var newPrompter = func(ctx context.Context, defaults bool) ui.Prompter {
+	return ui.New(ui.Options{Defaults: defaults, Context: ctx})
+}
 
 // setupEnv returns what init and recovery-kit use from the machine; tests replace it to use temp
 // folders, a fake mount table and a fake systemctl.
@@ -60,7 +64,7 @@ Or restore as you go: backups start at once, and installing an app offers its sa
 			if o.PasswordFile != "" && o.PasswordCommand != "" {
 				return errors.New("use --password-file or --password-command, not both")
 			}
-			env := setupEnv(dirs, newPrompter(defaults), cmd.OutOrStdout(), cmd.ErrOrStderr())
+			env := setupEnv(dirs, newPrompter(cmd.Context(), defaults), cmd.OutOrStdout(), cmd.ErrOrStderr())
 			ctx := cmd.Context()
 			var err error
 			switch {

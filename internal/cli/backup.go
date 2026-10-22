@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -69,8 +67,7 @@ Backups are paused while a restore is in progress; --force backs up anyway.`,
 				return errors.New("carryon backup reads the whole system and the repository password, so it needs root: run it with sudo")
 			}
 			log := logger(cmd.ErrOrStderr())
-			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
+			ctx := cmd.Context()
 			opt, err := backupOptions(ctx, cmd, dirs, log, quiet)
 			if err != nil {
 				return err

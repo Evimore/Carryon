@@ -51,7 +51,7 @@ decide later. Without a terminal, settle one with "sudo carryon add ID" or
 				return nil
 			}
 			writeInbox(out, in.Entries)
-			p := newPrompter(false)
+			p := newPrompter(cmd.Context(), false)
 			if _, plain := p.(ui.Defaults); plain {
 				fmt.Fprintln(out, "\nSettle one with: sudo carryon add ID, or sudo carryon ignore ID")
 				return nil

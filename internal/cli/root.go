@@ -2,10 +2,13 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -17,8 +20,10 @@ import (
 // Execute runs the command line and returns the process exit code.
 func Execute() int {
 	log := ui.Stderr()
+	ctx, stop := interruptible(context.Background())
+	defer stop()
 	root := NewRoot(os.Stdout, paths.Default())
-	if err := root.Execute(); err != nil {
+	if err := root.ExecuteContext(ctx); err != nil {
 		var exit exitError
 		if errors.As(err, &exit) {
 			return exit.code
@@ -27,6 +32,19 @@ func Execute() int {
 		return 1
 	}
 	return 0
+}
+
+// interruptible returns a context that Ctrl+C (SIGINT), SIGTERM and SIGHUP cancel. Commands then
+// stop what they're doing and wait for restic to stop too, so it removes its lock: a carryon that
+// exits at once leaves restic writing to pipes nobody reads, which kills it before it cleans up.
+// After the first signal carryon stops listening, so a second one ends it at once, as by default.
+func interruptible(parent context.Context) (context.Context, context.CancelFunc) {
+	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+	return ctx, stop
 }
 
 // exitError ends the program with a code, after the command already reported why.

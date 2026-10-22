@@ -3,8 +3,6 @@ package cli
 import (
 	"errors"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -43,8 +41,7 @@ warnings alone don't fail.`,
 				return errors.New("carryon verify reads the system record and the repository password, so it needs root: run it with sudo")
 			}
 			log := logger(cmd.ErrOrStderr())
-			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
+			ctx := cmd.Context()
 			bopt, err := backupOptions(ctx, cmd, dirs, log, true)
 			if err != nil {
 				return err

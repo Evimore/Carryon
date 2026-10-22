@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
 	"os/user"
 	"strconv"
-	"syscall"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/spf13/cobra"
@@ -66,9 +64,7 @@ switch it off.`,
 				Running:  agent.Apps{Runner: run, UID: u.UID}.Running,
 				Warn:     log.Warn,
 			}
-			ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGTERM, syscall.SIGINT)
-			defer stop()
-			return a.Run(ctx)
+			return a.Run(cmd.Context())
 		},
 	}
 }

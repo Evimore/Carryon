@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -48,7 +49,7 @@ func fakeSetup(t *testing.T) paths.Dirs {
 		}
 		return env
 	}
-	newPrompter = func(bool) ui.Prompter { return ui.Defaults{} } // no terminal in tests
+	newPrompter = func(context.Context, bool) ui.Prompter { return ui.Defaults{} } // no terminal in tests
 	t.Cleanup(func() { setupEnv, newPrompter = oldEnv, oldPrompt })
 	return dirs
 }

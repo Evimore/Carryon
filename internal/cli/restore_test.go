@@ -56,7 +56,7 @@ func fakeRestoreEnv(t *testing.T) *sysexec.Fake {
 	restoreEnv = func(paths.Dirs) restoreSystem {
 		return restoreSystem{
 			Root: root, Run: run, Packages: cliPackages{},
-			Ask:      func(bool) ui.Prompter { return ui.Defaults{} },
+			Ask:      func(context.Context, bool) ui.Prompter { return ui.Defaults{} },
 			Repo:     func(config.Config) restore.Repo { t.Fatal("the repository was opened"); return nil },
 			Location: time.UTC,
 			Now:      func() time.Time { return time.Date(2026, 10, 14, 9, 0, 0, 0, time.UTC) },
@@ -209,7 +209,7 @@ func applyEnv(t *testing.T, ask ui.Prompter, fail ...string) *okRunner {
 		e.TempDir = t.TempDir()
 		e.Repo = func(config.Config) restore.Repo { return emptyRepo{} }
 		if ask != nil {
-			e.Ask = func(bool) ui.Prompter { return ask }
+			e.Ask = func(context.Context, bool) ui.Prompter { return ask }
 		}
 		return e
 	}

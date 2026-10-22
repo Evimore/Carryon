@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -80,7 +81,7 @@ func inboxIDs(t *testing.T, dirs paths.Dirs) []string {
 func usePrompter(t *testing.T, p ui.Prompter) {
 	t.Helper()
 	old := newPrompter
-	newPrompter = func(bool) ui.Prompter { return p }
+	newPrompter = func(context.Context, bool) ui.Prompter { return p }
 	t.Cleanup(func() { newPrompter = old })
 }
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
 	"github.com/Evimore/carryon/internal/backup"
@@ -123,8 +124,21 @@ func backupOptions(ctx context.Context, cmd *cobra.Command, dirs paths.Dirs, log
 	}
 	if !quiet {
 		opt.Progress = cmd.ErrOrStderr()
+		opt.ProgressColumns = terminalColumns(opt.Progress)
 	}
 	return opt, nil
+}
+
+// terminalColumns is the width of the terminal w is, or 0 when it isn't one (the journal, a pipe).
+func terminalColumns(w io.Writer) int {
+	f, ok := w.(*os.File)
+	if !ok || !term.IsTerminal(f.Fd()) {
+		return 0
+	}
+	if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
+		return cols
+	}
+	return 80
 }
 
 // rcloneRunner runs rclone as the user whose rclone login the repository uses.

@@ -89,6 +89,7 @@ func (b *run) detect(ctx context.Context, items []record.Item, users []capture.U
 	if b.opt.Config.Detect.NewPaths == "off" {
 		return
 	}
+	b.log.Info("Looking for new data folders to back up")
 	var said strings.Builder
 	res, err := Detect(ctx, DetectOptions{
 		Dirs: b.opt.Dirs, Config: b.opt.Config, System: b.opt.System,

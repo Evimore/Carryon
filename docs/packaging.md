@@ -79,13 +79,34 @@ Releases are made on GitHub's website: no git, no tag to type and no notes to wr
 
 Each way, the "Release" workflow builds static binaries for x86_64 and aarch64, packs a tarball of
 each (`carryon-0.3.0-linux-x86_64.tar.gz`: the `usr/` tree `make install` lays out), writes
-`sha256sums` and attaches them to the release, in a couple of minutes. The notes come from
-`.github/release-notes.sh`. A stable release also goes into the
-[pacman repository](#the-pacman-repository). On pull requests the workflow only builds the tarballs,
-as a dry run.
+`sha256sums`, [attests](#build-provenance) the tarballs and attaches them to the release, in a
+couple of minutes. The notes come from `.github/release-notes.sh`. A stable release also goes into
+the [pacman repository](#the-pacman-repository). On pull requests the workflow only builds the
+tarballs, as a dry run.
 
 Before a release, run the backup and the deep check through the real systemd services on a real
 machine ([design.md, "Testing"](design.md#testing)).
+
+### Build provenance
+
+Before it attaches the tarballs, the "Publish" job attests their build provenance with
+`actions/attest-build-provenance`: a record, signed for that workflow run and kept by GitHub, of the
+workflow, commit and run that built each tarball. Anyone can check a download with the
+[GitHub CLI](https://cli.github.com), as [SECURITY.md](../SECURITY.md#checking-a-download) explains:
+
+```sh
+gh attestation verify carryon-0.3.0-linux-x86_64.tar.gz --repo Evimore/Carryon
+```
+
+- Only the "Publish" job gets `attestations: write`, along with `id-token: write` to sign. It never
+  runs in the dry run, so pull requests attest nothing.
+- If attesting fails, the job stops before it attaches anything, so no tarball is ever attached
+  without an attestation. Re-run the failed jobs to try again.
+- Attaching a release's files again ("Run workflow" with the version of a release that exists)
+  attests them again. GitHub records the commit the workflow ran from, so that attestation names
+  the commit `main` was at then, not the tag's; the run it names shows which tag it built.
+- `carryon-bin` doesn't use attestations: it keeps checking the tarballs against the sha256 sums in
+  its `PKGBUILD`, which match the release's `sha256sums`.
 
 ## The pacman repository
 

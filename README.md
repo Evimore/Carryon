@@ -53,7 +53,8 @@ Carryon needs [restic](https://restic.net). Installing it sets nothing up: `sudo
 ## Documentation
 
 - [Design](docs/design.md): how Carryon works and why
-- [Roadmap](docs/roadmap.md): milestones and the task list
+- [Roadmap](docs/roadmap.md): what's done and what's next; the tasks are
+  [issues](https://github.com/Evimore/Carryon/issues)
 - [The prototype](legacy/README.md): the Python tool Carryon grows out of
 - [Packaging](docs/packaging.md): building, releases and the AUR, for maintainers
 

@@ -1,0 +1,32 @@
+name: Task
+description: Planned work, sized for one pull request
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+      description: What this adds or changes, and what users get from it.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: >-
+        What's in and what's left out. Name the packages it touches and the sections of
+        docs/design.md to read first.
+    validations:
+      required: true
+  - type: textarea
+    id: legacy
+    attributes:
+      label: Prototype
+      description: The functions in legacy/sysbackup.py it ports, or "none".
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: The tests or checks that show it works.
+    validations:
+      required: true

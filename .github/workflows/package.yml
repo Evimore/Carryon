@@ -16,8 +16,8 @@ jobs:
     name: Install layout
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Lint the scripts
@@ -33,7 +33,7 @@ jobs:
       - name: Install the build tools
         # polkit too, so installing the package shows whether its rules.d folder matches polkit's.
         run: pacman -Syu --noconfirm --needed base-devel git go restic namcap polkit
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # pkgver() counts the commits
       - name: Add a build user

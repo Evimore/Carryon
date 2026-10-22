@@ -23,10 +23,10 @@ jobs:
           - { goarch: amd64, arch: x86_64 }
           - { goarch: arm64, arch: aarch64 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Version
@@ -52,7 +52,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           "build/$DISTNAME/usr/bin/carryon" version | tee /dev/stderr | grep -qF "carryon $VERSION ("
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.arch }}
           path: build/${{ env.DISTNAME }}.tar.gz
@@ -66,7 +66,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: dist-*
           merge-multiple: true

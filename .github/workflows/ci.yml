@@ -13,8 +13,8 @@ jobs:
     name: Test (Ubuntu)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Formatting
@@ -53,7 +53,7 @@ jobs:
       - name: Install Go, git, restic and dbus
         # dbus-daemon runs the private bus the user agent's tests use.
         run: pacman -Syu --noconfirm --needed go git restic dbus
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Test
         run: go test ./...
 
@@ -64,9 +64,9 @@ jobs:
       contents: read
       pull-requests: read # gitleaks-action lists a pull request's commits through the API
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

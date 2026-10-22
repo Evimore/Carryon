@@ -111,8 +111,10 @@ jobs:
     steps:
       - name: Install the build tools
         # The image's keyring has no local master key, which every installed system has and the
-        # installer needs to sign Carryon's key.
+        # installer needs to sign Carryon's key. The image also skips man pages and docs, which
+        # would leave a tarball install's copies behind.
         run: |
+          sed -i '/^NoExtract/d' /etc/pacman.conf
           pacman -Syu --noconfirm --needed base-devel git go namcap
           pacman-key --init
       - uses: actions/checkout@v7

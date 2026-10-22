@@ -13,6 +13,7 @@ import (
 	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
+	"github.com/Evimore/carryon/internal/pkgmgr"
 	"github.com/Evimore/carryon/internal/pkgmgr/pacman"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/restore"
@@ -28,6 +29,12 @@ func (cliPackages) SyncPackages(context.Context) ([]string, error) {
 }
 func (cliPackages) ConfiguredRepos(context.Context) ([]string, error) {
 	return []string{"core", "extra"}, nil
+}
+func (cliPackages) Packages(context.Context) ([]pkgmgr.Package, error) {
+	return []pkgmgr.Package{{Name: "base", Repo: "core"}, {Name: "steam", Repo: "multilib"}}, nil
+}
+func (cliPackages) RemoveCommand(pkgs []string) []string {
+	return append([]string{"pacman", "-Rns"}, pkgs...)
 }
 
 // fakeRestoreEnv points carryon restore at a small fake machine, laptop, with alice on it.
@@ -95,6 +102,36 @@ func TestRestorePlanFromRecord(t *testing.T) {
 	// Without a terminal, nothing is remembered: the default ticks weren't a choice.
 	if _, err := os.Stat(filepath.Join(dirs.State, "selections")); err == nil {
 		t.Error("default ticks were remembered as choices")
+	}
+}
+
+func TestRestorePlanInstalledSince(t *testing.T) {
+	fakeRestoreEnv(t)
+	// The record is of desktop: make the fake machine desktop too, so steam, which the record
+	// doesn't hold, was installed since the backup.
+	root := restoreEnv(paths.Dirs{}).Root
+	if err := os.WriteFile(filepath.Join(root, "proc/sys/kernel/hostname"), []byte("desktop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name string
+		args []string
+		want bool
+	}{
+		{"everything", []string{"restore", "--plan", "--record", "../record/testdata/format2"}, true},
+		{"one bundle", []string{"restore", "--plan", "--bundle", "services", "--record", "../record/testdata/format2"}, false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := run(t, paths.Dirs{State: t.TempDir()}, tt.args...)
+			if err != nil {
+				t.Fatalf("%v\n%s", err, out)
+			}
+			got := strings.Contains(out, "Installed since this backup (left as they are): steam\n") &&
+				strings.Contains(out, "To remove these by hand: sudo pacman -Rns steam\n")
+			if got != tt.want || (!tt.want && strings.Contains(out, "Installed since")) {
+				t.Errorf("lists steam as installed since = %v, want %v:\n%s", got, tt.want, out)
+			}
+		})
 	}
 }
 

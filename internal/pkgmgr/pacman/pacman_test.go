@@ -538,6 +538,18 @@ func TestInstallEach(t *testing.T) {
 	}
 }
 
+func TestRemoveCommand(t *testing.T) {
+	// The command is only shown, never run.
+	f := newFake(t)
+	got := New(f, Options{}).RemoveCommand([]string{"steam", "wine"})
+	if want := []string{"pacman", "-Rns", "steam", "wine"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("RemoveCommand = %v, want %v", got, want)
+	}
+	if len(f.calls) != 0 || len(f.runs) != 0 {
+		t.Errorf("ran %v %v", f.calls, f.runs)
+	}
+}
+
 func TestPresent(t *testing.T) {
 	f := newFake(t)
 	p := New(f, Options{})

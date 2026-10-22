@@ -36,6 +36,10 @@ Restore plan: desktop -> desktop  (17/17 bundles)
 
   Full plan with diffs: /var/lib/carryon/restore-plan.txt
 
+  Installed since this backup (left as they are): steam, wine
+  Restoring never removes anything. To remove these by hand: sudo pacman -Rns steam wine
+  To undo a whole change, roll back to before it with snapper or btrfs-assistant.
+
   Not in the backup, re-download after restoring: 2 Steam games (45.0 GB), Rust toolchains, Browser caches
   The full list is saved to ~/not-backed-up.md when you apply the restore.
 
@@ -92,3 +96,10 @@ Restore plan: desktop -> desktop  (17/17 bundles)
 [Language tools] npm -g     typescript
 [skipped] package    oldtool  [community]: not in any repository
 [skipped] file       /opt/vm/disk.img: too big to keep in the record; copy it from the backup by hand
+
+Installed since this backup (left as they are):
+  steam
+  wine
+Restoring never removes anything. To remove these by hand:
+  sudo pacman -Rns steam wine
+To undo a whole change, roll back to before it with snapper or btrfs-assistant.

@@ -493,6 +493,18 @@ Where planning differs from the prototype on purpose:
 - **The plan file says more:** diffs are made by Carryon itself (no `diff` needed), user unit files
   get diffs too, review-only files say why they're never copied, and per-user steps say which user
   here they're for and where they go.
+- **What was installed since the backup.** **New.** A restore puts back what differs from the
+  backup and never removes anything, so someone restoring to undo a bad install could expect it
+  gone. When the whole backup is restored onto the machine it's of (as the `samehost` when-rule
+  decides), the plan lists the packages installed on purpose here that the record doesn't hold,
+  under "Installed since this backup (left as they are)", with the command to remove them by hand
+  (`sudo pacman -Rns ...`, which the package-manager backend supplies). Dependencies aren't listed:
+  removing those packages removes the ones only they needed. When the root filesystem is btrfs and
+  snapper is set up for it (`/etc/snapper/configs/root`), the section also names snapper or
+  btrfs-assistant as the way to undo a whole change. Nothing is listed for another machine, for a
+  bundle restored on its own, or from a record without packages, which can't tell what's new. On
+  the same hardware reinstalled, the list is what the new install has that the old one didn't.
+  Carryon never removes any of it.
 
 Where applying differs from the prototype on purpose:
 

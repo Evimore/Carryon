@@ -17,6 +17,7 @@ import (
 
 	"github.com/Evimore/carryon/internal/bundle"
 	"github.com/Evimore/carryon/internal/paths"
+	"github.com/Evimore/carryon/internal/pkgmgr"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/rules"
 	"github.com/Evimore/carryon/internal/state"
@@ -36,9 +37,11 @@ const MaxChanges = 8
 // so it needs no package lists.
 type noPackages struct{}
 
-func (noPackages) Installed(context.Context) ([]string, error)       { return nil, nil }
-func (noPackages) SyncPackages(context.Context) ([]string, error)    { return nil, nil }
-func (noPackages) ConfiguredRepos(context.Context) ([]string, error) { return nil, nil }
+func (noPackages) Installed(context.Context) ([]string, error)        { return nil, nil }
+func (noPackages) SyncPackages(context.Context) ([]string, error)     { return nil, nil }
+func (noPackages) ConfiguredRepos(context.Context) ([]string, error)  { return nil, nil }
+func (noPackages) Packages(context.Context) ([]pkgmgr.Package, error) { return nil, nil }
+func (noPackages) RemoveCommand([]string) []string                    { return nil }
 
 // installsSoftware reports whether restoring an item installs software: repositories, packages,
 // AUR packages and language tools. Offers leave these to the user and pacman.

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/Evimore/carryon/internal/capture"
+	"github.com/Evimore/carryon/internal/pkgmgr"
+	"github.com/Evimore/carryon/internal/rules"
 	"github.com/Evimore/carryon/internal/sysexec"
 )
 
@@ -19,6 +21,12 @@ type Packages interface {
 	SyncPackages(ctx context.Context) ([]string, error)
 	// ConfiguredRepos lists the configured repositories.
 	ConfiguredRepos(ctx context.Context) ([]string, error)
+	// Packages lists the packages installed on purpose, then the ones installed as dependencies
+	// that are only optionally needed.
+	Packages(ctx context.Context) ([]pkgmgr.Package, error)
+	// RemoveCommand is the command that removes packages by hand, program first, such as
+	// pacman -Rns. The plan only shows it.
+	RemoveCommand(pkgs []string) []string
 }
 
 // Machine is this machine, the one restored onto. The plan only reads it.
@@ -27,6 +35,9 @@ type Machine struct {
 	Root string
 	// Hostname is shown in the plan's header.
 	Hostname string
+	// Facts are its machine facts (facts.Collect under Root): whether it's the machine the backup
+	// is of, and its root filesystem. Zero means unknown, which is never the same machine.
+	Facts rules.Facts
 	// Run runs programs (systemctl, flatpak, npm) as root, or as whoever runs Carryon.
 	Run sysexec.Runner
 	// UserRunner returns a runner whose programs run as the given user (cargo, pipx, Flatpak

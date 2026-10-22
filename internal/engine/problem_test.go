@@ -82,6 +82,15 @@ func TestClassify(t *testing.T) {
 			wantFix:   []string{"no backup repository at /mnt/backup/carryon", "plug it in"},
 		},
 		{
+			name: "repository missing, its path holds an error word",
+			code: ExitNoRepo,
+			stderr: "Fatal: repository does not exist: unable to open config file: stat /mnt/failover/carryon/config: no such file or directory\n" +
+				"Is there a repository at the following location?\n/mnt/failover/carryon\n",
+			repo:      config.Repository{URL: "/mnt/failover/carryon"},
+			wantCause: "repository does not exist: unable to open config file: stat /mnt/failover/carryon/config: no such file or directory",
+			wantFix:   []string{"no backup repository at /mnt/failover/carryon"},
+		},
+		{
 			name:      "disk full",
 			code:      ExitFatal,
 			stderr:    "Fatal: unable to save snapshot: Save(<data/1a2b3c4d>) returned error, retrying after 1s: write /mnt/backup/carryon/data/1a/1a2b: no space left on device\n",

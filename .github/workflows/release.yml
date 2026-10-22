@@ -1,12 +1,13 @@
 name: Release
 
-# On a tag v*: builds static binaries for x86_64 and aarch64, a tarball of each with everything
-# `make install` installs, and publishes them with sha256sums as a GitHub release.
+# When a release is published on GitHub's Releases page (which also makes its tag): builds static
+# binaries for x86_64 and aarch64, a tarball of each with everything `make install` installs, and
+# attaches them with sha256sums to the release. See docs/packaging.md, "Making a release".
 # On a pull request: the same build as a dry run, without publishing anything.
 
 on:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
   pull_request:
 
 permissions:
@@ -30,7 +31,11 @@ jobs:
           go-version-file: go.mod
       - name: Version
         run: |
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          if [[ $GITHUB_EVENT_NAME == release ]]; then
+            if [[ ! $GITHUB_REF_NAME =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+              echo "::error::The release's tag is \"$GITHUB_REF_NAME\", but it must look like v0.2.0, or v0.3.0-rc1 for a pre-release. Delete this release and its tag, then publish it again with a tag named that way."
+              exit 1
+            fi
             version=${GITHUB_REF_NAME#v}
           else
             version=0.0.0-dryrun.${GITHUB_SHA::7}
@@ -56,7 +61,7 @@ jobs:
   publish:
     name: Publish
     needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -69,13 +74,14 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: sha256sum -- *.tar.gz | tee sha256sums
-      - name: Create the release
+      - name: Attach the files to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          flags=()
-          # v0.1.0-rc1 and the like are pre-releases.
-          if [[ $GITHUB_REF_NAME == *-* ]]; then flags+=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/sha256sums \
-            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes \
-            --title "Carryon ${GITHUB_REF_NAME#v}" "${flags[@]}"
+          # --clobber lets a re-run replace what a failed run attached.
+          gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz dist/sha256sums \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          # v0.3.0-rc1 and the like are pre-releases, even if the box wasn't ticked.
+          if [[ $GITHUB_REF_NAME == *-* ]]; then
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
+          fi

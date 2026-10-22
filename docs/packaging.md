@@ -61,20 +61,23 @@ makepkg --printsrcinfo > .SRCINFO
 
 ## Making a release
 
-1. Make sure `main` is green. Pick the version, say `0.1.0`.
-2. Tag it and push the tag:
+Releases are made on GitHub's website, so no git is needed on your machine.
 
-   ```sh
-   git tag -s v0.1.0 -m "Carryon 0.1.0"
-   git push origin v0.1.0
-   ```
-
-   The "Release" workflow builds static binaries for x86_64 and aarch64, packs a tarball of each
-   (`carryon-0.1.0-linux-x86_64.tar.gz`: the `usr/` tree `make install` lays out), writes
-   `sha256sums` and creates the GitHub release with them. A tag with a `-`, like `v0.1.0-rc1`, makes
-   a pre-release. On pull requests the same workflow only builds the tarballs, as a dry run.
-3. Before the release, a maintainer runs the backup and the deep check through the real systemd
+1. Make sure `main` is green, and run the backup and the deep check through the real systemd
    services on a real machine ([design.md, "Testing"](design.md#testing)).
+2. On the repository's page, open **Releases**, then **Draft a new release**.
+3. Under **Choose a tag**, type the new version with a `v`, like `v0.2.0`, and pick **Create new
+   tag on publish**. Leave the target on `main`.
+4. Title it `Carryon 0.2.0`, and write what changed or click **Generate release notes**.
+5. Click **Publish release**.
+
+The "Release" workflow then builds static binaries for x86_64 and aarch64, packs a tarball of each
+(`carryon-0.2.0-linux-x86_64.tar.gz`: the `usr/` tree `make install` lays out), writes `sha256sums`
+and attaches them to the release, in a few minutes. It refuses a tag that isn't named like
+`v0.2.0`. A tag with a `-`, like `v0.3.0-rc1`, makes a pre-release: use one to try a release first.
+On pull requests the same workflow only builds the tarballs, as a dry run.
+
+A tag pushed with git doesn't make a release by itself: draft a release from it on the same page.
 
 ## Publishing to the AUR
 
@@ -123,7 +126,7 @@ match the `PKGBUILD`, so always regenerate it.
 
 ### Each release after that
 
-1. Tag and push as above; wait for the "Release" workflow to publish.
+1. Publish the release as above, and wait for the "Release" workflow to attach its files.
 2. For `carryon` and `carryon-bin`: set `pkgver`, reset `pkgrel=1`, run `updpkgsums` and
    `makepkg --printsrcinfo > .SRCINFO`, build and test as above.
 3. `carryon-git` needs no update for a release: AUR helpers rebuild it from `main`. Push it only

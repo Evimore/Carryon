@@ -65,8 +65,8 @@ Releases are made on GitHub's website: no git, no tag to type and no notes to wr
 
 - **A new version:** when every issue in a version's milestone is closed, close the milestone
   (**Issues → Milestones → Close**). Closing `v0.3 Comfort` releases 0.3.0 from `main`. The notes
-  list the milestone's tasks under "What's new" and its bugs under "Fixed", then how to install and
-  a link to all changes. Issues labeled `internal` stay out of the notes. A milestone that still has open issues, or isn't named after a
+  list the milestone's tasks under "Features" and its bugs under "Bug fixes", then the
+  requirements, how to install and a link to all changes. Issues labeled `internal` stay out of the notes. A milestone that still has open issues, or isn't named after a
   version, releases nothing, and the workflow run says why.
 - **Fixes between versions:** on the **Actions** tab, open **Release**, then **Run workflow**. Left
   empty, it releases the next fix version from `main` (0.2.1 after 0.2.0), with notes listing the

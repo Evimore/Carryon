@@ -83,22 +83,22 @@ Restore plan: desktop -> laptop  (17/17 bundles)
 
 [From backup] backup     /etc/ssh/ssh_host_*
 [From backup] backup     /root
-[From backup] backup     ~/.config/kitty
-[From backup] backup     ~/.local/share/fonts
-[Account] shell      /usr/bin/zsh
+[From backup] backup     ~/.config/kitty  (alice)
+[From backup] backup     ~/.local/share/fonts  (alice)
+[Account] shell      /usr/bin/zsh  (alice)
 [Services] enable     sshd.service
 [Services] mask       systemd-networkd-wait-online.service
-[Folders] folder     ~/Cloud
-[User units] user unit  enable rclone-mount.service
+[Folders] folder     ~/Cloud  (alice)
+[User units] user unit  enable rclone-mount.service  (alice)
     goes to /home/alice/.config/systemd/user/rclone-mount.service
-[User units] user unit  rclone-mount.service  (new)
+[User units] user unit  rclone-mount.service  (alice)  (new)
     goes to /home/alice/.config/systemd/user/rclone-mount.service
-[User units] user unit  mask tracker-miner-fs-3.service
+[User units] user unit  mask tracker-miner-fs-3.service  (alice)
     goes to /home/alice/.config/systemd/user/tracker-miner-fs-3.service
 [Kernel params] kernel     nvidia_drm.modeset=1
 [Language tools] flatpak    org.example.App
-[Language tools] flatpak    org.example.Notes
-[Language tools] cargo      ripgrep
-[Language tools] pipx       black
+[Language tools] flatpak    org.example.Notes  (alice)
+[Language tools] cargo      ripgrep  (alice)
+[Language tools] pipx       black  (alice)
 [skipped] package    oldtool  [community]: not in any repository
 [skipped] file       /opt/vm/disk.img: too big to keep in the record; copy it from the backup by hand

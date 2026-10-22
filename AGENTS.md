@@ -23,9 +23,9 @@ Read these before changing anything:
   `CARRYON_STATE_DIR`, `CARRYON_CACHE_DIR`, `CARRYON_RUN_DIR`, `CARRYON_SHARE_DIR` and `CARRYON_MOTD_DIR` overrides
   (`internal/paths`). Unit tests never need root, never run pacman, and only use restic repositories
   they created in a temp folder.
-- **Keep the record format compatible.** `internal/record` uses the prototype's JSON field names so
-  Carryon can restore from the prototype's snapshots. Never rename a field. Keep `Item`'s and
-  `Meta`'s fields in alphabetical order of their JSON names (a test checks this).
+- **Keep the record format compatible.** Carryon restores from the records in its own snapshots,
+  so never rename a field of `internal/record`. Keep `Item`'s and `Meta`'s fields in alphabetical
+  order of their JSON names (a test checks this).
 - **When you change a behavior the prototype had on purpose**, say so in `docs/design.md`.
 - **Safety rules that must survive every change:**
   - the pacman hook never fails or blocks a pacman transaction;
@@ -42,7 +42,7 @@ go test ./...                           # all tests (add -race when touching con
 go vet ./...                            # static checks
 gofmt -l .                              # must print nothing; fix with gofmt -w .
 go run ./cmd/carryon --help             # try the CLI
-go run ./cmd/carryon bundles --record internal/record/testdata/format1
+go run ./cmd/carryon bundles --record internal/record/testdata/format2
 ```
 
 Cloud sessions get Go modules and restic from `.claude/hooks/session-start.sh`. The cloud container is

@@ -20,13 +20,13 @@ func run(t *testing.T, dirs paths.Dirs, args ...string) (string, error) {
 	return out.String(), err
 }
 
-func TestBundlesReadsAPrototypeRecord(t *testing.T) {
-	out, err := run(t, paths.Dirs{}, "bundles", "--record", "../record/testdata/format1")
+func TestBundlesReadsARecord(t *testing.T) {
+	out, err := run(t, paths.Dirs{}, "bundles", "--record", "../record/testdata/format2")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"System record of desktop (18 items in 14 bundles, format 1)",
+		"System record of desktop (18 items in 14 bundles, format 2)",
 		"Machine identity: hostname, SSH host keys, Tailscale node   identity · when samehost",
 		"      package    fuse3  [extra]  (as dependency)",
 		"      backup     ~/.config/kitty",

@@ -102,7 +102,7 @@ func TestChooseSource(t *testing.T) {
 			if len(repo.ran) != 1 || repo.ran[0][1] != tt.want {
 				t.Fatalf("ran %q, want a restore of %s", repo.ran, tt.want)
 			}
-			want := []string{"restore", tt.want, "--target", "", "--include", RecordPath, "--include", PrototypeRecordPath}
+			want := []string{"restore", tt.want, "--target", "", "--include", RecordPath}
 			got := append([]string(nil), repo.ran[0]...)
 			got[3] = ""
 			if strings.Join(got, " ") != strings.Join(want, " ") {
@@ -221,15 +221,14 @@ func copyDir(t *testing.T, from, to string) {
 
 func TestFetchFromRestic(t *testing.T) {
 	e := resticRepo(t,
-		// A machine backed up by the prototype: its record is at /var/lib/sysbackup/manifest.
+		// Two machines backed up by Carryon.
 		func(root string) string {
-			copyDir(t, "testdata/desktop", filepath.Join(root, PrototypeRecordPath))
+			copyDir(t, "testdata/desktop", filepath.Join(root, RecordPath))
 			writeFile(t, filepath.Join(root, "var/lib/other/data"), "not part of the record\n")
 			return "desktop"
 		},
-		// One backed up by Carryon.
 		func(root string) string {
-			copyDir(t, "../record/testdata/format1", filepath.Join(root, RecordPath))
+			copyDir(t, "../record/testdata/format2", filepath.Join(root, RecordPath))
 			writeFile(t, filepath.Join(root, "var/lib/other/data"), "not part of the record\n")
 			return "laptop"
 		},

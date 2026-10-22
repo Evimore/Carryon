@@ -27,7 +27,7 @@ func publishTwice(t *testing.T, dirs paths.Dirs) {
 	t.Helper()
 	now := time.Date(2026, 10, 1, 9, 30, 0, 0, time.UTC)
 	for _, extra := range []bool{false, true} {
-		r, err := record.Load("../record/testdata/format1")
+		r, err := record.Load("../record/testdata/format2")
 		if err != nil {
 			t.Fatal(err)
 		}

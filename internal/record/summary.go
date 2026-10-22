@@ -12,7 +12,7 @@ const SummaryFile = "SUMMARY.md"
 const summaryItems = 30
 
 // Summary renders SUMMARY.md: the machine, then each bundle with its first items. It ports the
-// prototype's summary_md and gives the same text for a format 1 record.
+// prototype's summary_md and gives the same text for a record with one user.
 func (r *Record) Summary() string {
 	m := r.Meta
 	byBundle := map[string][]Item{}

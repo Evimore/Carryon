@@ -146,8 +146,8 @@ the record kept for restoring as you go, unless --from, --snapshot or --record s
 app's settings are held back while the app runs, so close it first. Carryon keeps the record of
 every restore from the backup and offers the rest as you install apps; --stop-offers stops that.
 
---record DIR plans from a record on disk instead of the backup, such as one the sysbackup
-prototype wrote to /var/lib/sysbackup/manifest.`,
+--record DIR plans from a record on disk instead of the backup, such as one written by
+carryon capture --out DIR.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()

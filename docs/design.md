@@ -100,8 +100,10 @@ Capture writes the new record into a staging folder next to the record; publishi
 ### Item format
 
 Items are JSON objects with a `type`, an `id`, a `bundle` and type-specific fields. **Carryon keeps the
-prototype's field names**, so it can read records made by the prototype (format 1) and restore from
-the snapshots it made. Carryon writes format 2, which adds the `user` field for multi-user machines.
+prototype's field names**, and never renames one. Carryon writes format 2, which adds the `user` field
+for multi-user machines. **Changed:** Carryon no longer reads the prototype's records (format 1).
+Loading one fails with a message that says the backup was made by the prototype and that its files can
+still be restored with `carryon restic restore`.
 
 | Type | id | Notable fields |
 |---|---|---|
@@ -477,8 +479,8 @@ Safety rails, all kept:
 
 Where planning differs from the prototype on purpose:
 
-- **Records from both tools.** Only the record is fetched from the snapshot, from
-  `/var/lib/carryon/record` or, for the prototype's snapshots, `/var/lib/sysbackup/manifest`.
+- **Only the record is fetched** from the snapshot, from `/var/lib/carryon/record`. The prototype's
+  snapshots, which kept it in `/var/lib/sysbackup/manifest`, aren't planned from.
 - **One checklist.** Single items are unticked inside the bundle checklist, instead of a second
   "fine-tune" list. Remembered choices live in `/var/lib/carryon/selections/<machine>.json` (the
   prototype kept them in `/etc/sysbackup/selections/`), and are saved only when the user actually
@@ -902,7 +904,7 @@ system's loader, and the same binary must run from the recovery kit anywhere. Se
   (settings, retries, the app check on a fake `/proc`) are tested with a notification service in
   memory. A real desktop session, polkit and the units behind the buttons are left for the end-to-end
   tests and real machines.
-- **Golden tests** pin the record format and prove prototype records (format 1) still load.
+- **Golden tests** pin the record format (format 2) and the restore plans made from it.
 - **End to end in CI** (`test/e2e/`, the "End-to-end" workflow): machine A, an Arch container, gets a
   few packages, changed and added system files, a service, two users with home files and an extra
   path; it backs up to a restic repository on a shared volume and passes `verify --deep`. Machine B,

@@ -17,8 +17,7 @@ func newBundlesCmd(dirs paths.Dirs) *cobra.Command {
 		Short: "Show how a system record is grouped for restore",
 		Long: `Show the bundles in a system record and the items in each.
 
---record can point at a record written by the sysbackup prototype too, for example
-/var/lib/sysbackup/manifest.`,
+--record can point at any record folder, such as one written by carryon capture --out DIR.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := record.Load(dir)

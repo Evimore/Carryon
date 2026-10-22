@@ -17,12 +17,13 @@ import (
 )
 
 func TestSummaryMatchesPrototype(t *testing.T) {
-	// testdata/summary-format1.md is what the prototype's summary_md wrote for the fixture.
-	r, err := Load("testdata/format1")
+	// testdata/summary.md is what the prototype's summary_md wrote for the fixture, which had the
+	// same items and one user.
+	r, err := Load("testdata/format2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := os.ReadFile("testdata/summary-format1.md")
+	want, err := os.ReadFile("testdata/summary.md")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +107,7 @@ func realGit(t *testing.T) sysexec.Runner {
 // stage writes the fixture record, changed by edit, to a new stage folder and returns its path.
 func (f *fixture) stage(edit func(*Record)) string {
 	f.t.Helper()
-	r, err := Load("testdata/format1")
+	r, err := Load("testdata/format2")
 	if err != nil {
 		f.t.Fatal(err)
 	}

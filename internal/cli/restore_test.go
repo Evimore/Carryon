@@ -14,6 +14,7 @@ import (
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/pkgmgr/pacman"
+	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/restore"
 	"github.com/Evimore/carryon/internal/sysexec"
 	"github.com/Evimore/carryon/internal/ui"
@@ -68,7 +69,7 @@ func fakeRestoreEnv(t *testing.T) *sysexec.Fake {
 func TestRestorePlanFromRecord(t *testing.T) {
 	fakeRestoreEnv(t)
 	dirs := paths.Dirs{State: t.TempDir()}
-	out, err := run(t, dirs, "restore", "--plan", "--record", "../record/testdata/format1")
+	out, err := run(t, dirs, "restore", "--plan", "--record", "../record/testdata/format2")
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
@@ -97,9 +98,21 @@ func TestRestorePlanFromRecord(t *testing.T) {
 	}
 }
 
+func TestRestoreRefusesAPrototypeRecord(t *testing.T) {
+	fakeRestoreEnv(t)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, record.MetaFile), []byte(`{"format": 1, "host": "desktop", "user": "alice"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--plan", "--record", dir)
+	if err == nil || !strings.Contains(err.Error(), "no longer restores from it") || !strings.Contains(err.Error(), "carryon restic restore") {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestRestoreDefaultsOnlyShowsThePlan(t *testing.T) {
 	fake := fakeRestoreEnv(t)
-	out, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--defaults", "--record", "../record/testdata/format1")
+	out, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--defaults", "--record", "../record/testdata/format2")
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
@@ -126,7 +139,7 @@ func TestRestoreNeedsRootForTheBackup(t *testing.T) {
 
 func TestRestoreBadUserFlag(t *testing.T) {
 	fakeRestoreEnv(t)
-	_, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--plan", "--record", "../record/testdata/format1", "--user", "alice")
+	_, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--plan", "--record", "../record/testdata/format2", "--user", "alice")
 	if err == nil || !strings.Contains(err.Error(), "OLD=NEW") {
 		t.Errorf("err = %v", err)
 	}
@@ -134,7 +147,7 @@ func TestRestoreBadUserFlag(t *testing.T) {
 
 func TestRestoreUserMapping(t *testing.T) {
 	fakeRestoreEnv(t)
-	_, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--plan", "--record", "../record/testdata/format1", "--user", "alice=dave")
+	_, err := run(t, paths.Dirs{State: t.TempDir()}, "restore", "--plan", "--record", "../record/testdata/format2", "--user", "alice=dave")
 	if err == nil || !strings.Contains(err.Error(), "there is no user dave here") {
 		t.Errorf("err = %v", err)
 	}
@@ -212,7 +225,7 @@ func smallRecord(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	for name, body := range map[string]string{
-		"meta.json":    `{"format": 1, "host": "desktop", "user": "alice", "home": "/home/alice", "chassis": "desktop", "complete": true, "kernel": "6.17", "machine": ""}`,
+		"meta.json":    `{"format": 2, "host": "desktop", "machine_name": "desktop", "user": "alice", "home": "/home/alice", "users": [{"name": "alice", "home": "/home/alice"}], "chassis": "desktop", "complete": true, "kernel": "6.17", "machine": ""}`,
 		"bundles.json": `{"services": {"title": "Enabled system services", "when": "always"}, "kparams": {"title": "Kernel parameters", "when": "always"}}`,
 		"items.jsonl": `{"bundle": "services", "id": "sshd.service", "type": "svc"}
 {"bundle": "kparams", "id": "splash", "source": "/etc/kernel/cmdline", "type": "kparam"}

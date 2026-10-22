@@ -84,6 +84,10 @@ fi
 overwrite=()
 if ! pacman -Q carryon >/dev/null 2>&1; then
   fetch "$arch/carryon.files" "$tmp/carryon.files"
+  bsdtar -xOf "$tmp/carryon.files" '*/files' >"$tmp/files" ||
+    die "couldn't read the list of the package's files from $url/$arch/carryon.files."
+  grep -qx 'usr/bin/carryon' "$tmp/files" ||
+    die "the list of the package's files at $url/$arch/carryon.files doesn't have usr/bin/carryon."
   while IFS= read -r path; do
     [[ -n $path && $path != */ && $path != %*% ]] || continue
     [[ -e /$path || -L /$path ]] || continue
@@ -91,7 +95,7 @@ if ! pacman -Q carryon >/dev/null 2>&1; then
       # --overwrite takes a pattern, so escape its special characters.
       overwrite+=(--overwrite "$(printf '/%s' "$path" | sed 's/[][*?\\]/\\&/g')")
     fi
-  done < <(bsdtar -xOf "$tmp/carryon.files" '*/files')
+  done <"$tmp/files"
   if (( ${#overwrite[@]} )); then
     say "Replacing $(( ${#overwrite[@]} / 2 )) files of an earlier install from the release archive."
   fi

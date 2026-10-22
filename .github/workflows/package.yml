@@ -196,7 +196,9 @@ jobs:
           echo kept >/usr/share/carryon-unowned
           carryon version | grep -F "carryon $VERSION-rc1 ("
           if pacman -Qo /usr/bin/carryon; then exit 1; fi
-          bash install.sh --noconfirm | tee move.txt
+          bsdtar -tvf "$REPO/x86_64/carryon.files"
+          bsdtar -xOf "$REPO/x86_64/carryon.files" '*/files' | head -n 5
+          bash -x install.sh --noconfirm 2>&1 | tee move.txt
           grep 'files of an earlier install from the release archive' move.txt
           carryon version | grep -F "carryon $VERSION ("
           pacman -Qkk carryon

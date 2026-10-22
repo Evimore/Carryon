@@ -7,8 +7,9 @@ It's a Go rewrite of a working Python prototype, in early development.
 Read these before changing anything:
 
 - [docs/design.md](docs/design.md): how Carryon works and why. The source of truth.
-- [docs/roadmap.md](docs/roadmap.md): the versions, and what the finished ones built. The tasks are
-  [GitHub issues](https://github.com/Evimore/Carryon/issues). Work on one issue per pull request.
+- [docs/roadmap.md](docs/roadmap.md): the versions, what the finished ones built, and how work is
+  planned. Tasks are [GitHub issues](https://github.com/Evimore/Carryon/issues) labeled `task`,
+  problems are labeled `bug`. Work on one issue per pull request.
 - [legacy/README.md](legacy/README.md): the prototype, and which of its functions each Go package
   ports. Read the legacy function before porting it; its special cases exist for a reason.
 

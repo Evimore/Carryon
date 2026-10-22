@@ -1,19 +1,23 @@
 # Roadmap
 
 How Carryon gets from the prototype to a public release, one version at a time. This page keeps the
-big picture and a record of what each finished version built. The work itself is planned in
-[issues](https://github.com/Evimore/Carryon/issues), grouped by version in
+big picture and a record of what each finished version built. The work itself is planned on the
+[project board](https://github.com/Evimore/Carryon/projects), grouped by version in
 [milestones](https://github.com/Evimore/Carryon/milestones).
 
 **Status key:** ✅ done · 🔨 in progress · ⬜ not started
 
 ## How work is planned
 
-- Each task is an issue, sized for one pull request. The task template asks what it's for, its
-  scope and when it's done, as the finished tasks below say.
-- An issue goes in the milestone of the version it's for. Bugs get an issue too, from the bug
-  template, and go in the milestone they should be fixed by.
-- A pull request closes its issue: its description says `Closes #N`.
+- Each task is an issue labeled `task`, sized for one pull request. The task template asks what
+  it's for, its scope and when it's done, as the finished tasks below say.
+- Problems are issues labeled `bug`, from the bug template. The
+  [open bugs](https://github.com/Evimore/Carryon/issues?q=is%3Aissue+is%3Aopen+label%3Abug) are
+  the list of what's wrong.
+- The board picks up new issues by itself and shows where each one stands. An issue goes in the
+  milestone of the version it's for, a bug in the one it should be fixed by.
+- A pull request closes its issue, and the board moves it to Done: the description says
+  `Closes #N`.
 - Planning a version starts with its [open questions](design.md#open-questions). The decisions go
   into the design, then each task becomes an issue.
 

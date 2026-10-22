@@ -1,6 +1,6 @@
 name: Task
 description: Planned work, sized for one pull request
-labels: [enhancement]
+labels: [task]
 body:
   - type: textarea
     id: what

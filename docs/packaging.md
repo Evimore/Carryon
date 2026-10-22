@@ -61,23 +61,28 @@ makepkg --printsrcinfo > .SRCINFO
 
 ## Making a release
 
-Releases are made on GitHub's website, so no git is needed on your machine.
+Releases are made on GitHub's website: no git, no tag to type and no notes to write.
 
-1. Make sure `main` is green, and run the backup and the deep check through the real systemd
-   services on a real machine ([design.md, "Testing"](design.md#testing)).
-2. On the repository's page, open **Releases**, then **Draft a new release**.
-3. Under **Choose a tag**, type the new version with a `v`, like `v0.2.0`, and pick **Create new
-   tag on publish**. Leave the target on `main`.
-4. Title it `Carryon 0.2.0`, and write what changed or click **Generate release notes**.
-5. Click **Publish release**.
+- **A new version:** when every issue in a version's milestone is closed, close the milestone
+  (**Issues → Milestones → Close**). Closing `v0.3 Comfort` releases 0.3.0 from `main`. The notes
+  list the milestone's tasks under "What's new" and its bugs under "Fixed", then how to install and
+  every merged pull request. A milestone that still has open issues, or isn't named after a
+  version, releases nothing, and the workflow run says why.
+- **Fixes between versions:** on the **Actions** tab, open **Release**, then **Run workflow**. Left
+  empty, it releases the next fix version from `main` (0.2.1 after 0.2.0), with notes listing the
+  issues closed since the last release. Or type the version yourself: one with a `-`, like
+  `0.3.0-rc1`, makes a pre-release, to try a release first. The version of a release that exists
+  builds and attaches its files again.
+- **By hand:** a release published on the **Releases** page, with a tag named like `v0.2.0`, gets
+  its files attached. You write its notes.
 
-The "Release" workflow then builds static binaries for x86_64 and aarch64, packs a tarball of each
-(`carryon-0.2.0-linux-x86_64.tar.gz`: the `usr/` tree `make install` lays out), writes `sha256sums`
-and attaches them to the release, in a few minutes. It refuses a tag that isn't named like
-`v0.2.0`. A tag with a `-`, like `v0.3.0-rc1`, makes a pre-release: use one to try a release first.
-On pull requests the same workflow only builds the tarballs, as a dry run.
+Each way, the "Release" workflow builds static binaries for x86_64 and aarch64, packs a tarball of
+each (`carryon-0.3.0-linux-x86_64.tar.gz`: the `usr/` tree `make install` lays out), writes
+`sha256sums` and attaches them to the release, in a couple of minutes. The notes come from
+`.github/release-notes.sh`. On pull requests the workflow only builds the tarballs, as a dry run.
 
-A tag pushed with git doesn't make a release by itself: draft a release from it on the same page.
+Before a release, run the backup and the deep check through the real systemd services on a real
+machine ([design.md, "Testing"](design.md#testing)).
 
 ## Publishing to the AUR
 
@@ -126,7 +131,7 @@ match the `PKGBUILD`, so always regenerate it.
 
 ### Each release after that
 
-1. Publish the release as above, and wait for the "Release" workflow to attach its files.
+1. Make the release as above, and wait for the "Release" workflow to finish.
 2. For `carryon` and `carryon-bin`: set `pkgver`, reset `pkgrel=1`, run `updpkgsums` and
    `makepkg --printsrcinfo > .SRCINFO`, build and test as above.
 3. `carryon-git` needs no update for a release: AUR helpers rebuild it from `main`. Push it only

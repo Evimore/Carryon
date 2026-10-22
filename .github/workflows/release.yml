@@ -1,11 +1,25 @@
 name: Release
 
-# When a release is published on GitHub's Releases page (which also makes its tag): builds static
-# binaries for x86_64 and aarch64, a tarball of each with everything `make install` installs, and
-# attaches them with sha256sums to the release. See docs/packaging.md, "Making a release".
+# Makes releases without git, in one of three ways (docs/packaging.md, "Making a release"):
+# - Closing a milestone named like "v0.3 Comfort" releases 0.3.0 from main, with notes listing the
+#   milestone's finished tasks and fixed bugs.
+# - "Run workflow" on the Actions tab releases the next fix version (0.2.1 after 0.2.0) from main,
+#   with notes listing the issues closed since the last release, or the version typed in. Given the
+#   version of a release that exists, it builds and attaches that release's files again.
+# - A release published by hand on the Releases page gets its files attached.
+# Each builds static binaries for x86_64 and aarch64, packs a tarball of each with everything
+# `make install` installs, and attaches them with sha256sums.
 # On a pull request: the same build as a dry run, without publishing anything.
 
 on:
+  milestone:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, like 0.2.1. Leave it empty for the next fix release.
+        required: false
+        default: ''
   release:
     types: [published]
   pull_request:
@@ -14,34 +28,98 @@ permissions:
   contents: read
 
 jobs:
+  prepare:
+    name: Version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      ref: ${{ steps.version.outputs.ref }}
+      mode: ${{ steps.version.outputs.mode }}
+    steps:
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MILESTONE: ${{ github.event.milestone.title }}
+          OPEN_ISSUES: ${{ github.event.milestone.open_issues }}
+          CLOSED_ISSUES: ${{ github.event.milestone.closed_issues }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          fail() { echo "::error::$*"; exit 1; }
+          released() { gh release view "v$1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; }
+          valid='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          # mode is new (tag, build and publish), existing (attach files to a release) or dryrun.
+          mode=new ref=$GITHUB_SHA
+          case $GITHUB_EVENT_NAME in
+            pull_request)
+              version=0.0.0-dryrun.${GITHUB_SHA::7} mode=dryrun
+              ;;
+            release)
+              version=${GITHUB_REF_NAME#v} mode=existing
+              [[ $GITHUB_REF_NAME == v* && $version =~ $valid ]] ||
+                fail "The release's tag is \"$GITHUB_REF_NAME\", but it must look like v0.2.0, or v0.3.0-rc1 for a pre-release. Delete this release and its tag, then publish it again with a tag named that way."
+              ;;
+            milestone)
+              [[ $MILESTONE =~ ^v?([0-9]+)\.([0-9]+) ]] ||
+                fail "The milestone \"$MILESTONE\" isn't named after a version, like \"v0.3 Comfort\", so nothing was released."
+              version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0
+              (( OPEN_ISSUES == 0 )) ||
+                fail "The milestone \"$MILESTONE\" still has $OPEN_ISSUES open issue(s), so $version wasn't released. Close them or move them to another milestone, then reopen and close this one again."
+              (( CLOSED_ISSUES > 0 )) ||
+                fail "The milestone \"$MILESTONE\" has no closed issues, so there's nothing to release."
+              ! released "$version" || fail "$version is released already."
+              ;;
+            workflow_dispatch)
+              version=${INPUT_VERSION#v}
+              if [[ -z $version ]]; then
+                last=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases \
+                  --limit 1 --json tagName --jq '.[0].tagName // empty')
+                [[ -n $last ]] || fail "There's no release yet to follow: type the version to release."
+                IFS=. read -r major minor patch <<<"${last#v}"
+                version=$major.$minor.$((patch + 1))
+              fi
+              [[ $version =~ $valid ]] || fail "\"$version\" isn't a version like 0.2.1, or 0.3.0-rc1 for a pre-release."
+              if released "$version"; then
+                mode=existing
+              elif [[ $GITHUB_REF != "refs/heads/$DEFAULT_BRANCH" ]]; then
+                fail "New releases are made from $DEFAULT_BRANCH: run the workflow on that branch."
+              fi
+              ;;
+            *)
+              fail "The Release workflow doesn't handle $GITHUB_EVENT_NAME events."
+              ;;
+          esac
+          if [[ $mode == existing ]]; then ref=v$version; fi
+          echo "Version $version ($mode), from $ref"
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "ref=$ref"
+            echo "mode=$mode"
+          } >>"$GITHUB_OUTPUT"
+
   build:
     name: Build (${{ matrix.arch }})
+    needs: prepare
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
           - { goarch: amd64, arch: x86_64 }
           - { goarch: arm64, arch: aarch64 }
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DISTNAME: carryon-${{ needs.prepare.outputs.version }}-linux-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v7
         with:
+          # A dry run builds the pull request's own checkout.
+          ref: ${{ needs.prepare.outputs.mode != 'dryrun' && needs.prepare.outputs.ref || '' }}
           fetch-depth: 0
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Version
-        run: |
-          if [[ $GITHUB_EVENT_NAME == release ]]; then
-            if [[ ! $GITHUB_REF_NAME =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-              echo "::error::The release's tag is \"$GITHUB_REF_NAME\", but it must look like v0.2.0, or v0.3.0-rc1 for a pre-release. Delete this release and its tag, then publish it again with a tag named that way."
-              exit 1
-            fi
-            version=${GITHUB_REF_NAME#v}
-          else
-            version=0.0.0-dryrun.${GITHUB_SHA::7}
-          fi
-          echo "VERSION=$version" >>"$GITHUB_ENV"
-          echo "DISTNAME=carryon-$version-linux-${{ matrix.arch }}" >>"$GITHUB_ENV"
       - name: Build the tarball
         run: make dist GOARCH=${{ matrix.goarch }} VERSION="$VERSION" GO_LDFLAGS="-s -w"
       - name: Check the tarball
@@ -60,12 +138,20 @@ jobs:
 
   publish:
     name: Publish
-    needs: build
-    if: github.event_name == 'release'
+    needs: [prepare, build]
+    if: needs.prepare.outputs.mode != 'dryrun'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      REF: ${{ needs.prepare.outputs.ref }}
+      MODE: ${{ needs.prepare.outputs.mode }}
+      MILESTONE: ${{ github.event.milestone.title }}
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           pattern: dist-*
@@ -74,14 +160,21 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: sha256sum -- *.tar.gz | tee sha256sums
-      - name: Attach the files to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Write the release notes
+        if: needs.prepare.outputs.mode == 'new'
+        run: .github/release-notes.sh "$TAG" "$REF" "$MILESTONE" | tee notes.md
+      - name: Publish
         run: |
-          # --clobber lets a re-run replace what a failed run attached.
-          gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz dist/sha256sums \
-            --repo "$GITHUB_REPOSITORY" --clobber
-          # v0.3.0-rc1 and the like are pre-releases, even if the box wasn't ticked.
-          if [[ $GITHUB_REF_NAME == *-* ]]; then
-            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
+          # 0.3.0-rc1 and the like are pre-releases.
+          pre=()
+          if [[ $VERSION == *-* ]]; then pre=(--prerelease); fi
+          if [[ $MODE == new ]]; then
+            gh release create "$TAG" dist/*.tar.gz dist/sha256sums --repo "$GITHUB_REPOSITORY" \
+              --target "$REF" --title "Carryon $VERSION" --notes-file notes.md "${pre[@]}"
+          else
+            # --clobber lets a re-run replace what a failed run attached.
+            gh release upload "$TAG" dist/*.tar.gz dist/sha256sums --repo "$GITHUB_REPOSITORY" --clobber
+            if (( ${#pre[@]} )); then
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease
+            fi
           fi

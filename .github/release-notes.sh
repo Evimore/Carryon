@@ -4,15 +4,16 @@
 #
 #     .github/release-notes.sh TAG [MILESTONE]
 #
-# Features and bug fixes come from the issues the release finishes: those of MILESTONE when it's
-# given, or else those closed since the last release. Tasks (label "task") are features and bugs
-# (label "bug") are bug fixes. Issues closed as not planned are left out, and so are those labeled
-# "internal", which are about how Carryon is built, tested or released rather than what it does.
+# A version release opens with its milestone's description, as a summary. Features and bug fixes
+# come from the issues the release finishes: those of MILESTONE when it's given, or else those
+# closed since the last release. Tasks (label "task") are features and bugs (label "bug") are bug
+# fixes. Issues closed as not planned are left out, and so are those labeled "internal", which are
+# about how Carryon is built, tested or released rather than what it does.
 #
 # The requirements come from the code, so they never go stale: the distributions from the package
 # manager backends in internal/pkgmgr, the architectures from the archives in dist/, and the
 # oldest restic from MinVersion in internal/engine. Installation and a link to all changes since
-# the last release come last. Needs gh, with GH_TOKEN and GITHUB_REPOSITORY set.
+# the last release come last. Needs gh and jq, with GH_TOKEN and GITHUB_REPOSITORY set.
 #
 # GitHub shows a line break inside a paragraph as a break, so every paragraph is a single line.
 set -euo pipefail
@@ -58,6 +59,13 @@ if [[ $version == *-* ]]; then
   printf '> [!WARNING]\n> Pre-release for testing. Not recommended for everyday use.\n\n'
 fi
 
+# A version's milestone describes its goal: that opens the notes, as a summary.
+if [[ -n $milestone ]]; then
+  summary=$(gh api "repos/$repo/milestones?state=all&per_page=100" |
+    jq -r --arg title "$milestone" '.[] | select(.title == $title) | .description // empty' | tr -d '\r')
+  if [[ -n $summary ]]; then printf '%s\n\n' "$summary"; fi
+fi
+
 section "Features" task
 section "Bug fixes" bug
 if (( ! listed )); then
@@ -74,7 +82,7 @@ for dir in internal/pkgmgr/*/; do
     *) distros+=("Distributions that use $(basename "$dir")") ;;
   esac
 done
-# x86_64 first, since most people use it: the commands below are written for the first.
+# x86_64 first, since most people use it.
 archs=()
 for archive in dist/carryon-"$version"-linux-*.tar.gz; do
   [[ -e $archive ]] || continue
@@ -95,23 +103,23 @@ fi
 printf -- '- **Architecture:** %s\n' "$(either "${archs[@]}")"
 printf -- '- **restic:** %s or newer\n\n' "$restic"
 
-# Installation: one complete block for each case, so nothing is left to piece together.
-archive=carryon-$version-linux-${archs[0]}.tar.gz
-cat <<EOF
-## Installation
-
+# Installation: a section for each architecture, with one complete block for each case, so nothing
+# is left to piece together.
+printf '## Installation\n\n'
+printf 'Each architecture has its own archive. Upgrading keeps your settings and backups.\n\n'
+for arch in "${archs[@]}"; do
+  archive=carryon-$version-linux-$arch.tar.gz
+  case $arch in
+    x86_64) about="Most desktops and laptops, with an Intel or AMD processor." ;;
+    aarch64) about="64-bit ARM computers, such as a Raspberry Pi 4 or 5." ;;
+    *) about="" ;;
+  esac
+  printf '### %s\n\n' "$arch"
+  if [[ -n $about ]]; then printf '%s\n\n' "$about"; fi
+  cat <<EOF
 Download \`$archive\` and \`sha256sums\` from the assets below.
-EOF
-if (( ${#archs[@]} > 1 )); then
-  others=()
-  for arch in "${archs[@]:1}"; do
-    others+=("On $arch, use \`carryon-$version-linux-$arch.tar.gz\` instead, here and in the commands.")
-  done
-  printf '\n%s\n' "${others[*]}"
-fi
-cat <<EOF
 
-### New installation
+#### New installation
 
 Verify the download, install the files, then set up backups:
 
@@ -121,7 +129,7 @@ sudo tar -xzf $archive -C / --strip-components=1 --no-overwrite-dir
 sudo carryon init
 \`\`\`
 
-### Upgrade
+#### Upgrade
 
 Verify the download, install the files over the old ones, then restart Carryon's services:
 
@@ -132,9 +140,8 @@ sudo systemctl daemon-reload
 systemctl --user restart carryon-agent.service
 \`\`\`
 
-Settings and backups are kept.
-
 EOF
+done
 
 if [[ -n $prev ]]; then
   printf '## Full changelog\n\n[%s...%s](https://github.com/%s/compare/%s...%s)\n' "$prev" "$tag" "$repo" "$prev" "$tag"

@@ -188,12 +188,8 @@ func (e *Env) keepSource(ctx context.Context, eng *engine.Engine, from Machine) 
 	if err := os.MkdirAll(e.Dirs.State, 0o755); err != nil {
 		return nil, err
 	}
-	var where []string
-	for _, p := range e.recordMetaPaths() {
-		where = append(where, filepath.Dir(p))
-	}
 	src, err := restore.Fetch(ctx, eng, ui.Defaults{}, restore.FetchOptions{
-		From: from.Name, Snapshot: from.Snapshot, TempDir: e.Dirs.State, RecordPaths: where,
+		From: from.Name, Snapshot: from.Snapshot, TempDir: e.Dirs.State, RecordPaths: []string{e.Dirs.RecordDir()},
 	})
 	if err != nil {
 		return nil, err
@@ -329,14 +325,12 @@ func (e *Env) chooseSettings(ctx context.Context, eng *engine.Engine, list []Mac
 
 // settingsFiles are the settings files other than config.toml taken from a backup.
 type settingsFiles struct {
-	excludes      []byte   // a Carryon excludes.txt, as it was
-	ownExcludes   []string // or the user's own patterns from a prototype's excludes.txt
-	bundles       []byte   // bundles.conf
-	bundleProblem []string
+	excludes []byte // excludes.txt
+	bundles  []byte // bundles.conf
 }
 
-// settingsFrom reads a machine's settings from its newest backup: Carryon's, or else the
-// prototype's, converted. It never takes the machine's password or destination identity.
+// settingsFrom reads a machine's settings from its newest backup. It never takes the machine's
+// password or destination identity.
 func (e *Env) settingsFrom(ctx context.Context, eng *engine.Engine, m Machine) (config.Config, settingsFiles, error) {
 	var f settingsFiles
 	read := func(path string) ([]byte, bool, error) { return dump(ctx, eng, m.Snapshot, path) }
@@ -348,65 +342,33 @@ func (e *Env) settingsFrom(ctx context.Context, eng *engine.Engine, m Machine) (
 	if err != nil {
 		return config.Config{}, f, err
 	}
-	if ok {
-		cfg, warnings, err := config.Parse(where("config.toml"), data)
-		if err != nil {
-			return config.Config{}, f, err
-		}
-		for _, w := range warnings {
-			e.Log.Warn("%s", w)
-		}
-		if err := cfg.Validate(); err != nil {
-			return config.Config{}, f, fmt.Errorf("%s has problems, so it can't be reused (use --settings-from none to start from the defaults):\n%w", where("config.toml"), err)
-		}
-		if f.excludes, _, err = read(e.Dirs.ExcludesFile()); err != nil {
-			return config.Config{}, f, err
-		}
-		if f.bundles, _, err = read(e.Dirs.BundlesFile()); err != nil {
-			return config.Config{}, f, err
-		}
-		cfg.Repository.PasswordCommand = "" // it may only work on that machine (systemd-creds)
-		e.Log.Info("Reusing the settings of %s.", m.Name)
-		return cfg, f, nil
-	}
-
-	dir := filepath.Join(e.sysbackupRoot(), sysbackupConfDir)
-	data, ok, err = read(filepath.Join(dir, "sysbackup.conf"))
-	if err != nil {
-		return config.Config{}, f, err
-	}
 	if !ok {
 		return config.Config{}, f, fmt.Errorf("%s's newest backup holds no Carryon settings: use --settings-from none to start from the defaults", m.Name)
 	}
-	cfg, notes := convertSysbackup(config.Default(), data)
-	for _, n := range notes {
-		e.Log.Info("%s", n)
+	cfg, warnings, err := config.Parse(where("config.toml"), data)
+	if err != nil {
+		return config.Config{}, f, err
+	}
+	for _, w := range warnings {
+		e.Log.Warn("%s", w)
 	}
 	if err := cfg.Validate(); err != nil {
-		return config.Config{}, f, fmt.Errorf("the prototype's settings in %s's backup can't be carried over (use --settings-from none):\n%w", m.Name, err)
+		return config.Config{}, f, fmt.Errorf("%s has problems, so it can't be reused (use --settings-from none to start from the defaults):\n%w", where("config.toml"), err)
 	}
-	if ex, ok, err := read(filepath.Join(dir, "excludes.txt")); err != nil {
+	if f.excludes, _, err = read(e.Dirs.ExcludesFile()); err != nil {
 		return config.Config{}, f, err
-	} else if ok {
-		f.ownExcludes = ownExcludes(ex, e.defaultExcludes())
 	}
-	if b, ok, err := read(filepath.Join(dir, "bundles.local")); err != nil {
+	if f.bundles, _, err = read(e.Dirs.BundlesFile()); err != nil {
 		return config.Config{}, f, err
-	} else if ok {
-		if f.bundles, f.bundleProblem, err = convertBundles(b, where("bundles.local")); err != nil {
-			return config.Config{}, f, err
-		}
 	}
-	e.Log.Info("Reusing the prototype's settings of %s.", m.Name)
+	cfg.Repository.PasswordCommand = "" // it may only work on that machine (systemd-creds)
+	e.Log.Info("Reusing the settings of %s.", m.Name)
 	return cfg, f, nil
 }
 
 // write saves the files, keeping what was there before next to them.
 func (f settingsFiles) write(e *Env, from string) error {
 	suffix := ".before-" + strings.ToLower(orDefault(from, "connect"))
-	for _, p := range f.bundleProblem {
-		e.Log.Warn("%s", p)
-	}
 	for _, w := range []struct {
 		path string
 		data []byte
@@ -422,35 +384,7 @@ func (f settingsFiles) write(e *Env, from string) error {
 			e.Log.Info("Kept the previous %s as %s", filepath.Base(w.path), kept)
 		}
 	}
-	return e.addExcludes(f.ownExcludes)
-}
-
-// addExcludes adds patterns to excludes.txt.
-func (e *Env) addExcludes(pats []string) error {
-	added := 0
-	for _, p := range pats {
-		ok, err := config.AddExclude(e.Dirs.ExcludesFile(), e.Dirs.DefaultExcludes(), p)
-		if err != nil {
-			e.Log.Warn("Left out the exclude %q: %v", p, err)
-			continue
-		}
-		if ok {
-			added++
-		}
-	}
-	if added > 0 {
-		e.Log.Info("Added %d of your own exclude patterns to %s", added, e.Dirs.ExcludesFile())
-	}
 	return nil
-}
-
-// defaultExcludes are the patterns Carryon leaves out anyway.
-func (e *Env) defaultExcludes() []string {
-	pats, err := config.ReadExcludes(e.Dirs.DefaultExcludes())
-	if err != nil {
-		e.Log.Warn("%v", err)
-	}
-	return pats
 }
 
 func shortID(id string) string { return id[:min(8, len(id))] }

@@ -69,7 +69,7 @@ func (c *capturer) captureServices(ctx context.Context) error {
 	}
 	for _, line := range strings.Split(string(out), "\n") {
 		f := strings.Fields(line)
-		if len(f) < 2 || strings.HasPrefix(f[0], "carryon") || strings.HasPrefix(f[0], "sysbackup") || strings.Contains(f[0], "@.") {
+		if len(f) < 2 || strings.HasPrefix(f[0], "carryon") || strings.Contains(f[0], "@.") {
 			continue
 		}
 		if f[1] == "masked" {

@@ -38,7 +38,6 @@ func fakeSetup(t *testing.T) paths.Dirs {
 		env.Root = root
 		env.Runner = &sysexec.Fake{}
 		env.SystemdDir = filepath.Join(tmp, "systemd")
-		env.SysbackupRoot = filepath.Join(tmp, "old")
 		env.Hostname = func() (string, error) { return "desktop", nil }
 		env.Fingerprint = func() string { return "0123456789abcdef" }
 		env.Engine = func(repo config.Repository, machine string) *engine.Engine {
@@ -106,7 +105,6 @@ func TestInitRefusesFlagsThatDontGoTogether(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"init", "--connect", "/mnt/backup", "--from-sysbackup"}, "not both"},
 		{[]string{"init", "--connect", "/mnt/backup", "--repo", "/mnt/other"}, "--repo is for"},
 		{[]string{"init", "--settings-from", "desktop"}, "only works with --connect"},
 		{[]string{"init", "--password-file", "/x", "--password-command", "cat /x"}, "not both"},

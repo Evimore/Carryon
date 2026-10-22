@@ -131,37 +131,6 @@ func TestConnectWithFlagsAndNoSettings(t *testing.T) {
 	}
 }
 
-func TestConnectReusesThePrototypesSettings(t *testing.T) {
-	t.Parallel()
-	h := newHarness(t)
-	h.env.Prompt = ui.Defaults{}
-	e := h.makeRepo(h.repo, testPassword)
-	old := filepath.Join(h.env.SysbackupRoot, "etc/sysbackup")
-	h.writeFile(h.env.Dirs.DefaultExcludes(), "/home/*/.cache\n", 0o644)
-	h.backup(e, "desktop", []string{"nightly"}, map[string]string{
-		filepath.Join(old, "sysbackup.conf"):                                       "SYSBACKUP_USER=alice\nRESTIC_REPOSITORY=" + h.repo + "\nEXTRA_PATHS=\"/root /srv\"\n",
-		filepath.Join(old, "excludes.txt"):                                         "# caches\n/home/*/.cache\n/home/*/Downloads\n",
-		filepath.Join(old, "bundles.local"):                                        "# examples\nput gaming pkg steam\n",
-		filepath.Join(h.env.SysbackupRoot, "var/lib/sysbackup/manifest/meta.json"): meta(testFingerprint),
-	})
-	pwFile := filepath.Join(h.tmp, "pw")
-	h.writeFile(pwFile, testPassword+"\n", 0o600)
-	if err := h.env.Connect(context.Background(), h.repo, Options{PasswordFile: pwFile}); err != nil {
-		t.Fatalf("Connect: %v\n%s", err, h.log)
-	}
-	cfg := h.config()
-	if cfg.MachineName != "desktop" || !reflect.DeepEqual(cfg.Backup.Users, []string{"alice"}) || !reflect.DeepEqual(cfg.Backup.ExtraPaths, []string{"/root", "/srv"}) {
-		t.Errorf("config = %+v", cfg)
-	}
-	ex, _ := config.ReadExcludes(h.env.Dirs.ExcludesFile())
-	if !reflect.DeepEqual(ex, []string{"/home/*/Downloads"}) {
-		t.Errorf("excludes = %q, want only the user's own", ex)
-	}
-	if b := h.readFile(h.env.Dirs.BundlesFile()); !strings.Contains(b, "put gaming pkg steam") {
-		t.Errorf("bundles = %q", b)
-	}
-}
-
 func TestConnectNeedsARepository(t *testing.T) {
 	t.Parallel()
 	h := newHarness(t)

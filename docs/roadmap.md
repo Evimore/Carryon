@@ -10,7 +10,7 @@ big picture and a record of what each finished version built. The work itself is
 ## How work is planned
 
 - Each task is an issue, sized for one pull request. The task template asks what it's for, its
-  scope, the prototype functions it ports and when it's done, as the finished tasks below say.
+  scope and when it's done, as the finished tasks below say.
 - An issue goes in the milestone of the version it's for. Bugs get an issue too, from the bug
   template, and go in the milestone they should be fixed by.
 - A pull request closes its issue: its description says `Closes #N`.

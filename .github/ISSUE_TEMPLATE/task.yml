@@ -19,11 +19,6 @@ body:
     validations:
       required: true
   - type: textarea
-    id: legacy
-    attributes:
-      label: Prototype
-      description: The functions in legacy/sysbackup.py it ports, or "none".
-  - type: textarea
     id: done
     attributes:
       label: Done when

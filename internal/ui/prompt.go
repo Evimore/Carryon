@@ -15,6 +15,7 @@ package ui
 // New picks Terminal or Defaults for the running program.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -175,6 +176,10 @@ type Options struct {
 	// In and Out default to stdin and stdout.
 	In  *os.File
 	Out *os.File
+	// Context, once done, cancels the question being asked and any asked after it. carryon's
+	// context ends with Ctrl+C: the plain prompts read whole lines, so there Ctrl+C reaches
+	// carryon as a signal instead of a key the question sees.
+	Context context.Context
 }
 
 // New returns a Terminal when both In and Out are terminals and Defaults isn't set, and a
@@ -190,7 +195,7 @@ func New(o Options) Prompter {
 		return Defaults{}
 	}
 	accessible := o.Accessible || os.Getenv("TERM") == "dumb" || os.Getenv("ACCESSIBLE") != ""
-	return NewTerminal(o.In, o.Out, accessible)
+	return NewTerminal(o.In, o.Out, accessible).WithContext(o.Context)
 }
 
 // Defaults answers every question with its default without asking.

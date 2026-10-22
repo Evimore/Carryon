@@ -39,7 +39,10 @@ func TestResticNeedsSetup(t *testing.T) {
 	}
 }
 
-func TestResticPassthrough(t *testing.T) {
+// resticSetup is a config for a local repository in a temp folder, not created yet. It returns the
+// folders and the repository's path.
+func resticSetup(t *testing.T) (paths.Dirs, string) {
+	t.Helper()
 	if _, err := exec.LookPath("restic"); err != nil {
 		t.Skip("restic isn't installed")
 	}
@@ -49,7 +52,8 @@ func TestResticPassthrough(t *testing.T) {
 	if err := os.MkdirAll(dirs.Conf, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	conf := "machine_name = \"desktop\"\n[repository]\nurl = \"" + filepath.Join(tmp, "repo") + "\"\n"
+	repo := filepath.Join(tmp, "repo")
+	conf := "machine_name = \"desktop\"\n[repository]\nurl = \"" + repo + "\"\n"
 	if err := os.WriteFile(dirs.ConfigFile(), []byte(conf), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +61,11 @@ func TestResticPassthrough(t *testing.T) {
 	if err := os.WriteFile(dirs.PasswordFile(), []byte("correct horse\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	return dirs, repo
+}
 
+func TestResticPassthrough(t *testing.T) {
+	dirs, _ := resticSetup(t)
 	if out, err := run(t, dirs, "restic", "init"); err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}

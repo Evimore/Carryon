@@ -26,7 +26,7 @@ password. Keep it outside this machine, for example in your password manager.`,
 			if err != nil {
 				return err
 			}
-			env := setupEnv(dirs, newPrompter(false), cmd.OutOrStdout(), cmd.ErrOrStderr())
+			env := setupEnv(dirs, newPrompter(cmd.Context(), false), cmd.OutOrStdout(), cmd.ErrOrStderr())
 			err = env.RecoveryKit(cfg, saved)
 			if errors.Is(err, ui.ErrCancelled) {
 				return nil

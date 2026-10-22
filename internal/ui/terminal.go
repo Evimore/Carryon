@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ type Terminal struct {
 	accessible bool
 	r          *lipgloss.Renderer
 	lines      *bufio.Reader // the accessible checklist's reader, kept so no typed-ahead input is lost
+	ctx        context.Context
 }
 
 // NewTerminal asks on in and out. Colours follow out and NO_COLOR.
@@ -30,10 +32,43 @@ func NewTerminal(in io.Reader, out io.Writer, accessible bool) *Terminal {
 	return &Terminal{in: in, out: out, accessible: accessible, r: lipgloss.NewRenderer(out)}
 }
 
+// WithContext makes the questions end with ErrCancelled once ctx is done, also while one is
+// waiting for a line. A nil ctx never ends them.
+func (t *Terminal) WithContext(ctx context.Context) *Terminal {
+	t.ctx = ctx
+	return t
+}
+
+// stopped reports whether the context has ended the questions.
+func (t *Terminal) stopped() bool { return t.ctx != nil && t.ctx.Err() != nil }
+
+// wait runs read, which waits for the user's input, and gives up with ErrCancelled when the
+// context ends first. The read it leaves waiting ends with carryon, and no question asked after
+// it reads again.
+func (t *Terminal) wait(read func() error) error {
+	if t.ctx == nil {
+		return read()
+	}
+	if t.stopped() {
+		return ErrCancelled
+	}
+	done := make(chan error, 1)
+	go func() { done <- read() }()
+	select {
+	case err := <-done:
+		return err
+	case <-t.ctx.Done():
+		return ErrCancelled
+	}
+}
+
 // Checklist shows the groups and lets the user tick them and open them to pick single items.
 func (t *Terminal) Checklist(c Checklist) (Selection, error) {
 	if len(c.Groups) == 0 {
 		return Selection{}, nil
+	}
+	if t.stopped() {
+		return Selection{}, ErrCancelled
 	}
 	if t.accessible {
 		return t.plainChecklist(c)
@@ -127,6 +162,9 @@ func (t *Terminal) Password(p Password) (string, error) {
 // run asks one huh field. text is the field's description, which huh's accessible mode doesn't
 // print, so it's printed here first.
 func (t *Terminal) run(f huh.Field, text string) error {
+	if t.stopped() {
+		return ErrCancelled
+	}
 	if t.accessible && text != "" {
 		fmt.Fprintln(t.out, text)
 	}
@@ -136,7 +174,14 @@ func (t *Terminal) run(f huh.Field, text string) error {
 	}
 	form := huh.NewForm(huh.NewGroup(f)).WithTheme(theme).WithShowHelp(true).
 		WithInput(t.in).WithOutput(t.out).WithAccessible(t.accessible)
-	if err := form.Run(); err != nil {
+	run := form.Run
+	if t.accessible { // a full-screen form gets Ctrl+C as a key; a plain one reads lines
+		run = func() error { return t.wait(form.Run) }
+	}
+	if err := run(); err != nil {
+		if errors.Is(err, ErrCancelled) {
+			return err
+		}
 		if errors.Is(err, huh.ErrUserAborted) {
 			return ErrCancelled
 		}
@@ -255,10 +300,21 @@ func (t *Terminal) plainItems(g *Group) error {
 	}
 }
 
-// ask prints a prompt and reads a line. The end of the input cancels.
+// ask prints a prompt and reads a line. The end of the input cancels, and so does the context.
 func (t *Terminal) ask(prompt string) (string, error) {
+	if t.stopped() {
+		return "", ErrCancelled
+	}
 	fmt.Fprint(t.out, prompt)
-	line, err := t.lines.ReadString('\n')
+	var line string
+	err := t.wait(func() (err error) {
+		line, err = t.lines.ReadString('\n')
+		return err
+	})
+	if errors.Is(err, ErrCancelled) { // the read may still fill line: leave it alone
+		fmt.Fprintln(t.out)
+		return "", err
+	}
 	if err != nil && (line == "" || !errors.Is(err, io.EOF)) {
 		fmt.Fprintln(t.out)
 		return "", ErrCancelled

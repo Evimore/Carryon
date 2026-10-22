@@ -1,13 +1,9 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -40,22 +36,10 @@ and Carryon exits with restic's exit code.`,
 			}
 			c.Stdin, c.Stdout, c.Stderr = cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()
 
-			// Ctrl-C reaches restic straight from the terminal; carryon waits for restic to finish.
-			// A SIGTERM sent to carryon alone is passed on as SIGINT, so restic removes its lock.
-			ctx, cancel := context.WithCancel(cmd.Context())
-			defer cancel()
-			sigs := make(chan os.Signal, 1)
-			signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-			defer signal.Stop(sigs)
-			go func() {
-				for s := range sigs {
-					if s != os.Interrupt {
-						cancel()
-					}
-				}
-			}()
-
-			code, err := engine.ExecRunner(ctx, c)
+			// Ctrl-C reaches restic straight from the terminal. It also cancels the context, as a
+			// signal sent to carryon alone does (see interruptible), and the runner passes that on
+			// to restic as SIGINT. Either way restic removes its lock, and carryon waits for it.
+			code, err := engine.ExecRunner(cmd.Context(), c)
 			if err != nil {
 				return fmt.Errorf("restic couldn't be started: %w\n   install restic %s or newer (on Arch: sudo pacman -S restic)", err, engine.MinVersion)
 			}

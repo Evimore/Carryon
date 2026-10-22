@@ -2,9 +2,6 @@ package cli
 
 import (
 	"errors"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -39,8 +36,7 @@ carryon-settle.timer runs it every few minutes while ` + dirs.PendingFlag() + ` 
 				log.Info("Backups are paused while a restore is in progress.")
 				return nil
 			}
-			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
+			ctx := cmd.Context()
 			opt, err := backupOptions(ctx, cmd, dirs, log, true)
 			if err != nil {
 				return err

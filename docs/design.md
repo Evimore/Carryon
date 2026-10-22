@@ -6,7 +6,8 @@ or one app at a time, and it notices new things to back up by itself.
 
 This document is the plan for the Go rewrite of the [prototype](../legacy/README.md). Where the
 prototype already made a decision that worked, Carryon keeps it; those parts say so. Sections marked
-**New** didn't exist in the prototype. The task breakdown is in [roadmap.md](roadmap.md).
+**New** didn't exist in the prototype. The versions are in [roadmap.md](roadmap.md), and the tasks
+are GitHub issues.
 
 **Contents:** [Goals](#goals) · [Words used here](#words-used-here) · [Overview](#overview) ·
 [The system record](#the-system-record) · [What gets captured](#what-gets-captured) ·

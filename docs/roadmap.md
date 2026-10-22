@@ -1,10 +1,25 @@
 # Roadmap
 
-How Carryon gets from the prototype to a public release. Each task below is sized for one pull
-request and can be picked up on its own. Read [design.md](design.md) first, then the legacy
-functions the task names in [legacy/sysbackup.py](../legacy/sysbackup.py).
+How Carryon gets from the prototype to a public release, one version at a time. This page keeps the
+big picture and a record of what each finished version built. The work itself is planned on the
+[project board](https://github.com/Evimore/Carryon/projects), grouped by version in
+[milestones](https://github.com/Evimore/Carryon/milestones).
 
 **Status key:** ✅ done · 🔨 in progress · ⬜ not started
+
+## How work is planned
+
+- Each task is an issue labeled `task`, sized for one pull request. The task template asks what
+  it's for, its scope and when it's done, as the finished tasks below say.
+- Problems are issues labeled `bug`, from the bug template. The
+  [open bugs](https://github.com/Evimore/Carryon/issues?q=is%3Aissue+is%3Aopen+label%3Abug) are
+  the list of what's wrong.
+- The board picks up new issues by itself and shows where each one stands. An issue goes in the
+  milestone of the version it's for, a bug in the one it should be fixed by.
+- A pull request closes its issue, and the board moves it to Done: the description says
+  `Closes #N`.
+- Planning a version starts with its [open questions](design.md#open-questions). The decisions go
+  into the design, then each task becomes an issue.
 
 ## Milestones
 
@@ -389,7 +404,7 @@ login message ──────────────────────
 
 ## Later milestones
 
-Broken into tasks when v0.2 is done. In short:
+In short, until each is planned as issues in its milestone:
 
 - **v0.3:** tray icon, btrfs snapshots for consistent backups, battery and metered-network checks.
   ntfy and webhook alerts and `status --json` for status bars were planned here but came with v0.1.

@@ -7,7 +7,9 @@ It's a Go rewrite of a working Python prototype, in early development.
 Read these before changing anything:
 
 - [docs/design.md](docs/design.md): how Carryon works and why. The source of truth.
-- [docs/roadmap.md](docs/roadmap.md): the task list. Work on one task per pull request.
+- [docs/roadmap.md](docs/roadmap.md): the versions, what the finished ones built, and how work is
+  planned. Tasks are [GitHub issues](https://github.com/Evimore/Carryon/issues) labeled `task`,
+  problems are labeled `bug`. Work on one issue per pull request.
 - [legacy/README.md](legacy/README.md): the prototype, and which of its functions each Go package
   ports. Read the legacy function before porting it; its special cases exist for a reason.
 
@@ -66,7 +68,8 @@ backup", "your settings"), active voice, no jargon where a plain word works.
 
 ## Pull requests
 
-- One roadmap task per pull request; mark it 🔨 or ✅ in `docs/roadmap.md`.
+- One issue per pull request; the description says `Closes #N`, so the issue closes when it merges.
+  Work that has no issue gets one first, from the task or bug template.
 - `gofmt`, `go vet` and `go test ./...` must pass before pushing.
 - **Branches** are named after what they build, in a few lowercase words joined by hyphens:
   `inbox`, `tray-icon`, `fix-hook-timeout`. No `claude/` prefix, no task or issue numbers, no

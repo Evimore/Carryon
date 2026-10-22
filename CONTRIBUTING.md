@@ -1,7 +1,8 @@
 # Contributing
 
 Issues and pull requests are welcome. Carryon is in early development, so the most useful
-contributions right now are the tasks in the [roadmap](docs/roadmap.md).
+contributions right now are the open [issues](https://github.com/Evimore/Carryon/issues). The
+[roadmap](docs/roadmap.md) says where they lead.
 
 ## Development
 
@@ -25,6 +26,8 @@ gofmt -l .        # must print nothing
 - New behavior comes with a test. CI runs the tests on Ubuntu and in an Arch Linux container.
 - Name branches after what they build (`inbox`, `fix-hook-timeout`), and write commit subjects as
   short commands (`Add the inbox`).
+- One issue per pull request, and say `Closes #N` in the description. For something that has no
+  issue yet, open one first, so it can be talked over before the work starts.
 
 ## End-to-end tests
 

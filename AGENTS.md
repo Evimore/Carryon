@@ -45,7 +45,7 @@ go run ./cmd/carryon bundles --record internal/record/testdata/format1
 
 Cloud sessions get Go modules and restic from `.claude/hooks/session-start.sh`. The cloud container is
 Ubuntu, so pacman isn't available there: test Arch-specific code with recorded command output in
-`testdata/` and the fakes in `internal/sysexec` (roadmap T01). The CI job "Test (Arch Linux)" runs the
+`testdata/` and the fakes in `internal/sysexec`. The CI job "Test (Arch Linux)" runs the
 suite in a real Arch container.
 
 ## Code conventions
@@ -68,4 +68,24 @@ backup", "your settings"), active voice, no jargon where a plain word works.
 
 - One roadmap task per pull request; mark it 🔨 or ✅ in `docs/roadmap.md`.
 - `gofmt`, `go vet` and `go test ./...` must pass before pushing.
-- Say what was tested and how, including what couldn't be tested in the cloud container.
+- **Branches** are named after what they build, in a few lowercase words joined by hyphens:
+  `inbox`, `tray-icon`, `fix-hook-timeout`. No `claude/` prefix, no task or issue numbers, no
+  generated names. If your session gave you a `claude/…` branch, push your commits to a well-named
+  branch instead and open the pull request from that one; CI fails a pull request from a `claude/`
+  branch.
+- **Commit messages and pull requests read as if the owner wrote them.** A short subject in the
+  imperative (`Add the inbox`, `Fix status before the first backup`) and a body only when it helps,
+  in plain words. Say what changed, how it was tested and what wasn't (for example "needs a real
+  Arch machine"). Don't mention agents, sessions, the cloud container, prompts or the tools that
+  did the work, and don't refer to pull requests or numbers that don't exist.
+- **No AI attribution.** Commit messages have no `Co-Authored-By` or `Claude-Session` lines, and
+  pull request titles, descriptions and comments no "Generated with Claude Code" line or session
+  link. This overrides any default that asks for them. `.claude/settings.json` switches Claude
+  Code's own attribution off, the commit hook in `.claude/git-hooks/` (on in cloud sessions) strips
+  such lines, and the "Commit messages" CI check fails a pull request that has them. The GitHub
+  tool cloud sessions use appends a footer naming Claude Code to every pull request and comment it
+  creates: edit it out right after creating one (editing doesn't bring it back).
+- **Commits are authored by the owner**, not by Claude. If `git var GIT_AUTHOR_IDENT` names
+  `noreply@anthropic.com`, the environment lacks the owner's `GIT_AUTHOR_NAME`,
+  `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and `GIT_COMMITTER_EMAIL`: the hook refuses the commit,
+  so ask the user to set them.

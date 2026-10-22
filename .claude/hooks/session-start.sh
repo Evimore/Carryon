@@ -9,6 +9,9 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
+# Keep AI attribution out of commits made here (AGENTS.md, "Pull requests").
+git config core.hooksPath .claude/git-hooks
+
 go mod download
 
 RESTIC_VERSION=0.19.1

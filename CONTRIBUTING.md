@@ -23,6 +23,8 @@ gofmt -l .        # must print nothing
 - Keep personal data out of code, tests and commits. Use placeholders such as `alice`, `desktop` and
   `example.com`.
 - New behavior comes with a test. CI runs the tests on Ubuntu and in an Arch Linux container.
+- Name branches after what they build (`inbox`, `fix-hook-timeout`), and write commit subjects as
+  short commands (`Add the inbox`).
 
 ## End-to-end tests
 

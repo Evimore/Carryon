@@ -1,0 +1,36 @@
+name: Commit messages
+
+# Commits, branch names and pull request text follow AGENTS.md, "Pull requests". Runs again when a
+# description is edited, which the CI workflow doesn't.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Commit messages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Commits
+        env:
+          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || '--all' }}
+        run: .claude/git-hooks/attribution.sh commits "$RANGE"
+      - name: Branch name
+        if: github.event_name == 'pull_request'
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: .claude/git-hooks/attribution.sh branch "$BRANCH"
+      - name: Title and description
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s\n%s\n' "$TITLE" "$BODY" | .claude/git-hooks/attribution.sh text

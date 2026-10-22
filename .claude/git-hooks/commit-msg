@@ -1,0 +1,5 @@
+#!/bin/sh
+# Removes AI attribution from commit messages and refuses commits made as Claude; see
+# attribution.sh. Cloud sessions switch it on (.claude/hooks/session-start.sh); in a clone run:
+# git config core.hooksPath .claude/git-hooks
+exec "$(dirname "$0")/attribution.sh" strip "$1"

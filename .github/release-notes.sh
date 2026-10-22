@@ -13,7 +13,9 @@
 # The requirements come from the code, so they never go stale: the distributions from the package
 # manager backends in internal/pkgmgr, the architectures from the archives in dist/, and the
 # oldest restic from MinVersion in internal/engine. Installation and a link to all changes since
-# the last release come last. Needs gh and jq, with GH_TOKEN and GITHUB_REPOSITORY set.
+# the last release come last. Installation opens with Carryon's pacman repository when
+# PACMAN_REPO_URL is set, with the fingerprint of its key in PACMAN_REPO_FINGERPRINT. Needs gh and
+# jq, with GH_TOKEN and GITHUB_REPOSITORY set.
 #
 # GitHub shows a line break inside a paragraph as a break, so every paragraph is a single line.
 set -euo pipefail
@@ -106,7 +108,40 @@ printf -- '- **restic:** %s or newer\n\n' "$restic"
 # Installation: a section for each architecture, with one complete block for each case, so nothing
 # is left to piece together.
 printf '## Installation\n\n'
-printf 'Each architecture has its own archive. Upgrading keeps your settings and backups.\n\n'
+# The pacman repository comes first once it's set up. It only ever holds stable releases.
+if [[ -n ${PACMAN_REPO_URL:-} && -n ${PACMAN_REPO_FINGERPRINT:-} && $version != *-* ]]; then
+  cat <<EOF
+### With pacman
+
+On Arch Linux and distributions based on it, Carryon has its own package repository, so pacman installs it and keeps it up to date with the rest of the system.
+
+#### New installation
+
+Download the installer and run it to add the repository and install Carryon, then set up backups:
+
+\`\`\`sh
+curl -fsSLO $PACMAN_REPO_URL/install.sh
+sudo bash install.sh
+sudo carryon init
+\`\`\`
+
+The installer adds the repository's signing key to pacman after checking its fingerprint, \`$PACMAN_REPO_FINGERPRINT\`.
+
+#### Upgrade
+
+If Carryon came from the repository, it upgrades with the rest of the system:
+
+\`\`\`sh
+sudo pacman -Syu
+\`\`\`
+
+If it came from an archive, run the installer above once. It moves Carryon onto the package and keeps your settings and backups.
+
+EOF
+  printf 'For other setups, each architecture has its own archive. Upgrading keeps your settings and backups.\n\n'
+else
+  printf 'Each architecture has its own archive. Upgrading keeps your settings and backups.\n\n'
+fi
 for arch in "${archs[@]}"; do
   archive=carryon-$version-linux-$arch.tar.gz
   case $arch in

@@ -804,9 +804,10 @@ unencrypted Toolkit copy next to the repository:
 - **Settings travel inside the snapshots:** `/etc/carryon` is part of every backup. On a new machine,
   `carryon init --connect URL` lists the machines in the repository and offers to reuse one's
   settings.
-- **On a new machine:** install Carryon from the AUR, run `sudo carryon init --connect URL` and enter
-  the password. Restoring everything now pauses backups until `sudo carryon restore` finishes;
-  restoring as you go starts them at once (see [as you go](#as-you-go)).
+- **On a new machine:** install Carryon from its pacman repository, run
+  `sudo carryon init --connect URL` and enter the password. Restoring everything now pauses backups
+  until `sudo carryon restore` finishes; restoring as you go starts them at once (see
+  [as you go](#as-you-go)).
 - **Without Carryon:** the kit explains how to get files back with plain restic.
 - **What `init` checks:** before anything is written, a local folder on a FUSE or network mount gets
   the direct backend offered, and a folder under `/mnt`, `/media` or `/run/media` that is really on the

@@ -33,14 +33,18 @@ reinstalling packages, re-enabling services, copying config files and rememberin
 
 ## Install
 
-Carryon isn't released yet. Once it is, install it from the AUR with your AUR helper:
+On Arch Linux and distributions based on it, Carryon has its own package repository. The installer
+adds it to pacman and installs Carryon, and `pacman -Syu` keeps it up to date from then on:
 
 ```sh
-paru -S carryon          # or carryon-bin (the release binary), or carryon-git (latest main)
+curl -fsSLO https://evimore.github.io/Carryon/install.sh
+sudo bash install.sh
 sudo carryon init        # where to keep backups; switches on the timers
 ```
 
-Without an AUR helper, or on another distribution, use the release tarball or build from source:
+The installer also moves a Carryon installed from a release tarball onto the package. On another
+distribution, use the tarball from the [release](https://github.com/Evimore/Carryon/releases), or
+build from source:
 
 ```sh
 make                     # needs Go 1.24 or newer
@@ -56,7 +60,8 @@ Carryon needs [restic](https://restic.net). Installing it sets nothing up: `sudo
 - [Roadmap](docs/roadmap.md): what's done and what's next; the tasks are
   [issues](https://github.com/Evimore/Carryon/issues)
 - [The prototype](legacy/README.md): the Python tool Carryon grows out of
-- [Packaging](docs/packaging.md): building, releases and the AUR, for maintainers
+- [Packaging](docs/packaging.md): building, releases, the pacman repository and the AUR, for
+  maintainers
 
 ## For developers
 

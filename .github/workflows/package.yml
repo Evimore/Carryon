@@ -1,7 +1,8 @@
 name: Package
 
-# Checks the packaging: `make install` lays out exactly what docs/design.md says, and the
-# carryon-git AUR package builds from this checkout, passes namcap and installs with pacman.
+# Checks the packaging: `make install` lays out exactly what docs/design.md says, the carryon-git
+# AUR package builds from this checkout, passes namcap and installs with pacman, and Carryon's own
+# pacman repository can be published and installed from with its installer.
 
 on:
   push:
@@ -21,7 +22,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Lint the scripts
-        run: shellcheck -s bash packaging/check-layout.sh packaging/aur/*/carryon.install
+        run: shellcheck -s bash packaging/check-layout.sh packaging/aur/*/carryon.install packaging/repo/*.sh
       - name: make install into a temporary folder
         run: make check-install
 
@@ -60,6 +61,7 @@ jobs:
           mkdir /home/builder/pkg
           cp packaging/aur/carryon-git/PKGBUILD packaging/aur/carryon-git/carryon.install /home/builder/pkg/
           # Build the pull request's commit instead of main on GitHub.
+          # shellcheck disable=SC2016 # $_pkgname is the PKGBUILD's.
           sed -i 's|^source=.*|source=("$_pkgname::git+file:///home/builder/carryon#branch=ci-package")|' /home/builder/pkg/PKGBUILD
           grep '^source=' /home/builder/pkg/PKGBUILD
           chown -R builder: /home/builder/pkg
@@ -92,3 +94,115 @@ jobs:
           test ! -e /etc/carryon
           test ! -e /var/lib/carryon
           if ls /etc/systemd/system/*.wants/carryon-* 2>/dev/null; then echo "the package enabled a unit"; exit 1; fi
+
+  repo:
+    name: Pacman repository (Arch Linux)
+    # What the "Release" workflow does for a stable release, with a throwaway key, served from a
+    # folder instead of GitHub Pages: package the tarballs, sign the repository, then install from
+    # it with its installer, as a new installation and as a move from a tarball install.
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: 0.0.1
+      REPO: /srv/carryon
+    steps:
+      - name: Install the build tools
+        # The image's keyring has no local master key, which every installed system has and the
+        # installer needs to sign Carryon's key. The image also skips man pages and docs, which
+        # would leave a tarball install's copies behind.
+        run: |
+          sed -i '/^NoExtract/d' /etc/pacman.conf
+          pacman -Syu --noconfirm --needed base-devel git go namcap
+          pacman-key --init
+      - uses: actions/checkout@v7
+      - name: Build the release tarballs
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make dist GOARCH=amd64 VERSION="$VERSION" GO_LDFLAGS="-s -w"
+          make dist GOARCH=arm64 VERSION="$VERSION" GO_LDFLAGS="-s -w"
+          # A pre-release, to install from the tarball and then move onto the package.
+          make dist GOARCH=amd64 VERSION="$VERSION-rc1" GO_LDFLAGS="-s -w"
+          mkdir tarballs
+          cp build/*.tar.gz tarballs/
+      - name: Package them
+        # makepkg refuses to run as root.
+        run: |
+          useradd --create-home builder
+          install -d -o builder packages
+          sudo -u builder packaging/repo/build.sh "$VERSION" tarballs packages
+          # Pre-releases are never packaged.
+          if sudo -u builder packaging/repo/build.sh "$VERSION-rc1" tarballs packages; then exit 1; fi
+          for arch in x86_64 aarch64; do
+            pkg=packages/carryon-$VERSION-1-$arch.pkg.tar.zst
+            pacman -Qip "$pkg" | grep -x "Architecture *: $arch"
+            cmp <(bsdtar -xOf "$pkg" usr/bin/carryon) \
+              <(tar -xzOf "tarballs/carryon-$VERSION-linux-$arch.tar.gz" "carryon-$VERSION-linux-$arch/usr/bin/carryon")
+            pacman -Qlpq "$pkg" | grep -v '/$' | sed 's|^/||' | packaging/check-layout.sh
+          done
+      - name: namcap
+        # The expected warnings are those of the AUR job's namcap step.
+        run: |
+          set -o pipefail
+          { namcap packaging/repo/PKGBUILD; for pkg in packages/*.pkg.tar.zst; do namcap "$pkg"; done; } 2>&1 | tee namcap.txt
+          if grep -q ' E: ' namcap.txt; then echo "namcap found errors"; exit 1; fi
+      - name: Publish a repository signed with a throwaway key
+        run: |
+          export GNUPGHOME=$RUNNER_TEMP/gnupg
+          install -d -m 700 "$GNUPGHOME"
+          gpg --batch --passphrase '' --quick-gen-key "Carryon packages (test) <test@example.com>" ed25519 sign never
+          fingerprint=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')
+          echo "FINGERPRINT=$fingerprint" >>"$GITHUB_ENV"
+          packaging/repo/publish.sh packages "$REPO" "file://$REPO" "$fingerprint"
+          # The repository is made fresh each time.
+          if packaging/repo/publish.sh packages "$REPO" "file://$REPO" "$fingerprint"; then exit 1; fi
+          # pacman downloads as an unprivileged user.
+          chmod -R a+rX "$REPO"
+      - name: The installer refuses another key
+        run: |
+          sed 's/^fingerprint=.*/fingerprint=0123456789ABCDEF0123456789ABCDEF01234567/' "$REPO/install.sh" >wrong-key.sh
+          if bash wrong-key.sh --noconfirm; then exit 1; fi
+          test ! -e /etc/pacman.d/carryon.conf
+          if grep carryon /etc/pacman.conf; then exit 1; fi
+      - name: Install with the installer
+        run: |
+          curl -fsSLO "file://$REPO/install.sh"
+          bash install.sh --noconfirm
+          grep -x 'Include = /etc/pacman.d/carryon.conf' /etc/pacman.conf
+          pacman -Sl carryon
+          test "$(pacman -Q carryon)" = "carryon $VERSION-1"
+          pacman -Qo /usr/bin/carryon | grep 'is owned by carryon '
+          carryon version | grep -F "carryon $VERSION ("
+      - name: Running the installer again changes nothing
+        run: |
+          set -o pipefail
+          state() { sha256sum /etc/pacman.conf /etc/pacman.d/carryon.conf; pacman -Q; pacman-key --list-keys "$FINGERPRINT"; }
+          state >before.txt
+          sleep 1
+          bash install.sh --noconfirm | tee again.txt
+          state >after.txt
+          diff -u before.txt after.txt
+          grep 'there is nothing to do' again.txt
+          # pacman's keyring is pacman's: checking signatures updates its trust database.
+          changed=$(find /etc /usr -newer before.txt -not -type d -not -path '/etc/pacman.d/gnupg/*')
+          if [[ -n $changed ]]; then echo "The installer changed: $changed"; exit 1; fi
+      - name: Move a tarball install onto the package
+        run: |
+          set -o pipefail
+          pacman -R --noconfirm carryon
+          tarball=tarballs/carryon-$VERSION-rc1-linux-x86_64.tar.gz
+          tar -xzf "$tarball" -C / --strip-components=1 --no-overwrite-dir
+          # A file no package owns and the package doesn't have: the installer leaves it alone.
+          echo kept >/usr/share/carryon-unowned
+          carryon version | grep -F "carryon $VERSION-rc1 ("
+          if pacman -Qo /usr/bin/carryon; then exit 1; fi
+          bash install.sh --noconfirm | tee move.txt
+          grep 'files of an earlier install from the release archive' move.txt
+          carryon version | grep -F "carryon $VERSION ("
+          pacman -Qkk carryon
+          # Every file of the tarball belongs to the package now.
+          owners=$(tar -tzf "$tarball" | grep -v '/$' | sed 's|^[^/]*/|/|' | xargs pacman -Qoq | sort -u)
+          test "$owners" = carryon
+          test "$(cat /usr/share/carryon-unowned)" = kept

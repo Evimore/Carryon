@@ -1,4 +1,6 @@
 post_install() {
+  # Moving from the release tarball installs the package on a machine that is set up already.
+  [ -e /etc/carryon ] && return 0
   cat <<'NOTE'
 ==> Carryon is installed, but nothing is backed up yet. To set it up, run:
       sudo carryon init

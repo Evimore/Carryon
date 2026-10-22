@@ -9,6 +9,8 @@ name: Release
 # - A release published by hand on the Releases page gets its files attached.
 # Each builds static binaries for x86_64 and aarch64, packs a tarball of each with everything
 # `make install` installs, and attaches them with sha256sums.
+# The latest stable release also goes into Carryon's pacman repository on GitHub Pages, once its
+# signing key is set up (docs/packaging.md, "The pacman repository"). Pre-releases never do.
 # On a pull request: the same build as a dry run, without publishing anything.
 
 on:
@@ -36,6 +38,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       ref: ${{ steps.version.outputs.ref }}
       mode: ${{ steps.version.outputs.mode }}
+      repo: ${{ steps.version.outputs.repo }}
     steps:
       - id: version
         env:
@@ -91,12 +94,23 @@ jobs:
               ;;
           esac
           if [[ $mode == existing ]]; then ref=v$version; fi
-          echo "Version $version ($mode), from $ref"
+          # The pacman repository holds the latest stable release only, so only that one rebuilds it.
+          repo=false
+          if [[ $mode != dryrun && $version != *-* ]]; then
+            latest=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases \
+              --limit 1 --json tagName --jq '.[0].tagName // empty')
+            latest=${latest#v}
+            if [[ -z $latest || $(printf '%s\n' "$latest" "$version" | sort -V | tail -n 1) == "$version" ]]; then
+              repo=true
+            fi
+          fi
+          echo "Version $version ($mode), from $ref, pacman repository: $repo"
           {
             echo "version=$version"
             echo "tag=v$version"
             echo "ref=$ref"
             echo "mode=$mode"
+            echo "repo=$repo"
           } >>"$GITHUB_OUTPUT"
 
   build:
@@ -136,10 +150,120 @@ jobs:
           path: build/${{ env.DISTNAME }}.tar.gz
           if-no-files-found: error
 
+  package:
+    name: Pacman packages
+    needs: [prepare, build]
+    if: needs.prepare.outputs.repo == 'true'
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Install the packaging tools
+        run: pacman -Syu --noconfirm --needed base-devel namcap
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: tarballs
+      - name: Package the tarballs
+        # makepkg refuses to run as root.
+        run: |
+          useradd --create-home builder
+          install -d -o builder packages
+          sudo -u builder packaging/repo/build.sh "$VERSION" tarballs packages
+      - name: namcap
+        # The expected warnings are those of the Package workflow.
+        run: |
+          set -o pipefail
+          { namcap packaging/repo/PKGBUILD; for pkg in packages/*.pkg.tar.zst; do namcap "$pkg"; done; } 2>&1 | tee namcap.txt
+          if grep -q ' E: ' namcap.txt; then echo "namcap found errors"; exit 1; fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacman-packages
+          path: packages/*.pkg.tar.zst
+          if-no-files-found: error
+
+  sign:
+    name: Sign the pacman repository
+    needs: [prepare, package]
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    # The only job that sees the signing key.
+    environment: pacman-repo
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      url: ${{ steps.repository.outputs.url }}
+      fingerprint: ${{ steps.repository.outputs.fingerprint }}
+    steps:
+      - id: key
+        name: Look for the signing key
+        env:
+          HAS_KEY: ${{ secrets.PACMAN_REPO_KEY != '' }}
+          FINGERPRINT: ${{ vars.PACMAN_REPO_FINGERPRINT }}
+        run: |
+          if [[ $HAS_KEY == true && -n $FINGERPRINT ]]; then
+            echo "ready=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "::notice::The pacman repository wasn't updated, because it isn't set up yet. It needs the secret PACMAN_REPO_KEY in the pacman-repo environment and the repository variable PACMAN_REPO_FINGERPRINT: see docs/packaging.md, \"Setting up the pacman repository\"."
+          fi
+      - uses: actions/checkout@v7
+        if: steps.key.outputs.ready
+      - uses: actions/download-artifact@v8
+        if: steps.key.outputs.ready
+        with:
+          name: pacman-packages
+          path: packages
+      - name: Import the signing key
+        if: steps.key.outputs.ready
+        env:
+          KEY: ${{ secrets.PACMAN_REPO_KEY }}
+          FINGERPRINT: ${{ vars.PACMAN_REPO_FINGERPRINT }}
+        run: |
+          export GNUPGHOME=$RUNNER_TEMP/gnupg
+          echo "GNUPGHOME=$GNUPGHOME" >>"$GITHUB_ENV"
+          install -d -m 700 "$GNUPGHOME"
+          printf '%s\n' "$KEY" | gpg --batch --import
+          mapfile -t keys < <(gpg --batch --with-colons --list-secret-keys |
+            awk -F: '$1 == "sec" { sec = 1; next } sec && $1 == "fpr" { print $10; sec = 0 }')
+          expected=${FINGERPRINT//[[:space:]]/}
+          if (( ${#keys[@]} != 1 )) || [[ ${keys[0]} != "${expected^^}" ]]; then
+            echo "::error::PACMAN_REPO_KEY must hold one secret key, the one PACMAN_REPO_FINGERPRINT names, but it holds ${keys[*]:-no key}. Replace the secret in the pacman-repo environment, or the repository variable (docs/packaging.md, \"Replacing the key\")."
+            exit 1
+          fi
+      - id: repository
+        name: Lay out the repository
+        if: steps.key.outputs.ready
+        env:
+          FINGERPRINT: ${{ vars.PACMAN_REPO_FINGERPRINT }}
+        run: |
+          url=https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}
+          fingerprint=${FINGERPRINT//[[:space:]]/}
+          packaging/repo/publish.sh packages site "$url" "$fingerprint"
+          echo "url=$url" >>"$GITHUB_OUTPUT"
+          echo "fingerprint=${fingerprint^^}" >>"$GITHUB_OUTPUT"
+      - name: Forget the signing key
+        if: always() && steps.key.outputs.ready
+        run: |
+          gpgconf --kill gpg-agent || true
+          rm -rf "$RUNNER_TEMP/gnupg"
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.key.outputs.ready
+        with:
+          path: site
+
   publish:
     name: Publish
-    needs: [prepare, build]
-    if: needs.prepare.outputs.mode != 'dryrun'
+    needs: [prepare, build, sign]
+    # Signing the pacman repository is skipped for pre-releases, and a problem with it shouldn't hold
+    # up the release: the notes only mention the repository once it's signed.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.prepare.outputs.mode != 'dryrun' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -150,6 +274,8 @@ jobs:
       REF: ${{ needs.prepare.outputs.ref }}
       MODE: ${{ needs.prepare.outputs.mode }}
       MILESTONE: ${{ github.event.milestone.title }}
+      PACMAN_REPO_URL: ${{ needs.sign.outputs.url }}
+      PACMAN_REPO_FINGERPRINT: ${{ needs.sign.outputs.fingerprint }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -178,3 +304,22 @@ jobs:
               gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease
             fi
           fi
+
+  pages:
+    name: Deploy the pacman repository
+    needs: [publish, sign]
+    # Only once the release exists, so the repository never offers a version that isn't released.
+    if: needs.publish.result == 'success' && needs.sign.outputs.url != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

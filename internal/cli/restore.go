@@ -245,8 +245,8 @@ carryon capture --out DIR.`,
 				return err
 			}
 
-			planner := &restore.Planner{Source: src, Users: users, Here: &restore.Machine{
-				Root: env.Root, Hostname: hostname, Run: env.Run, IsRoot: geteuid() == 0,
+			planner := &restore.Planner{Source: src, Users: users, Everything: bundle == "", Here: &restore.Machine{
+				Root: env.Root, Hostname: hostname, Facts: here, Run: env.Run, IsRoot: geteuid() == 0,
 				Packages: env.Packages, Users: localUsers,
 			}}
 			plan, err := planner.Make(ctx, picked)

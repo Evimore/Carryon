@@ -63,3 +63,11 @@ func (p *Pacman) InstallEach(ctx context.Context, pkgs []string, asDeps bool) []
 	}
 	return failed
 }
+
+// RemoveCommand is the command that removes packages by hand, program first: `pacman -Rns`, which
+// also removes the dependencies only they needed, and doesn't keep their config files as
+// *.pacsave. The restore plan shows it for packages installed since the backup; Carryon never runs
+// it.
+func (p *Pacman) RemoveCommand(pkgs []string) []string {
+	return append([]string{"pacman", "-Rns"}, pkgs...)
+}

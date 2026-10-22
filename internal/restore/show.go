@@ -91,6 +91,9 @@ func (p *Plan) Summary(w io.Writer, planFile string, loc *time.Location) {
 	if planFile != "" {
 		fmt.Fprintf(w, "\n  Full plan with diffs: %s\n", planFile)
 	}
+	if p.Since != nil {
+		p.Since.summary(w)
+	}
 	if len(p.NotBackedUp) > 0 {
 		fmt.Fprintf(w, "\n  Not in the backup, re-download after restoring: %s\n", record.Brief(p.NotBackedUp, 6))
 		fmt.Fprintf(w, "  The full list is saved to ~/%s when you apply the restore.\n", NotBackedUpMD)
@@ -128,6 +131,9 @@ func (p *Plan) Full(loc *time.Location) string {
 	}
 	for _, s := range p.Skipped {
 		fmt.Fprintf(&b, "[skipped] %s: %s\n", describe(s.Item), s.Why)
+	}
+	if p.Since != nil {
+		p.Since.full(&b)
 	}
 	return b.String()
 }

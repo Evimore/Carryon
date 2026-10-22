@@ -89,6 +89,9 @@ type Plan struct {
 	Skipped     []Skip
 	Picked      int      // items picked
 	NotBackedUp []string // what the source's not-backed-up list says to re-download, in short
+	// Since is what was installed here after the backup, which the restore leaves as it is. Nil
+	// unless the whole backup is restored onto the machine it's of and something was.
+	Since *InstalledSince
 
 	mainUser string // the record's main user
 }
@@ -131,6 +134,9 @@ type Planner struct {
 	Source *Source
 	Here   *Machine
 	Users  []UserMap
+	// Everything says the plan restores from the whole backup, not one bundle on its own
+	// (--bundle): only then does it say what was installed since the backup.
+	Everything bool
 
 	adapt *Adapter
 }
@@ -274,6 +280,9 @@ func (pl *Planner) Make(ctx context.Context, picked Picked) (*Plan, error) {
 		}
 	}
 	p.NotBackedUp = notBackedUp(src.Dir)
+	if p.Since, err = pl.installedSince(ctx); err != nil {
+		return nil, err
+	}
 	return p, nil
 }
 

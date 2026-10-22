@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Evimore/carryon/internal/facts"
+	"github.com/Evimore/carryon/internal/pkgmgr"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/sysexec"
 	"github.com/Evimore/carryon/internal/ui"
@@ -91,12 +92,19 @@ func mkdirAll(t *testing.T, p string) {
 // fakePackages is a package manager with fixed lists.
 type fakePackages struct {
 	installed, sync, repos []string
-	err                    error
+	chosen                 []pkgmgr.Package // what Packages lists: installed on purpose, then optional dependencies
+	err, chosenErr         error
 }
 
 func (f fakePackages) Installed(context.Context) ([]string, error)       { return f.installed, f.err }
 func (f fakePackages) SyncPackages(context.Context) ([]string, error)    { return f.sync, nil }
 func (f fakePackages) ConfiguredRepos(context.Context) ([]string, error) { return f.repos, nil }
+func (f fakePackages) Packages(context.Context) ([]pkgmgr.Package, error) {
+	return f.chosen, f.chosenErr
+}
+func (f fakePackages) RemoveCommand(pkgs []string) []string {
+	return append([]string{"pacman", "-Rns"}, pkgs...)
+}
 
 // scenario is a machine to restore onto, with what its programs say.
 type scenario struct {
@@ -105,16 +113,25 @@ type scenario struct {
 	run    map[string]sysexec.Response
 	pick   func([]Tick) Picked // nil: the default ticks
 	answer []any               // answers to questions (the user mapping)
+	// oneBundle plans like restore --bundle, instead of restoring from the whole backup.
+	oneBundle bool
 }
 
 var scenarios = map[string]scenario{
-	// The same desktop, reinstalled: what's already back is left out of the plan.
+	// The same desktop, reinstalled: what's already back is left out of the plan. steam and wine
+	// were installed after the backup, so the plan says they're left as they are, and snapper is
+	// set up to undo a whole change.
 	"same-machine": {
 		tree: "here-desktop.txt",
 		pkgs: fakePackages{
-			installed: []string{"base", "htop", "openssh", "paru-bin", "systemd"},
-			sync:      []string{"base", "fuse3", "htop", "openssh", "systemd"},
+			installed: []string{"base", "gamemode", "htop", "openssh", "paru-bin", "steam", "systemd", "wine"},
+			sync:      []string{"base", "fuse3", "gamemode", "htop", "openssh", "steam", "systemd", "wine"},
 			repos:     []string{"core", "extra", "multilib"},
+			chosen: []pkgmgr.Package{
+				{Name: "base", Repo: "core"}, {Name: "htop", Repo: "extra"}, {Name: "wine", Repo: "multilib"},
+				{Name: "steam", Repo: "multilib"}, {Name: "paru-bin", Foreign: true},
+				{Name: "gamemode", Repo: "extra", AsDeps: true},
+			},
 		},
 		run: map[string]sysexec.Response{
 			"systemctl is-enabled -- sshd.service":                         {Stdout: "enabled\n"},
@@ -125,13 +142,16 @@ var scenarios = map[string]scenario{
 		},
 	},
 	// Another machine for the same user, with everything ticked but one package: machine-specific
-	// files are shown for review, and the initramfs config would drop the encrypt hook.
+	// files are shown for review, and the initramfs config would drop the encrypt hook. firefox
+	// isn't in the backup, but this isn't the machine it's of, so it isn't listed as installed
+	// since.
 	"different-machine": {
 		tree: "here-laptop.txt",
 		pkgs: fakePackages{
-			installed: []string{"base"},
-			sync:      []string{"base", "fuse3", "htop"},
+			installed: []string{"base", "firefox"},
+			sync:      []string{"base", "firefox", "fuse3", "htop"},
 			repos:     []string{"core", "extra"},
+			chosen:    []pkgmgr.Package{{Name: "base", Repo: "core"}, {Name: "firefox", Repo: "extra"}},
 		},
 		run: map[string]sysexec.Response{
 			"systemctl is-enabled -- sshd.service":                         {Stdout: "disabled\n", Code: 1},
@@ -215,8 +235,8 @@ func planOn(t *testing.T, dir string, sc scenario) (*Plan, []Tick, planned) {
 		t.Errorf("unused answers: %v", ask.Answers)
 	}
 	run := &sysexec.Fake{Responses: sc.run}
-	pl := &Planner{Source: src, Users: users, Here: &Machine{
-		Root: root, Hostname: here.Host, Run: run, Packages: sc.pkgs, Users: local,
+	pl := &Planner{Source: src, Users: users, Everything: !sc.oneBundle, Here: &Machine{
+		Root: root, Hostname: here.Host, Facts: here, Run: run, Packages: sc.pkgs, Users: local,
 	}}
 	plan, err := pl.Make(ctx, picked)
 	if err != nil {

@@ -46,6 +46,9 @@ UUID=3333-4444 /boot vfat defaults 0 2
 UUID=bbbbbbbb-0000-0000-0000-000000000002 / btrfs subvol=/@,noatime 0 0
 -- etc/kernel/cmdline --
 root=UUID=bbbbbbbb-0000-0000-0000-000000000002 rw quiet
+-- etc/snapper/configs/root --
+SUBVOLUME="/"
+FSTYPE="btrfs"
 -- usr/local/bin/hello -> /opt/hello/bin/hello --
 -- home/alice/.cargo/bin/cargo --
 -- home/alice/.config/systemd/user/rclone-mount.service --

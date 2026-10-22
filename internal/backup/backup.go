@@ -66,6 +66,10 @@ type Options struct {
 	Progress io.Writer
 	// ProgressEvery is how often a progress line is written. Zero means every 30 seconds.
 	ProgressEvery time.Duration
+	// ProgressColumns is the width of the terminal Progress is, if it is one: then a single line
+	// is redrawn in place about once a second, with the file being read, and ProgressEvery doesn't
+	// apply. Zero writes plain lines, as for the journal.
+	ProgressColumns int
 	// Redact hides secrets in text that goes into the run history. Nil leaves text as is.
 	Redact func(string) string
 	// Timers tells status.json when the timers fire next. Nil leaves that out.
@@ -173,6 +177,7 @@ func (b *run) backup(ctx context.Context) error {
 			Fix:   "Run `sudo carryon init` to connect to the repository again.",
 		}
 	}
+	b.log.Info("Checking the backup destination at %s", opt.Redact(opt.Config.Repository.URL))
 	if err := b.checkDestination(ctx, id); err != nil {
 		return err
 	}
@@ -267,11 +272,6 @@ func (b *run) restic(ctx context.Context, excludeFile string) error {
 	if opt.Inhibitor != "" {
 		e.Runner = inhibited(opt.Engine.Runner, opt.Inhibitor)
 	}
-	// A backup cut off by a shutdown leaves its lock behind; unlock removes only stale locks.
-	if r, err := e.Run(ctx, "unlock"); err == nil && r.Code != 0 {
-		b.log.Info("restic couldn't check for stale locks: %s", lastLine(r.Stderr))
-	}
-
 	paths := make([]string, 0, len(b.res.Targets)+1)
 	for _, t := range b.res.Targets {
 		paths = append(paths, opt.System.real(t))
@@ -287,8 +287,19 @@ func (b *run) restic(ctx context.Context, excludeFile string) error {
 		"--host", opt.Machine, "--group-by", "host", "--tag", Tag,
 	}
 	args = append(args, paths...)
-	b.log.Info("Backing up to %s", opt.Config.Repository.URL)
-	pw := newProgressWriter(opt.Progress, opt.ProgressEvery, b.log)
+	b.log.Info("Backing up to %s", opt.Redact(opt.Config.Repository.URL))
+	// A backup cut off by a shutdown leaves its lock behind; unlock removes only stale locks.
+	if r, err := e.Run(ctx, "unlock"); err == nil && r.Code != 0 {
+		b.log.Info("restic couldn't check for stale locks: %s", lastLine(r.Stderr))
+	}
+	pw := newProgressWriter(opt.Progress, opt.ProgressEvery, opt.ProgressColumns, b.log)
+	if opt.Progress != nil && opt.ProgressColumns > 0 {
+		stderr := e.Stderr
+		if stderr == nil {
+			stderr = os.Stderr
+		}
+		e.Stderr = pw.clearing(stderr)
+	}
 	r, err := e.Live(ctx, pw, args...)
 	pw.finish()
 	if err != nil {

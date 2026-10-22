@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/Evimore/carryon/internal/catalog"
 	"github.com/Evimore/carryon/internal/config"
 	"github.com/Evimore/carryon/internal/dest"
@@ -574,7 +576,7 @@ func TestInhibitorWrapsRestic(t *testing.T) {
 func TestProgressWriter(t *testing.T) {
 	var out bytes.Buffer
 	log := &testLog{}
-	p := newProgressWriter(&out, time.Minute, log)
+	p := newProgressWriter(&out, time.Minute, 0, log)
 	clock := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	p.now = func() time.Time { return clock }
 	lines := []string{
@@ -589,6 +591,8 @@ func TestProgressWriter(t *testing.T) {
 		p.Write([]byte(l[10:] + "\n"))
 	}
 	p.finish()
+	// The first line comes with restic's first status message, the next a minute later; the
+	// journal gets plain lines.
 	if got := out.String(); got != " 50% done: 1.0 KiB of 2.0 KiB, 5 of 10 files\n" {
 		t.Errorf("progress = %q", got)
 	}
@@ -600,6 +604,85 @@ func TestProgressWriter(t *testing.T) {
 		t.Errorf("log = %q", log)
 	}
 }
+
+// On a terminal one line is redrawn in place about once a second, with the file being read, cut
+// to the terminal's width. A warning, restic's own output and the end of the backup clear it first.
+func TestProgressOnATerminal(t *testing.T) {
+	var out bytes.Buffer
+	log := &testLog{}
+	p := newProgressWriter(&out, 0, 80, log)
+	clock := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	p.now = func() time.Time { return clock }
+	status := func(done int, file string) {
+		p.Write([]byte(fmt.Sprintf(`{"message_type":"status","percent_done":%g,"total_files":10,"files_done":%d,`+
+			`"total_bytes":2048,"bytes_done":%d,"current_files":[%q]}`+"\n", float64(done)/10, done, done*204, file)))
+	}
+	long := "/home/alice/Videos/" + strings.Repeat("holiday-", 10) + "final.mkv"
+
+	status(1, "/home/alice/notes.txt")
+	want := "\r\033[K 10% done: 204 B of 2.0 KiB, 1 of 10 files, /home/alice/notes.txt"
+	if got := out.String(); got != want {
+		t.Fatalf("first status:\n got %q\nwant %q", got, want)
+	}
+	out.Reset()
+	status(2, "/home/alice/todo.txt") // within the second: not drawn
+	clock = clock.Add(time.Second)
+	status(3, long)
+	got := out.String()
+	line := strings.TrimPrefix(got, "\r\033[K")
+	if !strings.HasPrefix(got, "\r\033[K 30% done") || !strings.HasSuffix(line, "final.mkv") || !strings.Contains(line, "…") {
+		t.Errorf("a second later: %q", got)
+	}
+	if w := ansi.StringWidth(line); w > 79 {
+		t.Errorf("the line is %d columns wide on an 80-column terminal: %q", w, line)
+	}
+
+	out.Reset()
+	p.Write([]byte(`{"message_type":"error","error":{"message":"permission denied"},"during":"archival","item":"/etc/secret"}` + "\n"))
+	if got := out.String(); got != "\r\033[K" {
+		t.Errorf("before a warning: %q", got)
+	}
+	out.Reset()
+	fmt.Fprint(p.clearing(&out), "restic: something\n")
+	if got := out.String(); got != "restic: something\n" {
+		t.Errorf("restic's output after a cleared line: %q", got)
+	}
+	clock = clock.Add(time.Second)
+	status(4, "/home/alice/notes.txt")
+	out.Reset()
+	fmt.Fprint(p.clearing(&out), "restic: more\n")
+	if got := out.String(); got != "\r\033[Krestic: more\n" {
+		t.Errorf("restic's output over a drawn line: %q", got)
+	}
+	clock = clock.Add(time.Second)
+	status(5, "/home/alice/notes.txt")
+	out.Reset()
+	p.finish()
+	if got := out.String(); got != "\r\033[K" {
+		t.Errorf("at the end: %q", got)
+	}
+}
+
+// The destination check can take a while on a slow remote, so the backup says it's checking first.
+func TestBackupSaysItChecksTheDestination(t *testing.T) {
+	env := newEnv(t)
+	opt := env.options()
+	var before string
+	opt.Checker = checkerFunc(func() dest.Result {
+		before = env.log.String()
+		return dest.Result{Status: dest.NotMounted, Message: "No drive is mounted there."}
+	})
+	if _, err := Run(context.Background(), opt); !errors.Is(err, ErrWaiting) {
+		t.Fatalf("err = %v", err)
+	}
+	if want := "info: Checking the backup destination at " + env.e.Repository().URL + "\n"; !strings.HasSuffix(before, want) {
+		t.Errorf("logged before the check:\n%s\nwant it to end with %q", before, want)
+	}
+}
+
+type checkerFunc func() dest.Result
+
+func (f checkerFunc) Check(context.Context, string, dest.Identity) dest.Result { return f() }
 
 func TestStatusJSONIsValid(t *testing.T) {
 	env := newEnv(t)

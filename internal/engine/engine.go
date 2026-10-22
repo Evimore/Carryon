@@ -293,5 +293,6 @@ func (r Result) Err() error {
 	if r.Code == 0 {
 		return nil
 	}
-	return &Error{Problem: Classify(r.Code, r.Stderr, r.repo), Code: r.Code, Args: r.Args}
+	return &Error{Problem: Classify(r.Code, r.Stderr, r.repo), Code: r.Code, Args: r.Args,
+		Refused: IsRefused(r.Code, r.Stderr, r.repo)}
 }

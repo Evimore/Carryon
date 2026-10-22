@@ -56,7 +56,7 @@ func (v *verifier) checkRepository(ctx context.Context) {
 	res := opt.Checker.Check(ctx, url, id)
 	if !res.OK() {
 		switch res.Status {
-		case dest.NotMounted, dest.Missing, dest.Unreachable:
+		case dest.NotMounted, dest.Unreachable:
 			r.add(Line{Level: Warning, Text: "The repository couldn't be checked: " + res.Message, Fix: res.Fix})
 			v.checkLastBackup()
 		default:

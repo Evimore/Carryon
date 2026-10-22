@@ -324,6 +324,8 @@ func TestMismatchedDestinationWritesNothing(t *testing.T) {
 	}{
 		{"not mounted", dest.NotMounted, true},
 		{"unreachable", dest.Unreachable, true},
+		{"folder gone", dest.Missing, false},
+		{"can't open", dest.CantOpen, false},
 		{"different disk", dest.DifferentDisk, false},
 		{"different repository", dest.RepoMismatch, false},
 	} {
@@ -377,6 +379,62 @@ func TestRealCheckerRefusesAnotherRepository(t *testing.T) {
 	}
 	if n := len(env.snapshots()); n != 0 {
 		t.Errorf("%d snapshots written to the wrong repository", n)
+	}
+}
+
+// A repository that answers but can't be opened fails the backup, with restic's cause and fix,
+// instead of waiting as if the destination were away. Waiting wouldn't help.
+func TestRealCheckerStopsAtARepositoryItCantOpen(t *testing.T) {
+	env := newEnv(t)
+	tmp := filepath.Dir(env.root)
+	mounts, err := dest.ReadMounts("/")
+	if err != nil {
+		t.Skip("no mount table here:", err)
+	}
+	m, ok := mounts.Containing(env.e.Repository().URL)
+	if !ok {
+		t.Skip("the temp folder is on no mount")
+	}
+	if err := state.WriteDestination(env.dirs, dest.Identity{MountPoint: m.MountPoint, RepoID: env.repoID}); err != nil {
+		t.Fatal(err)
+	}
+	wrong := filepath.Join(tmp, "wrong-password")
+	write(t, wrong, "Tr0ub4dor&3\n")
+	if err := os.MkdirAll(filepath.Join(tmp, "empty"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name  string
+		repo  config.Repository
+		cause string
+		fix   string
+	}{
+		{"wrong password", config.Repository{URL: env.e.Repository().URL, PasswordFile: wrong}, "wrong password", "password doesn't match"},
+		{"no repository", config.Repository{URL: filepath.Join(tmp, "empty"), PasswordFile: env.e.Repository().PasswordFile}, "repository does not exist", "no backup repository"},
+		{"folder gone", config.Repository{URL: filepath.Join(tmp, "gone"), PasswordFile: env.e.Repository().PasswordFile}, "isn't there", "repository.url"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := engine.New(tc.repo, env.dirs, "desktop")
+			e.BaseEnv = env.e.BaseEnv
+			opt := env.options()
+			opt.Config.Repository = tc.repo
+			opt.Engine = e
+			opt.Checker = dest.Checker{Root: "/", Repo: e}
+			res, err := Run(context.Background(), opt)
+			var p *Problem
+			if !errors.As(err, &p) || errors.Is(err, ErrWaiting) || res.Run.Result != state.ResultFailed {
+				t.Fatalf("err = %v, result %q; want a failure", err, res.Run.Result)
+			}
+			if !strings.Contains(p.Cause, tc.cause) || !strings.Contains(p.Fix, tc.fix) {
+				t.Errorf("cause %q, fix %q; want them to say %q and %q", p.Cause, p.Fix, tc.cause, tc.fix)
+			}
+			if pend, ok, _ := state.ReadPending(env.dirs); ok && pend.Reason == state.ReasonWaiting {
+				t.Errorf("a backup is marked as waiting for its destination: %+v", pend)
+			}
+		})
+	}
+	if n := len(env.snapshots()); n != 0 {
+		t.Errorf("%d snapshots written", n)
 	}
 }
 

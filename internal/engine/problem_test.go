@@ -182,3 +182,43 @@ func TestIsNoRepoAndIsBadPassword(t *testing.T) {
 		}
 	}
 }
+
+func TestIsRefused(t *testing.T) {
+	local := config.Repository{URL: "/mnt/backup/carryon"}
+	cloud := config.Repository{URL: "rclone:my-cloud:backups"}
+	for _, c := range []struct {
+		name   string
+		code   int
+		stderr string
+		repo   config.Repository
+		want   bool
+	}{
+		{"wrong password", ExitBadPassword, "Fatal: wrong password or no key found", local, true},
+		{"wrong password, restic 0.17.0", ExitFatal, "Fatal: wrong password or no key found", local, true},
+		{"no repository", ExitNoRepo, "Fatal: repository does not exist: unable to open config file", local, true},
+		{"offline", ExitFatal, "Fatal: unable to open config file: Stat: dial tcp: lookup example.com: no such host\nIs there a repository at the following location?", local, false},
+		{"another error opening it", ExitFatal, "Fatal: unable to open config file: Stat: 503 Service Unavailable\nIs there a repository at the following location?", local, false},
+		{"rclone login expired", ExitFatal, "rclone: Failed to create file system: couldn't fetch token: invalid_grant\nFatal: unable to open repository", cloud, true},
+		{"rclone missing", ExitFatal, `Fatal: unable to open repository: exec: "rclone": executable file not found in $PATH`, cloud, true},
+		{"rclone offline", ExitFatal, "rclone: dial tcp: lookup www.example.com: no such host\nFatal: unable to open repository", cloud, false},
+		{"locked", ExitLockFailed, "Fatal: unable to create lock in backend: repository is already locked", local, false},
+		{"ok", ExitOK, "", local, false},
+	} {
+		if got := IsRefused(c.code, c.stderr, c.repo); got != c.want {
+			t.Errorf("%s: IsRefused = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestIsExpiredLogin(t *testing.T) {
+	for stderr, want := range map[string]bool{
+		"ERROR : couldn't list: token expired":                                          true,
+		"Failed to create file system for \"my-cloud:\": oauth2: invalid_grant":         true,
+		"couldn't list directory: Get \"https://example.com/\": dial tcp: no such host": false,
+		"directory not found": false,
+	} {
+		if got := IsExpiredLogin(stderr); got != want {
+			t.Errorf("IsExpiredLogin(%q) = %v, want %v", stderr, got, want)
+		}
+	}
+}

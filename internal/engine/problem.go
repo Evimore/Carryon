@@ -38,8 +38,9 @@ func (p Problem) String() string {
 // Error is a failed restic run.
 type Error struct {
 	Problem
-	Code int      // restic's exit code, -1 if it couldn't be started
-	Args []string // the restic command, without the engine's default options
+	Code    int      // restic's exit code, -1 if it couldn't be started
+	Args    []string // the restic command, without the engine's default options
+	Refused bool     // restic reached the repository but couldn't open it (see IsRefused)
 }
 
 func (e *Error) Error() string { return e.Problem.String() }
@@ -157,4 +158,26 @@ func IsNoRepo(code int, stderr string) bool {
 // IsBadPassword reports whether a failed restic run found a repository its password doesn't open.
 func IsBadPassword(code int, stderr string) bool {
 	return code == ExitBadPassword || (code != 0 && passwordRE.MatchString(stderr))
+}
+
+// IsRefused reports whether a failed restic run reached the repository's place but couldn't open
+// a repository there: a wrong password, no repository, or for rclone an expired login or no rclone
+// to run. Waiting doesn't fix these, unlike a destination that is offline or doesn't answer. Only
+// the exit code says there's no repository: restic words other errors opening it the same way.
+func IsRefused(code int, stderr string, repo config.Repository) bool {
+	switch {
+	case code == ExitBadPassword || code == ExitNoRepo:
+		return true
+	case code == 0 || networkRE.MatchString(stderr):
+		return false
+	case passwordRE.MatchString(stderr):
+		return true
+	}
+	return strings.HasPrefix(repo.URL, "rclone:") && (missingRE.MatchString(stderr) || authRE.MatchString(stderr))
+}
+
+// IsExpiredLogin reports whether a program's error output says its login to a remote expired or
+// was refused, rather than that the remote didn't answer.
+func IsExpiredLogin(stderr string) bool {
+	return authRE.MatchString(stderr) && !networkRE.MatchString(stderr)
 }

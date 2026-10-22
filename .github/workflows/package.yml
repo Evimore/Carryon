@@ -119,21 +119,21 @@ jobs:
           make dist GOARCH=arm64 VERSION="$VERSION" GO_LDFLAGS="-s -w"
           # A pre-release, to install from the tarball and then move onto the package.
           make dist GOARCH=amd64 VERSION="$VERSION-rc1" GO_LDFLAGS="-s -w"
-          mkdir dist
-          cp build/*.tar.gz dist/
+          mkdir tarballs
+          cp build/*.tar.gz tarballs/
       - name: Package them
         # makepkg refuses to run as root.
         run: |
           useradd --create-home builder
           install -d -o builder packages
-          sudo -u builder packaging/repo/build.sh "$VERSION" dist packages
+          sudo -u builder packaging/repo/build.sh "$VERSION" tarballs packages
           # Pre-releases are never packaged.
-          if sudo -u builder packaging/repo/build.sh "$VERSION-rc1" dist packages; then exit 1; fi
+          if sudo -u builder packaging/repo/build.sh "$VERSION-rc1" tarballs packages; then exit 1; fi
           for arch in x86_64 aarch64; do
             pkg=packages/carryon-$VERSION-1-$arch.pkg.tar.zst
             pacman -Qip "$pkg" | grep -x "Architecture *: $arch"
             cmp <(bsdtar -xOf "$pkg" usr/bin/carryon) \
-              <(tar -xzOf "dist/carryon-$VERSION-linux-$arch.tar.gz" "carryon-$VERSION-linux-$arch/usr/bin/carryon")
+              <(tar -xzOf "tarballs/carryon-$VERSION-linux-$arch.tar.gz" "carryon-$VERSION-linux-$arch/usr/bin/carryon")
             pacman -Qlpq "$pkg" | grep -v '/$' | sed 's|^/||' | packaging/check-layout.sh
           done
       - name: namcap
@@ -186,7 +186,7 @@ jobs:
         run: |
           set -o pipefail
           pacman -R --noconfirm carryon
-          tarball=dist/carryon-$VERSION-rc1-linux-x86_64.tar.gz
+          tarball=tarballs/carryon-$VERSION-rc1-linux-x86_64.tar.gz
           tar -xzf "$tarball" -C / --strip-components=1 --no-overwrite-dir
           # A file no package owns and the package doesn't have: the installer leaves it alone.
           echo kept >/usr/share/carryon-unowned

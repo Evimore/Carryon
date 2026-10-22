@@ -169,13 +169,13 @@ jobs:
         with:
           pattern: dist-*
           merge-multiple: true
-          path: dist
+          path: tarballs
       - name: Package the tarballs
         # makepkg refuses to run as root.
         run: |
           useradd --create-home builder
           install -d -o builder packages
-          sudo -u builder packaging/repo/build.sh "$VERSION" dist packages
+          sudo -u builder packaging/repo/build.sh "$VERSION" tarballs packages
       - name: namcap
         # The expected warnings are those of the Package workflow.
         run: |

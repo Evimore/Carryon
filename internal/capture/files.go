@@ -17,8 +17,7 @@ import (
 
 // notCaptured matches system files that are never recorded: machine-specific or generated files,
 // secrets restored from the encrypted backup instead, and Carryon's own files. From the
-// prototype's NOT_CAPTURED, plus Carryon's files (the prototype's own are still left out, so a
-// machine moved over from it doesn't bring the prototype back).
+// prototype's NOT_CAPTURED, with Carryon's files in place of the prototype's own.
 var notCaptured = regexp.MustCompile(strings.Join([]string{
 	`^/etc/(machine-id|adjtime|ld\.so\.cache|\.pwd\.lock|\.updated|mtab|resolv\.conf)$`,
 	`^/etc/(passwd|group|shadow|gshadow|subuid|subgid)-?$`,
@@ -29,9 +28,6 @@ var notCaptured = regexp.MustCompile(strings.Join([]string{
 	// Carryon itself: the package (or init) puts it on each machine, and it's in every backup
 	`^/etc/carryon/`, `^/usr/local/(lib/carryon/|bin/carryon$)`,
 	`^/etc/pacman\.d/hooks/[^/]*carryon[^/]*\.hook$`, `^/etc/systemd/(system|user)/carryon`,
-	// the prototype
-	`^/etc/sysbackup/`, `^/usr/local/(lib/sysbackup/|bin/sysbackup$)`,
-	`^/etc/pacman\.d/hooks/zz-sysbackup\.hook$`, `^/etc/systemd/system/sysbackup`,
 	`^/usr/lib/modules/`, `^/usr/share/mime/`, `/__pycache__/`, `\.pyc$`,
 	`\.(pacnew|pacsave|pacorig|pre-restore|bak|old|orig)$`, `mirrorlist$`, `\.cache$`,
 	`^/usr/lib/locale/locale-archive$`, `^/(etc|usr/lib)/udev/hwdb\.bin$`,

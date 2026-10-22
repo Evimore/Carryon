@@ -83,33 +83,18 @@ func dump(ctx context.Context, eng *engine.Engine, snapshot, path string) (data 
 	return []byte(r.Stdout), true, nil
 }
 
-// recordMetaPaths are where a backup keeps its record's meta.json: Carryon's record, then the
-// prototype's.
-func (e *Env) recordMetaPaths() []string {
-	return []string{
-		filepath.Join(e.Dirs.RecordDir(), "meta.json"),
-		filepath.Join(e.sysbackupRoot(), "var/lib/sysbackup/manifest/meta.json"),
-	}
-}
-
 // machineFingerprint reads the hardware fingerprint from the record in a machine's newest backup.
 // It is "" when the backup has no record that says.
 func (e *Env) machineFingerprint(ctx context.Context, eng *engine.Engine, m Machine) (string, error) {
-	for _, p := range e.recordMetaPaths() {
-		data, ok, err := dump(ctx, eng, m.Snapshot, p)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			continue
-		}
-		var meta record.Meta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return "", fmt.Errorf("reading the record in the backup %s: %w", m.Snapshot, err)
-		}
-		return meta.Machine, nil
+	data, ok, err := dump(ctx, eng, m.Snapshot, filepath.Join(e.Dirs.RecordDir(), "meta.json"))
+	if err != nil || !ok {
+		return "", err
 	}
-	return "", nil
+	var meta record.Meta
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return "", fmt.Errorf("reading the record in the backup %s: %w", m.Snapshot, err)
+	}
+	return meta.Machine, nil
 }
 
 // sameMachine tells whether m's backups come from this machine: yes, no, or unknown when either

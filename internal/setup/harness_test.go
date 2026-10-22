@@ -105,17 +105,16 @@ func newHarness(t *testing.T, answers ...any) *harness {
 	h.mkdir(h.drive)
 	home := filepath.Join(tmp, "roothome")
 	h.env = &Env{
-		Dirs:          dirs,
-		Prompt:        h.script,
-		Log:           ui.NewLogger(h.log, false, false),
-		Out:           h.out,
-		Runner:        h.fake,
-		Root:          h.root,
-		SystemdDir:    filepath.Join(tmp, "etc/systemd/system"),
-		SysbackupRoot: filepath.Join(tmp, "old"),
-		Hostname:      func() (string, error) { return "desktop", nil },
-		Fingerprint:   func() string { return testFingerprint },
-		Now:           func() time.Time { return time.Date(2026, 10, 15, 9, 30, 0, 0, time.UTC) },
+		Dirs:        dirs,
+		Prompt:      h.script,
+		Log:         ui.NewLogger(h.log, false, false),
+		Out:         h.out,
+		Runner:      h.fake,
+		Root:        h.root,
+		SystemdDir:  filepath.Join(tmp, "etc/systemd/system"),
+		Hostname:    func() (string, error) { return "desktop", nil },
+		Fingerprint: func() string { return testFingerprint },
+		Now:         func() time.Time { return time.Date(2026, 10, 15, 9, 30, 0, 0, time.UTC) },
 		Engine: func(repo config.Repository, machine string) *engine.Engine {
 			e := engine.New(repo, dirs, machine)
 			e.BaseEnv = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + home}

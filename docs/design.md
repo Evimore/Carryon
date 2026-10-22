@@ -15,7 +15,7 @@ prototype already made a decision that worked, Carryon keeps it; those parts say
 [Noticing new things](#noticing-new-things) · [Restoring](#restoring) · [Configuration](#configuration) ·
 [Interfaces](#interfaces) · [Who runs what](#who-runs-what) · [Getting back in](#getting-back-in) ·
 [Code layout and libraries](#code-layout-and-libraries) · [Install layout](#install-layout) ·
-[Testing](#testing) · [Moving over from the prototype](#moving-over-from-the-prototype) ·
+[Testing](#testing) ·
 [Decisions](#decisions) · [Open questions](#open-questions)
 
 ## Goals
@@ -939,25 +939,6 @@ system's loader, and the same binary must run from the recovery kit anywhere. Se
   runner's).
 - **Real machines:** before a release, a maintainer runs the backup and the deep check through the
   real systemd services, as the prototype's notes require.
-
-## Moving over from the prototype
-
-`carryon init --from-sysbackup`:
-
-1. Reads `/etc/sysbackup/sysbackup.conf`, `excludes.txt` and `bundles.local`, and writes the Carryon
-   equivalents.
-2. Reuses the same restic repository and password, with the old hostname as the machine name, so
-   snapshot history continues.
-3. Restores from the prototype's snapshots work, because format 1 records can be read.
-4. After the first Carryon backup (a snapshot tagged `carryon` under the machine name), running it
-   again offers to disable the prototype's timers and hook; until then it prints the command. The hook
-   is renamed to `zz-sysbackup.hook.disabled` rather than deleted.
-
-Details: the prototype backed up one user's home (`SYSBACKUP_USER`), so `backup.users` becomes that
-user rather than `"*"`. `KEEP` is read option by option; `--keep-*` options Carryon has no setting
-for, and `TOOLKIT_MIRROR`, are reported and left out. Only the user's own lines of `excludes.txt` are
-carried over (the rest are Carryon defaults). If the prototype recorded that the password was saved,
-the recovery kit counts as saved.
 
 ## Decisions
 

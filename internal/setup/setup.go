@@ -1,6 +1,5 @@
-// Package setup sets Carryon up on a machine: `carryon init`, `init --connect`, `init
-// --from-sysbackup` and the recovery kit. See docs/design.md, "Getting back in" and "Moving over
-// from the prototype".
+// Package setup sets Carryon up on a machine: `carryon init`, `init --connect` and the
+// recovery kit. See docs/design.md, "Getting back in".
 //
 // Everything it touches outside the repository goes through Env, so tests run it against temp
 // folders, a fake mount table, a fake systemctl and a restic repository in a temp folder.
@@ -40,10 +39,6 @@ type Env struct {
 	Root string
 	// SystemdDir is where schedule drop-ins go: /etc/systemd/system unless set.
 	SystemdDir string
-	// SysbackupRoot is where the prototype's files are looked for (etc/sysbackup,
-	// var/lib/sysbackup, etc/pacman.d/hooks): "/" unless set. Snapshots of the prototype hold
-	// them at the same places.
-	SysbackupRoot string
 
 	// Hostname is the machine's hostname; os.Hostname unless set.
 	Hostname func() (string, error)
@@ -59,9 +54,8 @@ type Env struct {
 	Engine func(repo config.Repository, machine string) *engine.Engine
 }
 
-func (e *Env) root() string          { return orDefault(e.Root, "/") }
-func (e *Env) systemdDir() string    { return orDefault(e.SystemdDir, "/etc/systemd/system") }
-func (e *Env) sysbackupRoot() string { return orDefault(e.SysbackupRoot, "/") }
+func (e *Env) root() string       { return orDefault(e.Root, "/") }
+func (e *Env) systemdDir() string { return orDefault(e.SystemdDir, "/etc/systemd/system") }
 
 func (e *Env) now() time.Time {
 	if e.Now != nil {

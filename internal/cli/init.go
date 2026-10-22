@@ -22,10 +22,9 @@ var setupEnv = func(dirs paths.Dirs, p ui.Prompter, out, errOut io.Writer) *setu
 
 func newInitCmd(dirs paths.Dirs) *cobra.Command {
 	var (
-		o             setup.Options
-		connect       string
-		fromSysbackup bool
-		defaults      bool
+		o        setup.Options
+		connect  string
+		defaults bool
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -43,20 +42,14 @@ On a new machine, connect to your existing repository and restore from it:
     sudo carryon restore
 
 Or restore as you go: backups start at once, and installing an app offers its saved settings:
-    sudo carryon init --connect sftp:alice@example.com:/backups --restore as-you-go
-
-Moving over from sysbackup, the prototype:
-    sudo carryon init --from-sysbackup`,
+    sudo carryon init --connect sftp:alice@example.com:/backups --restore as-you-go`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := needRoot("carryon init"); err != nil {
 				return err
 			}
-			if connect != "" && fromSysbackup {
-				return errors.New("use --connect or --from-sysbackup, not both")
-			}
-			if (connect != "" || fromSysbackup) && o.Repo != "" {
-				return errors.New("--repo is for setting up a new destination; --connect and --from-sysbackup bring their own")
+			if connect != "" && o.Repo != "" {
+				return errors.New("--repo is for setting up a new destination; --connect brings its own")
 			}
 			if o.SettingsFrom != "" && connect == "" {
 				return errors.New("--settings-from only works with --connect")
@@ -73,8 +66,6 @@ Moving over from sysbackup, the prototype:
 			switch {
 			case connect != "":
 				err = env.Connect(ctx, connect, o)
-			case fromSysbackup:
-				err = env.FromSysbackup(ctx, o)
 			default:
 				err = env.Init(ctx, o)
 			}
@@ -96,7 +87,6 @@ Moving over from sysbackup, the prototype:
 	f.StringVar(&connect, "connect", "", "connect this machine to the existing repository at this URL, to restore from it")
 	f.StringVar(&o.SettingsFrom, "settings-from", "", `with --connect: reuse this machine's settings, or "none"`)
 	f.StringVar(&o.Restore, "restore", "", `with --connect: restore everything "now" (backups pause until it's done), or "as-you-go" (default "now")`)
-	f.BoolVar(&fromSysbackup, "from-sysbackup", false, "move over from sysbackup, the prototype, keeping its repository and history")
 	f.BoolVar(&defaults, "defaults", false, "take the default answer for every question not given as a flag")
 	f.BoolVar(&o.Yes, "yes", false, "go ahead with a risky destination (system disk, network mount) without asking")
 	f.BoolVar(&o.KitSaved, "kit-saved", false, "you saved the recovery kit, so don't ask")

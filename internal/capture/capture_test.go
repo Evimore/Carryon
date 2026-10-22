@@ -410,7 +410,6 @@ func TestNeverCaptured(t *testing.T) {
 		"/usr/local/bin/carryon":                   true,
 		"/etc/pacman.d/hooks/carryon.hook":         true,
 		"/etc/systemd/system/carryon-backup.timer": true,
-		"/etc/sysbackup/sysbackup.conf":            true,
 		"/etc/pacman.d/mirrorlist":                 true,
 		"/etc/fstab.pacnew":                        true,
 		"/usr/lib/modules/6.11/modules.dep":        true,

@@ -195,9 +195,13 @@ func (v *verifier) checkDKMS(ctx context.Context) {
 		return
 	}
 	var bad, from []string
+	named := map[string]bool{}
 	for _, s := range srcs {
-		if owners[s] != "" {
-			from = append(from, owners[s])
+		if o := owners[s]; o != "" {
+			if !named[o] {
+				named[o] = true
+				from = append(from, o)
+			}
 			continue
 		}
 		if _, err := os.Stat(filepath.Join(v.opt.Dirs.RecordDir(), capture.FilesDir, s)); err != nil {

@@ -19,8 +19,9 @@ optdepends=('git: keep the history of the system record'
             'libnotify: desktop notifications when a backup fails'
             'polkit: back up, restore and settle suggestions from the desktop without sudo')
 conflicts=('carryon-bin' 'carryon-git')
-# The release binary is already stripped.
-options=('!strip' '!debug')
+# The release binary is already stripped, and the man page stays as the tarball has it, so the
+# package replaces exactly the files of a tarball install.
+options=('!strip' '!debug' '!zipman')
 # Empty on purpose: the package installs nothing under /etc, `carryon init` writes /etc/carryon.
 backup=()
 install=carryon.install

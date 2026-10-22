@@ -91,10 +91,11 @@ if ! pacman -Q carryon >/dev/null 2>&1; then
   while IFS= read -r path; do
     [[ -n $path && $path != */ && $path != %*% ]] || continue
     [[ -e /$path || -L /$path ]] || continue
-    if LC_ALL=C pacman -Qoq "/$path" 2>&1 >/dev/null | grep -q '^error: No package owns'; then
-      # --overwrite takes a pattern, so escape its special characters.
-      overwrite+=(--overwrite "$(printf '/%s' "$path" | sed 's/[][*?\\]/\\&/g')")
-    fi
+    LC_ALL=C pacman -Qoq "/$path" >/dev/null 2>"$tmp/owner" && continue
+    grep -q '^error: No package owns' "$tmp/owner" ||
+      die "couldn't tell which package owns /$path: $(cat "$tmp/owner")"
+    # --overwrite takes a pattern, so escape its special characters.
+    overwrite+=(--overwrite "$(printf '/%s' "$path" | sed 's/[][*?\\]/\\&/g')")
   done <"$tmp/files"
   if (( ${#overwrite[@]} )); then
     say "Replacing $(( ${#overwrite[@]} / 2 )) files of an earlier install from the release archive."

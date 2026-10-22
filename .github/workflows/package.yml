@@ -110,7 +110,11 @@ jobs:
       REPO: /srv/carryon
     steps:
       - name: Install the build tools
-        run: pacman -Syu --noconfirm --needed base-devel git go namcap
+        # The image's keyring has no local master key, which every installed system has and the
+        # installer needs to sign Carryon's key.
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git go namcap
+          pacman-key --init
       - uses: actions/checkout@v7
       - name: Build the release tarballs
         run: |

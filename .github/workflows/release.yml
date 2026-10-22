@@ -8,7 +8,8 @@ name: Release
 #   version of a release that exists, it builds and attaches that release's files again.
 # - A release published by hand on the Releases page gets its files attached.
 # Each builds static binaries for x86_64 and aarch64, packs a tarball of each with everything
-# `make install` installs, and attaches them with sha256sums.
+# `make install` installs, attests their build provenance, so anyone can check where they came
+# from, and attaches them with sha256sums.
 # The latest stable release also goes into Carryon's pacman repository on GitHub Pages, once its
 # signing key is set up (docs/packaging.md, "The pacman repository"). Pre-releases never do.
 # On a pull request: the same build as a dry run, without publishing anything.
@@ -267,6 +268,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      # To attest the tarballs: id-token to sign the attestation, attestations to store it.
+      id-token: write
+      attestations: write
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.prepare.outputs.version }}
@@ -289,6 +293,13 @@ jobs:
       - name: Write the release notes
         if: needs.prepare.outputs.mode == 'new'
         run: .github/release-notes.sh "$TAG" "$MILESTONE" | tee notes.md
+      - name: Attest the tarballs
+        # Before anything is attached, so every published tarball can be checked with
+        # `gh attestation verify`. If this fails, the job stops before attaching anything: re-run
+        # the failed jobs.
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*.tar.gz
       - name: Publish
         run: |
           # 0.3.0-rc1 and the like are pre-releases.

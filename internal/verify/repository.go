@@ -206,20 +206,33 @@ func (v *verifier) checkContents(ctx context.Context, snap engine.Snapshot) {
 		v.rep.add(Line{Level: Problem, Text: "The newest backup's files couldn't be listed: " + cause, Fix: fix})
 		return
 	}
-	var missing []string
+	// A path outside every folder the backup was given was added to the backup, or appeared,
+	// after it was made: the next backup takes it in, so it isn't missing.
+	var missing, later []string
 	for _, w := range want {
-		if !have[w] {
+		switch {
+		case have[w]:
+		case len(snap.Paths) == 0 || underAny(w, snap.Paths...):
 			missing = append(missing, w)
+		default:
+			later = append(later, w)
 		}
 	}
 	level := Problem
 	if t, ok := lastCapture(v.opt.Dirs.RecordDir()); ok && t.After(snap.Time) {
 		level = Warning // the record changed after this backup: the next one picks up new paths
 	}
-	v.rep.check(level, missing,
-		"The newest backup holds the record, Carryon's settings and every backed-up folder.",
+	okText := "The newest backup holds the record, Carryon's settings and every backed-up folder."
+	if len(later) > 0 {
+		okText = "The newest backup holds the record, Carryon's settings and every folder backed up when it was made."
+	}
+	v.rep.check(level, missing, okText,
 		"The newest backup is missing some of what it should hold:",
 		"Back up again with: sudo carryon backup. If they stay missing, check the exclude list (carryon why PATH).")
+	if len(later) > 0 {
+		v.rep.add(Line{Level: Info, Text: "Not in the newest backup yet, since they were added after it; the next backup takes them in:",
+			Details: later})
+	}
 }
 
 // checkIntegrity runs restic check, re-reading verify.read_subset of the data (all of it for

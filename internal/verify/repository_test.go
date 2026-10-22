@@ -323,33 +323,53 @@ func TestDeepCheckOnARealRepository(t *testing.T) {
 func TestDeepCheckFindsMissingPaths(t *testing.T) {
 	env := newEnv(t)
 	e, _ := env.realRepository()
-	// A folder added to backup.extra_paths after the newest backup isn't in it.
-	write(t, filepath.Join(env.root, "srv/www/index.html"), "<p>hello</p>\n")
-	opt := env.options()
-	opt.Config.Repository = e.Repository()
-	opt.Engine = e
-	opt.Checker = &fakeChecker{res: dest.Result{Status: dest.OK}}
-	opt.Deep = true
-	v := env.verifier(opt)
 	snaps, err := e.Snapshots(context.Background(), "desktop")
 	if err != nil || len(snaps) != 1 {
 		t.Fatalf("snapshots = %v, %v", snaps, err)
 	}
+	// After the backup, a folder appears and backup.extra_paths gains it, as accepting a
+	// suggestion in carryon inbox does.
+	write(t, filepath.Join(env.root, "var/lib/media/library.db"), "films\n")
+	media := filepath.Join(env.root, "var/lib/media")
+	opt := env.options()
+	opt.Config.Repository = e.Repository()
+	opt.Config.Backup.ExtraPaths = append(opt.Config.Backup.ExtraPaths, "/var/lib/media")
+	opt.Engine = e
+	opt.Checker = &fakeChecker{res: dest.Result{Status: dest.OK}}
+	opt.Deep = true
+	v := env.verifier(opt)
+
+	newest := snaps[0]
+	// Had the folder been set before the backup, the backup would have been given it.
+	given := newest
+	given.Paths = append(slices.Clone(newest.Paths), media)
 	for _, tt := range []struct {
+		name     string
+		snap     engine.Snapshot
 		captured time.Time
 		level    Level
+		text     string
 	}{
-		{snaps[0].Time.Add(-time.Minute), Problem},
+		{"added after the backup", newest, newest.Time.Add(-time.Minute), Info, "Not in the newest backup yet"},
+		{"set before the backup", given, newest.Time.Add(-time.Minute), Problem, "missing some of what it should hold"},
 		// The record changed after the backup: the next backup picks up what it added.
-		{snaps[0].Time.Add(time.Minute), Warning},
+		{"record changed after the backup", given, newest.Time.Add(time.Minute), Warning, "missing some of what it should hold"},
 	} {
-		env.setCaptured(tt.captured)
-		v.rep = &Report{}
-		v.checkContents(context.Background(), snaps[0])
-		l := want(t, v.rep, tt.level, "missing some of what it should hold")
-		if strings.Join(l.Details, ",") != filepath.Join(env.root, "srv") {
-			t.Errorf("details = %q", l.Details)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			env.setCaptured(tt.captured)
+			v.rep = &Report{}
+			v.checkContents(context.Background(), tt.snap)
+			l := want(t, v.rep, tt.level, tt.text)
+			if strings.Join(l.Details, ",") != media {
+				t.Errorf("details = %q", l.Details)
+			}
+			if tt.level == Info {
+				want(t, v.rep, OK, "every folder backed up when it was made")
+				if v.rep.Problems+v.rep.Warnings != 0 {
+					t.Errorf("report:\n%s", levels(v.rep))
+				}
+			}
+		})
 	}
 }
 

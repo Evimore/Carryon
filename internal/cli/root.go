@@ -74,6 +74,7 @@ Carryon is in early development: commands marked "not implemented yet" are on th
 		newVersionCmd(),
 		newInitCmd(dirs),
 		newRecoveryKitCmd(dirs),
+		newPasswordCmd(dirs),
 		newStatusCmd(dirs),
 		newConfigCmd(dirs),
 		newBundlesCmd(dirs),

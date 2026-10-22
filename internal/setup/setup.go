@@ -1,5 +1,5 @@
-// Package setup sets Carryon up on a machine: `carryon init`, `init --connect` and the
-// recovery kit. See docs/design.md, "Getting back in".
+// Package setup sets Carryon up on a machine: `carryon init`, `init --connect`, the recovery kit
+// and `carryon password`. See docs/design.md, "Getting back in".
 //
 // Everything it touches outside the repository goes through Env, so tests run it against temp
 // folders, a fake mount table, a fake systemctl and a restic repository in a temp folder.
@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Evimore/carryon/internal/config"
+	"github.com/Evimore/carryon/internal/dest"
 	"github.com/Evimore/carryon/internal/engine"
 	"github.com/Evimore/carryon/internal/facts"
 	"github.com/Evimore/carryon/internal/paths"
@@ -34,6 +35,9 @@ type Env struct {
 
 	// Runner runs systemctl. Nil means real programs.
 	Runner sysexec.Runner
+	// RcloneRunner runs rclone as the user whose login an rclone: repository uses, so the
+	// destination check before changing the password can reach the remote. Nil fails that check.
+	RcloneRunner dest.Runner
 	// Root is the system root the mount checks read (/proc/self/mountinfo, /dev/disk/by-uuid):
 	// "/" unless set.
 	Root string

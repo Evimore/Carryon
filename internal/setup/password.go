@@ -100,29 +100,34 @@ func (s *secret) discard() {
 }
 
 // commit stores the password in the real password file (root only) and returns the repository
-// settings that read it. An older password file with a different password is kept as .old, so a
-// wrong choice never loses the password of another repository.
+// settings that read it.
 func (e *Env) commit(s *secret, url string) (config.Repository, error) {
 	if s.command != "" {
 		return config.Repository{URL: url, PasswordCommand: s.command}, nil
 	}
 	file := e.Dirs.PasswordFile()
-	old, err := os.ReadFile(file)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-	case err != nil:
-		return config.Repository{}, fmt.Errorf("reading %s: %w", file, err)
-	case strings.TrimRight(string(old), "\r\n") != s.password:
-		if err := writePrivate(file+".old", old); err != nil {
-			return config.Repository{}, err
-		}
-		e.Log.Warn("Kept the previous password as %s.old, since the new one is different.", file)
-	}
-	if err := writePrivate(file, []byte(s.password+"\n")); err != nil {
+	if err := e.savePassword(file, s.password); err != nil {
 		return config.Repository{}, err
 	}
 	s.discard()
 	return config.Repository{URL: url, PasswordFile: file}, nil
+}
+
+// savePassword writes pw to a password file only root can read. An older file with a different
+// password is kept as .old, so a wrong choice never loses the password of another repository.
+func (e *Env) savePassword(file, pw string) error {
+	old, err := os.ReadFile(file)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+	case err != nil:
+		return fmt.Errorf("reading %s: %w", file, err)
+	case strings.TrimRight(string(old), "\r\n") != pw:
+		if err := writePrivate(file+".old", old); err != nil {
+			return err
+		}
+		e.Log.Warn("Kept the previous password as %s.old, since the new one is different.", file)
+	}
+	return writePrivate(file, []byte(pw+"\n"))
 }
 
 // repoState is what a repository URL holds.

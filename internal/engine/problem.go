@@ -113,7 +113,9 @@ func remoteName(url string) string {
 }
 
 // causeLine picks the line of restic's stderr that says what went wrong: the message of a JSON
-// exit_error, else the last line that looks like an error, else the last line.
+// exit_error, else restic's last "Fatal:" line, else the last line that looks like an error, else
+// the last line. restic often ends with the repository's location, which mustn't win just because
+// its path holds a word like "fail".
 func causeLine(stderr string) string {
 	var lines []string
 	for _, ln := range strings.Split(stderr, "\n") {
@@ -129,6 +131,11 @@ func causeLine(stderr string) string {
 		if strings.HasPrefix(lines[i], "{") && json.Unmarshal([]byte(lines[i]), &msg) == nil && msg.Type == "exit_error" && msg.Message != "" {
 			first, _, _ := strings.Cut(strings.TrimSpace(msg.Message), "\n")
 			return fatalRE.ReplaceAllString(strings.TrimSpace(first), "")
+		}
+	}
+	for i := len(lines) - 1; i >= 0; i-- {
+		if fatalRE.MatchString(lines[i]) {
+			return fatalRE.ReplaceAllString(lines[i], "")
 		}
 	}
 	for i := len(lines) - 1; i >= 0; i-- {

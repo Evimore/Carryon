@@ -359,7 +359,9 @@ silently goes wrong:
   warning; an extra repository's `Include`d mirror list counts as its servers; the drift check uses
   the quick capture, so files only the nightly capture finds (`edited`) aren't compared; a program
   started by a unit counts as backed up when it is in any backed-up folder, not only a home; when
-  the destination isn't there, the age of the last backup comes from the run history; and the
+  the destination isn't there, the age of the last backup comes from the run history; a folder
+  the newest snapshot doesn't hold because it was added to the backup after that snapshot (it lies
+  outside every folder the snapshot was made of) is "not backed up yet", not a failure; and the
   prototype's Toolkit comparison is gone with the Toolkit.
 - **Paused while restoring:** a `restoring` flag stops automatic backups on a fresh install, so a
   half-restored system never becomes the newest snapshot. Kept from the prototype. **Change:** the

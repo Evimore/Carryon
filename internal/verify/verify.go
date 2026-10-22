@@ -30,6 +30,7 @@ import (
 	"github.com/Evimore/carryon/internal/paths"
 	"github.com/Evimore/carryon/internal/record"
 	"github.com/Evimore/carryon/internal/state"
+	"github.com/Evimore/carryon/internal/status"
 )
 
 // Logger reports progress. *ui.Logger provides it.
@@ -208,14 +209,8 @@ func pacmanArch(goarch string) string {
 	return goarch
 }
 
-// ago says how long ago t was, in whole hours.
-func ago(now, t time.Time) string {
-	h := int(now.Sub(t).Hours())
-	if h == 1 {
-		return "1 hour ago"
-	}
-	return fmt.Sprintf("%d hours ago", h)
-}
+// ago says how long before now t was, as carryon status says it: "just now", "5 minutes ago".
+func ago(now, t time.Time) string { return status.Ago(now.Sub(t)) }
 
 // stamp is how times are shown.
 func stamp(t time.Time) string { return t.Local().Format("2006-01-02 15:04") }

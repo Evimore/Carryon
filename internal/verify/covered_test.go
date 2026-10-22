@@ -80,6 +80,7 @@ func TestDKMS(t *testing.T) {
 	status := "examplefs/2.1.0, 6.11.1-arch1-1, x86_64: installed\nexamplefs/2.1.0, 6.6.50-1-lts, x86_64: installed\nwifi-driver/0.9: added\n"
 	tests := []struct {
 		name   string
+		status string
 		owners map[string]string
 		inRec  bool
 		level  Level
@@ -87,6 +88,10 @@ func TestDKMS(t *testing.T) {
 	}{
 		{name: "from packages", owners: map[string]string{"/usr/src/examplefs-2.1.0": "examplefs-dkms", "/usr/src/wifi-driver-0.9": "wifi-driver-dkms"},
 			level: OK, text: "come from packages (examplefs-dkms, wifi-driver-dkms)"},
+		{name: "one package, two versions",
+			status: "examplefs/2.1.0, 6.11.1-arch1-1, x86_64: installed\nexamplefs/2.2.0, 6.11.1-arch1-1, x86_64: installed\n",
+			owners: map[string]string{"/usr/src/examplefs-2.1.0": "examplefs-dkms", "/usr/src/examplefs-2.2.0": "examplefs-dkms"},
+			level:  OK, text: "come from packages (examplefs-dkms)."},
 		{name: "by hand", owners: map[string]string{"/usr/src/examplefs-2.1.0": "examplefs-dkms"},
 			level: Problem, text: "aren't from a package or in the backup"},
 		{name: "in the record", owners: map[string]string{"/usr/src/examplefs-2.1.0": "examplefs-dkms"}, inRec: true,
@@ -96,7 +101,11 @@ func TestDKMS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			env := newEnv(t)
 			env.pm.owners = tt.owners
-			env.run.On("dkms status", sysexec.Response{Stdout: status})
+			out := status
+			if tt.status != "" {
+				out = tt.status
+			}
+			env.run.On("dkms status", sysexec.Response{Stdout: out})
 			if tt.inRec {
 				write(t, filepath.Join(env.dirs.RecordDir(), capture.FilesDir, "usr/src/wifi-driver-0.9/dkms.conf"), "PACKAGE_NAME=wifi-driver\n")
 			}

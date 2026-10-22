@@ -1,6 +1,6 @@
 #!/bin/bash
 # Installs Carryon from the checkout mounted at /src, where docs/design.md "Install layout" puts it.
-# The binary is built on the host (bin/carryon). T19's package will replace this step.
+# The binary is built on the host (bin/carryon).
 . /src/test/e2e/lib.sh
 
 step "Installing Carryon"

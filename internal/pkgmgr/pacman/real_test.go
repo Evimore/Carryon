@@ -26,7 +26,7 @@ func (execRunner) Exists(name string) bool {
 }
 
 // realPacman returns a backend on the real system, or skips the test where there's no pacman (the
-// cloud container). The CI job "Test (Arch Linux)" runs these. They only read.
+// Ubuntu CI job, for example). The CI job "Test (Arch Linux)" runs these. They only read.
 func realPacman(t *testing.T) *Pacman {
 	t.Helper()
 	p := New(execRunner{}, Options{TempDir: t.TempDir()})

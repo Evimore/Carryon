@@ -274,7 +274,7 @@ func treeChanges(before, after map[string]entry, own map[string]string) string {
 	return b.String()
 }
 
-// applyCase is a plan from the T14 scenarios applied to its fake tree.
+// applyCase is a plan from plan_test.go's scenarios applied to its fake tree.
 type applyCase struct {
 	scenario string
 	extra    map[string]string // files added to the tree before applying; "a -> b" makes a symlink

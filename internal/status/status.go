@@ -16,8 +16,7 @@ import (
 // Format is the version of the JSON report's layout. Fields are only ever added.
 const Format = 1
 
-// KindVerify is the run kind of carryon verify. It matches state.KindVerify, which comes with
-// verify (T13).
+// KindVerify is the run kind of carryon verify, the same as state.KindVerify.
 const KindVerify = "verify"
 
 // The report's overall state.

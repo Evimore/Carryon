@@ -1,8 +1,8 @@
 # Roadmap
 
 How Carryon gets from the prototype to a public release. Each task below is sized for one pull
-request, so a person or an agent can pick it up on its own. Read [design.md](design.md) first, then
-the legacy functions the task names in [legacy/sysbackup.py](../legacy/sysbackup.py).
+request and can be picked up on its own. Read [design.md](design.md) first, then the legacy
+functions the task names in [legacy/sysbackup.py](../legacy/sysbackup.py).
 
 **Status key:** ✅ done · 🔨 in progress · ⬜ not started
 
@@ -25,16 +25,16 @@ maintainer steps in [packaging.md](packaging.md).
 Tasks in the same row of the dependency list can be done in parallel.
 
 ```
-T01 sysexec ─┬─► T05 facts ──────────┐
-T02 config ──┤   T06 pacman ─────────┼─► T07 capture ─► T08 bundle ─► T09 record store ─┐
-T03 engine ──┤   T10 catalog ────────┘                                                  ├─► T11 backup ─► T12 status
-T04 dest ────┘                                                                          │   T13 verify
-                                                                                        └─► T14 restore plan ─► T15 restore apply
-T16 terminal UI (any time) ─► T17 init + recovery kit + migration
-T18 notify ─► T19 packaging ─► T20 end-to-end tests
+program runner ─┬─► machine facts ──┐
+config ─────────┤   pacman backend ─┼─► capture ─► bundles ─► record store ─┐
+restic engine ──┤   catalog ────────┘                                       ├─► backup run ─► status
+destinations ───┘                                                           │   verify
+                                                                            └─► restore plan ─► restore apply
+terminal UI (any time) ─► init, recovery kit and migration
+notifications ─► packaging ─► end-to-end tests
 ```
 
-### T01 Program runner ✅
+### Program runner ✅
 - **Package:** `internal/sysexec`.
 - **Scope:** run a program and capture its output (with a timeout), run it attached to the terminal,
   run it as another user with that user's `HOME`, `XDG_RUNTIME_DIR` and session bus (like
@@ -43,7 +43,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `user_cmd`, `sh`, `call`, `have`.
 - **Done when:** other packages can be tested without running real programs.
 
-### T02 Config, complete ✅
+### Config, complete ✅
 - **Package:** `internal/config` (the skeleton already loads and validates the basics).
 - **Scope:** writing a commented config file (for `init`), `config check|get|set` support,
   `config_version` migration, per-user config (paths limited to the user's home), the effective
@@ -51,7 +51,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `load_conf`, `load_excludes`; `install.sh` for how excludes are merged.
 - **Done when:** a config round-trips with comments, and invalid values give clear errors.
 
-### T03 restic engine ✅
+### restic engine ✅
 - **Package:** `internal/engine`.
 - **Scope:** build restic commands and environment (`HOME`, `RESTIC_CACHE_DIR`, password file or
   command, `--retry-lock`), run quietly or with live output while keeping the last lines, parse
@@ -61,7 +61,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `rclone-as-user`.
 - **Done when:** tests run against a real local restic repository (CI installs restic).
 
-### T04 Destination guards ✅
+### Destination guards ✅
 - **Package:** `internal/dest`.
 - **Scope:** everything in [design: destinations and mount guards](design.md#destinations-and-mount-guards):
   filesystem UUID and repository ID checks, FUSE and network mount detection, reachability checks per
@@ -70,7 +70,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Done when:** an unmounted destination is never written to, proven by a test with a fake mount
   table.
 
-### T05 Machine facts ✅
+### Machine facts ✅
 - **Package:** `internal/facts`.
 - **Scope:** machine fingerprint, chassis, PCI and USB IDs, Bluetooth adapters, kernel modules (from
   modaliases), device names, root filesystem, bootloader, fingerprint readers, apps' USB devices. All
@@ -79,7 +79,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `machine_fingerprint`, `usb_present`, `fingerprint_readers`, `app_devices`.
 - **Done when:** `rules.Facts` is filled from a fake system tree in tests.
 
-### T06 pacman backend ✅
+### pacman backend ✅
 - **Package:** `internal/pkgmgr` (interface) and `internal/pkgmgr/pacman`.
 - **Scope:** explicit and foreign packages with their repositories, optional-only dependencies, file
   owners in batches, `backup=` files that were modified, edited package files (`-Qkk`, nightly only),
@@ -90,16 +90,16 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   in `capture_files` and `make_plan`.
 - **Done when:** parsing is tested with recorded pacman output.
 
-### T07 Capture ✅
+### Capture ✅
 - **Package:** `internal/capture`.
 - **Scope:** files, services, user units for every included user, unit needs, kernel parameters,
   users' groups and shells, language tools, backed-up paths, and the capture run that assembles the
-  record. Uses T05 and T06 through interfaces.
+  record. Uses machine facts and the pacman backend through interfaces.
 - **Legacy:** `capture_files`, `unit_props`, `capture_services`, `unit_needs`, `cmdline_config`,
   `capture_kernel`, `capture_account`, `capture_tools`, `sys_path_item`, `capture_paths`, `capture`.
 - **Done when:** a capture of a fake system tree produces the expected items.
 
-### T08 Bundles ✅
+### Bundles ✅
 - **Package:** `internal/bundle`.
 - **Scope:** the built-in bundles and their order, well-known rules, app stems, edited-config
   groups, settings-folder and autostart matching, extra-path matching, hardware bundles, fallbacks,
@@ -109,14 +109,14 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `firmware_when`, `assign_bundles`, `app_key`, `autostart_owner`.
 - **Done when:** golden tests over a realistic item list give the same bundles as the prototype.
 
-### T09 Record store ✅
+### Record store ✅
 - **Package:** `internal/record` (types, reading, writing and diffing already exist).
 - **Scope:** publishing a staged record atomically, the git history (commit only when items change),
   `SUMMARY.md`, change lines for commit messages.
 - **Legacy:** `summary_md`, `publish`, `change_lines`.
 - **Done when:** publishing twice without changes makes no commit.
 
-### T10 Catalog ✅
+### Catalog ✅
 - **Package:** `internal/catalog`, data in `catalog/`.
 - **Scope:** the catalog file format; default excludes; re-download hints (Steam games from their
   manifests, toolchains, app files) and the `not-backed-up.md` list; post-restore notes; an exclude
@@ -125,7 +125,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   `legacy/excludes.txt`.
 - **Done when:** the matcher agrees with restic on a table of patterns and paths.
 
-### T11 Backup run ✅
+### Backup run ✅
 - **Packages:** `internal/backup`, `internal/state`, `internal/detect` (hook part), `dist/`.
 - **Scope:** the backup run (guards, capture, restic backup with the effective excludes, retention,
   weekly prune, run history, `status.json`), the restoring flag, the pending marker and
@@ -134,13 +134,13 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `cmd_backup`, `cmd_pacman_hook`, `legacy/systemd/`, `legacy/pacman/`.
 - **Done when:** a backup to a local repository works in a test, and the hook never returns non-zero.
 
-### T12 Status ✅
+### Status ✅
 - **Scope:** `carryon status` from `status.json` without root; with root, optionally the snapshot
   list (`--snapshots`, since it opens the repository).
 - **Legacy:** `cmd_status`.
 - **Done when:** correct output without root and after a reboot.
 
-### T13 Verify ✅
+### Verify ✅
 - **Package:** `internal/verify`.
 - **Scope:** record checks (complete, fresh, drift), reinstallability (repository packages, AUR via
   its RPC API, extra repositories reachable, keys saved), coverage (units' programs, DKMS sources,
@@ -150,7 +150,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `Report`, `aur_info`, `repo_reachable`, `covered`, `cmd_verify`, `verify_cloud`,
   `finish`.
 
-### T14 Restore: source and plan ✅
+### Restore: source and plan ✅
 - **Package:** `internal/restore`.
 - **Scope:** choosing machine and snapshot, fetching its record, default ticks from when-rules,
   remembered choices, the plan (only what differs), diffs, boot-risk and review-only files, user
@@ -158,31 +158,31 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
 - **Legacy:** `get_source`, `pick`, `adapt`, `file_state`, `boot_risk`, `make_plan`, `show_plan`.
 - **Done when:** a plan for a format-1 record from the prototype matches the prototype's dry run.
 
-### T15 Restore: apply ✅
+### Restore: apply ✅
 - **Package:** `internal/restore` (`Applier`), `carryon restore`.
 - **Scope:** every phase in order, with failures collected, `*.pre-restore` copies, path adaptation,
   owner remapping, rclone config merge, desktop-session check, `--bundle` for a single bundle.
 - **Legacy:** `install_one_by_one`, `apply_plan`, `remap_owner`, `merge_rclone`, `restore_data`,
   `cmd_restore`.
 
-### T16 Terminal UI ✅
+### Terminal UI ✅
 - **Package:** `internal/ui`.
 - **Scope:** checklist with reasons, item picker with search, menus, confirmations, all with a
   non-interactive fallback (flags, `--defaults`).
 - **Legacy:** `checklist`, `item_picker`, `menu`, `confirm`.
 
-### T17 init, recovery kit and migration ✅
+### init, recovery kit and migration ✅
 - **Scope:** `carryon init` (destination, password, machine name, users, schedule; creates or opens
   the repository; enables units), `--connect`, the recovery kit, `--from-sysbackup`.
 - **Legacy:** `install.sh`.
 
-### T18 Notifications ✅
+### Notifications ✅
 - **Package:** `internal/notify`.
 - **Scope:** `carryon notify UNIT` for `OnFailure=`, a fallback notification into the user's session,
   ntfy and webhook senders.
 - **Legacy:** `cmd_notify`, `last_error`.
 
-### T19 Packaging ✅
+### Packaging ✅
 - **Scope:** `PKGBUILD`s for `carryon`, `carryon-bin` and `carryon-git` in `packaging/aur/`, a release
   workflow that builds static binaries and a tarball with `dist/`, man page and shell completions.
 - **Done:** the `Makefile` (`make`, `make install`, `make dist`, `make check-install`), the man page
@@ -190,7 +190,7 @@ T18 notify ─► T19 packaging ─► T20 end-to-end tests
   requests) and the "Package" workflow, which builds `carryon-git` with `makepkg`, runs namcap and
   installs it in an Arch container. See [packaging.md](packaging.md).
 
-### T20 End-to-end tests ✅
+### End-to-end tests ✅
 - **Scope:** a CI job in an Arch container: set up packages and settings, `carryon init` with a local
   repository, `backup`, then a fresh container, `init --connect`, `restore --defaults`, and compare the
   records. A VM job for systemd units and the hook.
@@ -205,26 +205,27 @@ login), explains what it does with a path, and gives saved settings back as apps
 of this is **New** in [design.md](design.md), so there is little prototype code to port: read the
 design sections each task names.
 
-Already done in v0.1: `carryon history` (T09), edited-file detection with `pacman -Qkk` (T06, T07)
-and restoring one bundle by hand with `carryon restore --bundle` (T15).
+Already done in v0.1: `carryon history`, edited-file detection with `pacman -Qkk` and restoring one
+bundle by hand with `carryon restore --bundle`.
 
 ```
-T21 inbox ─┬─► T22 detection scans ────────────────────────────┐
-           ├─► T23 restore as you go ─► T26 polkit and units ───┤
-           └─► T27 user agent ──────────────────────────────────┼─► T28 end-to-end tests
-T24 why ────────────────────────────────────────────────────────┤
-T25 login message ──────────────────────────────────────────────┘
+inbox ─┬─► detection scans ─────────────────────────┐
+       ├─► restore as you go ─► polkit and units ───┤
+       └─► user agent ──────────────────────────────┼─► end-to-end tests
+carryon why ────────────────────────────────────────┤
+login message ──────────────────────────────────────┘
 ```
 
 **Names the tasks share**, so they can be built in parallel:
 
-- The inbox is `/var/lib/carryon/inbox.json` (T21).
+- The inbox is `/var/lib/carryon/inbox.json`.
 - The agent's buttons start `carryon-backup.service` (**Back up now**),
   `carryon-restore@<bundle>.service` (**Restore**), and `carryon-add@<entry>.service` and
   `carryon-ignore@<entry>.service` (a suggestion's **Back it up** and **Ignore**). An instance name
-  is a bundle ID or an inbox entry ID, never a path (T23 adds the restore unit, T26 the others).
+  is a bundle ID or an inbox entry ID, never a path. Restore as you go adds the restore unit; the
+  polkit task adds the others.
 
-### T21 Inbox ✅
+### Inbox ✅
 - **Packages:** `internal/state` (the inbox file), `internal/cli` (`inbox`, `ignore`, `add`).
 - **Scope:** the inbox file, world-readable and free of secrets, shaped `{"entries": [...]}` as
   `carryon status` already counts it. Each entry has a short, stable ID that is safe as a systemd
@@ -241,7 +242,7 @@ T25 login message ────────────────────�
 - **Done when:** writers running at the same time don't lose entries, `add` and `ignore` settle an
   entry by path or ID, `carryon status` counts it, and all of it works without a terminal.
 
-### T22 Detection scans ✅
+### Detection scans ✅
 - **Package:** `internal/detect`.
 - **Scope:** [design: noticing new things](design.md#noticing-new-things).
   - **What:** folders in `/var/lib`, `/var/opt` and `/srv` holding data no package owns. Left out:
@@ -263,7 +264,7 @@ T25 login message ────────────────────�
 - **Done when:** a scan of a fake system tree suggests exactly its unowned data folders, each with
   the right app, and the hook still never fails or blocks pacman.
 
-### T23 Restore as you go ✅
+### Restore as you go ✅
 - **Packages:** `internal/restore`, `internal/setup`, `internal/detect` (hook part), `dist/`.
 - **Scope:** [design: as you go](design.md#as-you-go). Keep the source machine's record and its
   snapshot ID in the state folder (root only, like the record), from `init --connect` and after each
@@ -292,7 +293,7 @@ T25 login message ────────────────────�
   ran, so upgrades offer nothing and no second hook file is needed. `carryon inbox` shows an
   offer's changes.
 
-### T24 `carryon why` ✅
+### `carryon why` ✅
 - **Packages:** `internal/bundle`, a new `internal/why`, `internal/cli`.
 - **Scope:** `carryon why PATH` says in plain words whether and how a path is backed up:
   - in which backed-up folder (`/etc`, `/root`, `/srv`, `backup.extra_paths`, a user's home);
@@ -302,7 +303,7 @@ T25 login message ────────────────────�
   - the record item that holds it, its bundle, **the rule that put it there**, the bundle's
     when-rule, and whether it would start ticked here;
   - a package file that is unchanged and comes back with its package, or data that downloads itself
-    again (the not-backed-up hints); once T21 is in, an ignored path or one waiting in the inbox.
+    again (the not-backed-up hints); once the inbox is in, an ignored path or one waiting in it.
 
   `internal/bundle` learns to say which step put each item in its bundle (a `put` line, an app
   named after a unit or package, a well-known place, a settings folder named like a package...).
@@ -312,12 +313,11 @@ T25 login message ────────────────────�
 - **Legacy:** none; it reuses `excluded` and the bundle rules already ported.
 - **Done when:** a table test covers each answer above, including a default exclude taken back by
   `!` and an item moved by a `put` rule.
-- **Done:** every answer above. It also names a
-  folder marked as a cache (`CACHEDIR.TAG`, which `--exclude-caches` leaves out), a nested btrfs
-  subvolume, a user `backup.users` leaves out, and an item that today's `bundles.conf` would group
-  differently (the next capture moves it).
+- **Done:** every answer above. It also names a folder marked as a cache (`CACHEDIR.TAG`, which
+  `--exclude-caches` leaves out), a nested btrfs subvolume, a user `backup.users` leaves out, and an
+  item that today's `bundles.conf` would group differently (the next capture moves it).
 
-### T25 Login message ✅
+### Login message ✅
 - **Packages:** `internal/state`, `internal/status`, `internal/config`.
 - **Scope:** the "no desktop" path in [design: interfaces](design.md#interfaces). When something
   needs attention, by the same rules as `carryon status`, one line goes in
@@ -328,22 +328,22 @@ T25 login message ────────────────────�
 - **Legacy:** none.
 - **Done when:** a test shows status changes writing and removing the line.
 
-### T26 polkit rules and action units ✅
+### polkit rules and action units ✅
 - **Packages:** `dist/` (polkit rules and units), `internal/cli`, `packaging/`.
 - **Scope:** the `carryon-add@` and `carryon-ignore@` units (names above), and
   `/usr/share/polkit-1/rules.d/carryon.rules`, which lets users start every unit behind the agent's
-  buttons with `systemctl start`, without root. The default, decided in the pull request:
-  anyone with a local, active session may start a backup; restoring a bundle or settling a
-  suggestion changes what root writes or backs up, so it needs an administrator (`wheel`), and
-  others get polkit's password prompt (`auth_admin_keep`). Each unit checks its instance name
-  against the inbox and refuses anything else, so a user can never pass a path or an option to
-  root. The install layout (`packaging/layout.txt`, the `Makefile`,
-  [design: install layout](design.md#install-layout)) gets the rules and units.
+  buttons with `systemctl start`, without root. The default: anyone with a local, active session
+  may start a backup; restoring a bundle or settling a suggestion changes what root writes or backs
+  up, so it needs an administrator (`wheel`), and others get polkit's password prompt
+  (`auth_admin_keep`). Each unit checks its instance name against the inbox and refuses anything
+  else, so a user can never pass a path or an option to root. The install layout
+  (`packaging/layout.txt`, the `Makefile`, [design: install layout](design.md#install-layout)) gets
+  the rules and units.
 - **Legacy:** none.
 - **Done when:** `systemd-analyze verify` passes on the new units in CI, an unknown or path-like
   instance name is refused, and the layout check passes.
 
-### T27 User agent ✅
+### User agent ✅
 - **Packages:** a new `internal/agent`, `carryon agent`, `dist/` (the user unit).
 - **Scope:** `carryon-agent.service`, a user unit `carryon init` enables for every user, runs
   `carryon agent`, which refuses to run as root. It watches `status.json` and the inbox and shows
@@ -353,22 +353,21 @@ T25 login message ────────────────────�
   - a restore offer: what would change, with **Restore** and **Not now**, warning first if the app
     is running.
 
-  The buttons start the units T26 adds (`systemctl start`, through polkit); until T26 is in, tests
-  use fakes. The agent follows the user's own notification settings, shows each event once (across
-  restarts too), and writes nothing outside the user's home. While a user's agent runs, `carryon
-  notify` leaves that user's notification to it, so nobody gets two. Adds `godbus/dbus/v5` (pure Go,
-  named in the design).
+  The buttons start the units above (`systemctl start`, through polkit). The agent follows the
+  user's own notification settings, shows each event once (across restarts too), and writes nothing
+  outside the user's home. While a user's agent runs, `carryon notify` leaves that user's
+  notification to it, so nobody gets two. Adds `godbus/dbus/v5` (pure Go, named in the design).
 - **Legacy:** `cmd_notify`, the plain notification the agent improves on.
 - **Done when:** against a fake notification service on a private bus, each event shows once with
   the right buttons, and each button starts the right unit.
 - **Done:** all of it, on a private bus in the tests. The agent runs with the desktop session
   (`graphical-session.target`), polls the files every 5 seconds instead of watching them, and also
-  says when the newest backup is too old. A restore offer lists what it would change (T23's
-  `state.Entry.Changes`), and a renewed offer, whose plan changed, shows again. Problems carry a `kind` in
-  `carryon status --json`, which the agent reads. `carryon notify` leaves a user's desktop
+  says when the newest backup is too old. A restore offer lists what it would change (the inbox
+  entry's `changes`), and a renewed offer, whose plan changed, shows again. Problems carry a `kind`
+  in `carryon status --json`, which the agent reads. `carryon notify` leaves a user's desktop
   notification to their agent only for failures in the run history, which the agent can see.
 
-### T28 End-to-end tests for v0.2 ✅
+### End-to-end tests for v0.2 ✅
 - **Scope:** extend `test/e2e/`:
   - a data folder in `/var/lib` shows up in the inbox, `carryon add` of its ID makes the next backup
     hold it, and `carryon why` explains it;
@@ -377,21 +376,21 @@ T25 login message ────────────────────�
   - a user who isn't root starts `carryon-backup.service` through polkit;
   - the login message appears when a backup fails and goes away after the next good one.
 
-  Where it's cheap, also close gaps T20 listed: user units, `--user` mapping, a different machine
-  name.
+  Where it's cheap, also close the gaps the first end-to-end tests left: user units, `--user`
+  mapping, a different machine name.
 - **Done when:** the "End-to-end" workflow runs these on every pull request and stays under 15
   minutes.
 - **Done:** all four, in three parallel jobs. Restoring as you go got a job of its own, on machine C;
-  the login message was already covered by T25's checks in `systemd.sh`. polkit is checked in a logind
-  session on a virtual console in the foreground, on CI only (see `test/e2e/README.md`). Of T20's gaps: user
-  units (with lingering), `--user OLD=NEW` and a different machine name. It found that `carryon why`
-  named the record instead of `backup.extra_paths` for an added folder, fixed here.
+  the login message was already covered by its own checks in `systemd.sh`. polkit is checked in a
+  logind session on a virtual console in the foreground, on CI only (see `test/e2e/README.md`). Of
+  the earlier gaps: user units (with lingering), `--user OLD=NEW` and a different machine name. It
+  found that `carryon why` named the record instead of `backup.extra_paths` for an added folder,
+  which is fixed.
 
 ## Later milestones
 
 Broken into tasks when v0.2 is done. In short:
 
 - **v0.3:** tray icon, btrfs snapshots for consistent backups, battery and metered-network checks.
-  ntfy and webhook alerts and `status --json` for status bars were planned here but came with v0.1
-  (T18, T12).
+  ntfy and webhook alerts and `status --json` for status bars were planned here but came with v0.1.
 - **v0.4+:** apt and dnf backends, catalog import, Ludusavi, Dolphin and Nautilus menus.

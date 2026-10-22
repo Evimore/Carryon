@@ -15,10 +15,10 @@ HOME_FILES=".zshrc notes/todo.txt .config/exampleapp/settings.ini .config/exampl
 USERS="alice bob"
 declare -A GROUPS_OF=([alice]="wheel,video" [bob]="audio")
 declare -A SHELL_OF=([alice]="/usr/bin/zsh" [bob]="/bin/bash")
-# A folder in /var/lib holding data no package owns: the backup suggests it in the inbox (T22).
+# A folder in /var/lib holding data no package owns: the backup suggests it in the inbox.
 DATA_DIR=/var/lib/exampledb
-# An app whose bundle has saved settings (each user's ~/.config/nano), for restoring as you go
-# (T23). Machine C installs it after connecting.
+# An app whose bundle has saved settings (each user's ~/.config/nano), for restoring as you go.
+# Machine C installs it after connecting.
 APP=nano
 APP_BUNDLE=app-nano
 # A user unit alice enables, with lingering so her units run while she's signed out.

@@ -27,7 +27,7 @@ const maxErrorText = 300
 const errorLines = 3
 
 // ErrorSource gives the error lines of a unit's latest run. Journal reads them from the systemd
-// journal; T11 will add Carryon's own run history.
+// journal; RunHistory reads Carryon's own run history.
 type ErrorSource interface {
 	// LastError returns the last error lines of unit's latest run, or "" if it logged none.
 	LastError(ctx context.Context, unit string) (string, error)
@@ -155,8 +155,8 @@ func (c RemoteCheck) Check(ctx context.Context, repo config.Repository) *RemoteP
 	return &RemoteProblem{Remote: remote, Cause: lastLines(stderr, 1), Fix: remoteFix(repo, remote, stderr)}
 }
 
-// remoteFix says how to get an rclone remote answering again, with T03's wording for an expired
-// login and T04's otherwise.
+// remoteFix says how to get an rclone remote answering again, with the engine's wording for an
+// expired login and the destination check's otherwise.
 func remoteFix(repo config.Repository, remote, stderr string) string {
 	if p := engine.Classify(engine.ExitFatal, stderr, repo); strings.Contains(p.Fix, "rclone reconnect") {
 		return sentence(p.Fix)

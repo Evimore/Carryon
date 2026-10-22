@@ -684,7 +684,7 @@ Hidden, used by units and hooks: `hook`, `settle`, `notify`, `agent`, `rclone-sh
   grouping step that put each item there. The record doesn't store the step: `why` groups the
   record's items again with today's `bundles.conf`, and says so when that would move an item.
 
-- `--json` on read commands, so scripts, status bars and agents can use them.
+- `--json` on read commands, so scripts and status bars can use them.
 - **Terminal UI** (Bubble Tea) for `init`, the restore checklist and the inbox. Every prompt has a
   flag, so everything also works without a terminal.
 - **Notifications** come from the user agent over D-Bus, with action buttons. When no agent runs, the
@@ -712,7 +712,7 @@ doesn't reach that target simply keeps root's plain notifications. It refuses to
   `systemd-escape` does (`carryon-restore@app-gtk\x2b.service`). A service without buttons gets the command to
   run instead (`sudo carryon add path-3fa9c2d1e0`), and a body that may hold markup is escaped.
 - **Buttons** run `systemctl start --no-block` as the user, which polkit allows or asks a password
-  for (T26). When that fails, a notification says why and what to run by hand. **Not now** only
+  for. When that fails, a notification says why and what to run by hand. **Not now** only
   closes the offer: it stays in `carryon inbox`, and isn't shown again.
 - **What a restore changes:** the offer lists its `changes` lines from the inbox (places and
   counts, never file contents). When the plan changed and the offer was renewed with new lines,
@@ -899,8 +899,8 @@ system's loader, and the same binary must run from the recovery kit anywhere. Se
   (skipped where `dbus-daemon` isn't installed): each event shows once, with the right buttons, also
   after a restart, and each button starts the right unit through a fake `systemctl`. Its rules
   (settings, retries, the app check on a fake `/proc`) are tested with a notification service in
-  memory. A real desktop session, polkit and the units behind the buttons are left for T28 and
-  real machines.
+  memory. A real desktop session, polkit and the units behind the buttons are left for the end-to-end
+  tests and real machines.
 - **Golden tests** pin the record format and prove prototype records (format 1) still load.
 - **End to end in CI** (`test/e2e/`, the "End-to-end" workflow): machine A, an Arch container, gets a
   few packages, changed and added system files, a service, two users with home files and an extra

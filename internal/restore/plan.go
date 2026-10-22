@@ -19,7 +19,7 @@ import (
 // Phase is one step of applying a plan. Phases run in the order of Phases.
 type Phase string
 
-// The phases, in apply order (T15).
+// The phases, in apply order.
 const (
 	PhaseRepos        Phase = "repos"         // extra package repositories and their keys
 	PhasePackages     Phase = "packages"      // one system update plus packages

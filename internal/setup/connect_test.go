@@ -15,8 +15,8 @@ import (
 	"github.com/Evimore/carryon/internal/ui"
 )
 
-// desktopSettings backs up a Carryon machine named desktop with its settings, as T11 lays a
-// backup out, and removes them from this machine.
+// desktopSettings backs up a Carryon machine named desktop with its settings, as a backup lays
+// it out, and removes them from this machine.
 func (h *harness) desktopSettings(fingerprint string) {
 	h.t.Helper()
 	e := h.makeRepo(h.repo, testPassword)

@@ -8,7 +8,6 @@ OnFailure=carryon-notify@%n.service
 
 [Service]
 Type=oneshot
-# carryon verify comes with roadmap task T13.
 ExecStart=/usr/bin/carryon verify --deep
 Nice=19
 IOSchedulingClass=idle

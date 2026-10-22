@@ -81,7 +81,7 @@ func TestRestorePlanFromRecord(t *testing.T) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
 	}
-	if strings.Contains(out, "T15") {
+	if strings.Contains(out, "Apply this plan?") {
 		t.Errorf("--plan said more than the plan:\n%s", out)
 	}
 	full, err := os.ReadFile(filepath.Join(dirs.State, "restore-plan.txt"))

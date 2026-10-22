@@ -14,8 +14,16 @@
 /var/lib/PackageKit
 /var/lib/dkms
 
-# systemd, D-Bus, logins and devices
+# Drivers a hardware tool installed for this machine's devices; a fresh install picks its own
+# (chwd on CachyOS, mhwd on Manjaro)
+/var/lib/chwd
+/var/lib/mhwd
+
+# systemd, D-Bus, logins, disks and devices (an old random seed must never go to another machine)
 /var/lib/systemd
+/var/lib/urandom
+/var/lib/lastlog
+/var/lib/wtmpdb
 /var/lib/machines
 /var/lib/portables
 /var/lib/dbus
@@ -25,10 +33,14 @@
 /var/lib/udisks2
 /var/lib/boltd
 /var/lib/fwupd
+/var/lib/passim
 /var/lib/colord
 /var/lib/power-profiles-daemon
+/var/lib/tlp
 /var/lib/rasdaemon
 /var/lib/tpm2-tss
+/var/lib/btrfs
+/var/lib/smartmontools
 /var/lib/plymouth
 /var/lib/geoclue
 /var/lib/alsa
@@ -46,6 +58,12 @@
 /var/lib/sddm
 /var/lib/lightdm
 /var/lib/lightdm-data
+/var/lib/plasmalogin
+
+# Indexes and downloads that rebuild themselves: the locate database, virus signatures
+/var/lib/plocate
+/var/lib/mlocate
+/var/lib/clamav
 
 # Network state: leases and timestamps (connections are in /etc)
 /var/lib/NetworkManager
@@ -56,5 +74,13 @@
 /var/lib/nfs
 /var/lib/rpcbind
 
-# Carryon's own state
+# Servers' working files: temporary uploads, locks, certbot's work folder (the certificates are
+# in /etc/letsencrypt) and fail2ban's list of bans
+/var/lib/nginx
+/var/lib/postfix
+/var/lib/letsencrypt
+/var/lib/fail2ban
+
+# Carryon's own state, and the prototype's (of no use after carryon init --from-sysbackup)
 /var/lib/carryon
+/var/lib/sysbackup

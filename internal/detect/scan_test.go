@@ -259,6 +259,47 @@ func TestReadKnownFolders(t *testing.T) {
 	}
 }
 
+// Folders the system makes again by itself are never suggested, with the shipped list.
+func TestScanLeavesTheShippedSystemFoldersAlone(t *testing.T) {
+	known, err := ReadKnownFolders("../../catalog/system-folders.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	for _, name := range []string{
+		"var/lib/lastlog/lastlog2.db",
+		"var/lib/urandom/random-seed",
+		"var/lib/plocate/plocate.db",
+		"var/lib/mlocate/mlocate.db",
+		"var/lib/passim/data/firmware.cab",
+		"var/lib/plasmalogin/state.conf",
+		"var/lib/sysbackup/state.json",
+		"var/lib/chwd/local/pci/nvidia-open-dkms/profiles.toml",
+		"var/opt/mystery/data", // not a system folder: suggested
+	} {
+		write(t, filepath.Join(root, name), "x\n")
+	}
+	f := &sysexec.Fake{}
+	f.On("pacman -Qlq", sysexec.Response{})
+	f.On("env LC_ALL=C pacman -Qo /var/opt/mystery", sysexec.Response{Stderr: "error: No package owns /var/opt/mystery\n", Code: 1})
+	opt := ScanOptions{
+		Root:    root,
+		Runner:  f,
+		Manager: pacman.New(f, pacman.Options{Root: root}),
+		Mounts:  dest.MountTable{{ID: 1, MountPoint: "/", FSType: "ext4", Source: "/dev/sda2"}},
+		Known:   known,
+		LargeGB: 10,
+		All:     true,
+	}
+	res, err := Scan(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("%v\n%q", err, f.Commands())
+	}
+	if got, want := summary(res.Found), []found{{"/var/opt/mystery", "", ""}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("found %v, want %v", got, want)
+	}
+}
+
 func testDirs(t *testing.T) paths.Dirs {
 	t.Helper()
 	tmp := t.TempDir()
